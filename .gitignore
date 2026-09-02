@@ -1,0 +1,29 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# IntelliJ IDEA and editors
+.idea/
+*.iml
+.vscode/
+
+# Java / Maven
+backend/target/
+*.log
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# Operating systems
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local tooling
+*.swp
+*.swo
+*.tmp
