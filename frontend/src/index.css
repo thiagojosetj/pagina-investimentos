@@ -1,0 +1,82 @@
+:root {
+  --paper: #f4f6f1;
+  --surface: #ffffff;
+  --surface-alt: #f8faf7;
+  --ink: #102a2b;
+  --muted-strong: #4f6261;
+  --muted: #758280;
+  --border: #dce3dc;
+  --border-strong: #c7d1ca;
+  --teal: #087e71;
+  --teal-dark: #075f57;
+  --teal-soft: #e0f1ec;
+  --green: #3f8e5a;
+  --green-soft: #dceee2;
+  --amber: #ca8b24;
+  --amber-soft: #fff3d9;
+  --red: #a84138;
+  --red-soft: #fbe9e6;
+  --shadow: 0 20px 54px rgba(27, 52, 47, 0.09);
+  --font-display:
+    'Aptos Display', 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+  --font-body: 'Aptos', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(
+      circle at 88% 7%,
+      rgba(8, 126, 113, 0.08),
+      transparent 25rem
+    ),
+    var(--paper);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(8, 126, 113, 0.28);
+  outline-offset: 2px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+::selection {
+  color: #fff;
+  background: var(--teal);
+}
