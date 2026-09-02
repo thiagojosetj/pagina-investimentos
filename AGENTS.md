@@ -11,7 +11,7 @@ Este arquivo orienta agentes de desenvolvimento que trabalhem neste repositório
 - Ambiente principal: Windows, PowerShell, IntelliJ IDEA, Git e Docker Desktop.
 - Idioma: documentação e interface em português; código, APIs, contratos técnicos e commits preferencialmente em inglês.
 - Stack aprovada: Java 21, Spring Boot, PostgreSQL e React/Vite/TypeScript, conforme `docs/DECISIONS.md`.
-- Repositório remoto: planejado. Não afirmar que está público antes da publicação ser verificada.
+- Repositório remoto: `https://github.com/thiagojosetj/pagina-investimentos.git`; confirmar o conteúdo publicado e a CI antes de afirmar que a versão está disponível.
 
 O projeto deve evoluir em incrementos úteis e verificáveis. Não adicionar tecnologia, abstração, código ou atividade Git apenas para parecer mais avançado.
 

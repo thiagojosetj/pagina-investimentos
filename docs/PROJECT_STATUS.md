@@ -6,7 +6,7 @@
 
 O primeiro corte vertical está implementado e validado localmente. Ele oferece uma interface React responsiva conectada a uma API Spring Boot que calcula a distribuição de um novo aporte por déficit monetário projetado.
 
-O projeto ainda está somente no computador local. O repositório GitHub, o primeiro push e a execução real da CI permanecem pendentes do processo de publicação e da aprovação do estado exato exigida pelo `AGENTS.md`.
+O repositório público vazio `thiagojosetj/pagina-investimentos` foi criado e configurado como `origin`. O conteúdo, o primeiro push e a execução real da CI permanecem pendentes da aprovação do estado exato exigida pelo `AGENTS.md`.
 
 ## Entregue
 
