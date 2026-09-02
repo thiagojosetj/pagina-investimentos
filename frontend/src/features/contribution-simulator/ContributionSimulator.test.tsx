@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ContributionSimulator } from './ContributionSimulator'
@@ -107,6 +107,42 @@ describe('ContributionSimulator', () => {
         body: expect.stringContaining('"contribution":"2000.00"'),
       }),
     )
+  })
+
+  it('ignores a pending response after the user changes an input', async () => {
+    const user = userEvent.setup()
+    let resolveRequest!: (response: Response) => void
+    const pendingRequest = new Promise<Response>((resolve) => {
+      resolveRequest = resolve
+    })
+    const fetchMock = vi.fn().mockReturnValue(pendingRequest)
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ContributionSimulator />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
+
+    await user.clear(screen.getByLabelText('Quanto você quer aportar?'))
+
+    expect(requestOptions.signal).toBeInstanceOf(AbortSignal)
+    expect(requestOptions.signal?.aborted).toBe(true)
+
+    await act(async () => {
+      resolveRequest(
+        new Response(JSON.stringify(successfulResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      await pendingRequest
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    expect(
+      screen.queryByText('Distribuição do novo aporte'),
+    ).not.toBeInTheDocument()
   })
 
   it('shows the API validation detail without presenting stale results', async () => {

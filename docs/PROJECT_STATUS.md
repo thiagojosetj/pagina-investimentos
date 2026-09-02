@@ -23,7 +23,7 @@ O repositório público vazio `thiagojosetj/pagina-investimentos` foi criado e c
 ## Verificações locais registradas
 
 - Backend: Maven `verify`, 15 testes, 0 falhas, artefato gerado.
-- Frontend: format-check, Oxlint, TypeScript, 3 testes Vitest e build Vite.
+- Frontend: format-check, Oxlint, TypeScript, 4 testes Vitest e build Vite.
 - Integração local: frontend, proxy Vite, API, endpoint de status e OpenAPI responderam HTTP 200; o exemplo retornou `0 / 1200 / 400 / 400`.
 - Docker: Compose validado; PostgreSQL 18.6 iniciou com healthcheck saudável, aceitou conexão e foi interrompido sem remover seu volume.
 

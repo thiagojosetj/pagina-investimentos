@@ -13,6 +13,7 @@ export class SimulationApiError extends Error {
 
 export async function simulateContribution(
   request: ContributionSimulationRequest,
+  signal?: AbortSignal,
 ): Promise<ContributionSimulationResponse> {
   let response: Response
 
@@ -24,8 +25,12 @@ export async function simulateContribution(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(request),
+      signal,
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error
+    }
     throw new SimulationApiError(
       'Não foi possível conectar à API. Confirme se o backend está em execução.',
     )

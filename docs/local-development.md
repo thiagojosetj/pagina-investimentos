@@ -7,7 +7,7 @@ Este guia considera Windows 11, PowerShell 7 e IntelliJ IDEA Ultimate. Os comand
 | Ferramenta | Versão usada na validação | Papel |
 | --- | --- | --- |
 | JDK | 21.0.10 | Compilar e executar a API |
-| Maven | 3.9.14 pelo Wrapper | Dependências, testes e build Java |
+| Maven | 3.9.16 pelo Wrapper | Dependências, testes e build Java |
 | Node.js | 24.15.0 LTS | Executar o toolchain web |
 | npm | 11.12.1 | Instalação reproduzível pelo lockfile |
 | Docker Desktop | 4.89.0 | Hospedar somente serviços de infraestrutura |

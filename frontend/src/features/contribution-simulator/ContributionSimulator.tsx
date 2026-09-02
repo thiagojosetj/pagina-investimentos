@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { simulateContribution } from './api'
 import type {
@@ -239,6 +239,9 @@ export function ContributionSimulator() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const nextClassNumber = useRef(5)
+  const activeRequest = useRef<AbortController | null>(null)
+
+  useEffect(() => () => activeRequest.current?.abort(), [])
 
   const targetTotal = useMemo(
     () =>
@@ -256,6 +259,7 @@ export function ContributionSimulator() {
     field: 'name' | 'currentAmount' | 'targetPercentage',
     value: string,
   ) {
+    invalidateSimulation()
     setAllocations((current) =>
       current.map((allocation, allocationIndex) =>
         allocationIndex === index
@@ -263,11 +267,10 @@ export function ContributionSimulator() {
           : allocation,
       ),
     )
-    setResult(null)
-    setError(null)
   }
 
   function addAllocation() {
+    invalidateSimulation()
     const number = nextClassNumber.current
     nextClassNumber.current += 1
     setAllocations((current) => [
@@ -279,26 +282,34 @@ export function ContributionSimulator() {
         targetPercentage: '0',
       },
     ])
-    setResult(null)
   }
 
   function removeAllocation(index: number) {
+    invalidateSimulation()
     setAllocations((current) =>
       current.filter((_, itemIndex) => itemIndex !== index),
     )
-    setResult(null)
-    setError(null)
   }
 
   function restoreExample() {
+    invalidateSimulation()
     setAllocations(INITIAL_ALLOCATIONS.map((allocation) => ({ ...allocation })))
     setContribution('2000,00')
+  }
+
+  function invalidateSimulation() {
+    activeRequest.current?.abort()
+    activeRequest.current = null
+    setIsLoading(false)
     setResult(null)
     setError(null)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    activeRequest.current?.abort()
+    const requestController = new AbortController()
+    activeRequest.current = requestController
     setError(null)
     setIsLoading(true)
 
@@ -314,16 +325,30 @@ export function ContributionSimulator() {
     }
 
     try {
-      setResult(await simulateContribution(request))
-    } catch (caughtError) {
-      setResult(null)
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Não foi possível concluir a simulação.',
+      const simulation = await simulateContribution(
+        request,
+        requestController.signal,
       )
+      if (activeRequest.current === requestController) {
+        setResult(simulation)
+      }
+    } catch (caughtError) {
+      if (
+        activeRequest.current === requestController &&
+        !(caughtError instanceof Error && caughtError.name === 'AbortError')
+      ) {
+        setResult(null)
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Não foi possível concluir a simulação.',
+        )
+      }
     } finally {
-      setIsLoading(false)
+      if (activeRequest.current === requestController) {
+        activeRequest.current = null
+        setIsLoading(false)
+      }
     }
   }
 
@@ -462,9 +487,8 @@ export function ContributionSimulator() {
               id="contribution"
               inputMode="decimal"
               onChange={(event) => {
+                invalidateSimulation()
                 setContribution(event.target.value)
-                setResult(null)
-                setError(null)
               }}
               required
               type="text"
