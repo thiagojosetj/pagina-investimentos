@@ -120,14 +120,14 @@ function EmptyResult() {
       <span className="empty-result-number">01</span>
       <div>
         <p className="eyebrow">Como o cálculo funciona</p>
-        <h2>O aporte segue os déficits da carteira.</h2>
+        <h2>O aporte é simulado a partir dos déficits da carteira.</h2>
         <p>
           O cálculo compara cada valor atual com a meta monetária projetada após
           o aporte. Classes acima da meta recebem zero; o restante é dividido
           proporcionalmente entre os déficits.
         </p>
         <ul>
-          <li>Sem recomendação de venda</li>
+          <li>Nenhuma venda é simulada</li>
           <li>Precisão monetária em centavos</li>
           <li>Resultado determinístico e testável</li>
         </ul>
@@ -145,7 +145,7 @@ function SimulationResult({
     <div className="result-content" aria-live="polite">
       <div className="result-heading">
         <div>
-          <p className="eyebrow">Plano calculado</p>
+          <p className="eyebrow">Resultado da simulação</p>
           <h2>Distribuição do novo aporte</h2>
         </div>
         <span className="method-label">Déficit proporcional</span>
@@ -478,8 +478,8 @@ export function ContributionSimulator() {
         <div className="contribution-field">
           <label htmlFor="contribution">Quanto você quer aportar?</label>
           <p>
-            O valor será direcionado somente às classes abaixo da meta
-            projetada.
+            Na simulação, o valor é distribuído somente entre as classes abaixo
+            da meta projetada.
           </p>
           <span className="contribution-input">
             <b aria-hidden="true">R$</b>

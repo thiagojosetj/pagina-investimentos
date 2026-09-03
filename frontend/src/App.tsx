@@ -26,22 +26,23 @@ function App() {
             <small>de Carteira</small>
           </span>
         </a>
-        <span className="status-badge">MVP educacional</span>
+        <span className="status-badge">Módulo inicial</span>
       </header>
 
       <main id="top">
         <section className="intro" aria-labelledby="page-title">
           <div>
-            <p className="eyebrow">Aporte com propósito</p>
+            <p className="eyebrow">Simulador de aportes</p>
             <h1 id="page-title">
-              Aproxime sua carteira das metas a cada novo aporte.
+              Simule como um novo aporte pode aproximar a carteira das metas.
             </h1>
           </div>
           <div className="intro-copy">
             <p>
-              Informe a situação atual e os percentuais desejados. O simulador
-              distribui o valor disponível entre as classes com maior déficit,
-              sem sugerir vendas.
+              Este é o primeiro módulo de uma plataforma de carteira em
+              evolução. Por enquanto, ele trabalha com um cenário informado na
+              tela; carteiras salvas, ativos e movimentações ainda não estão
+              disponíveis.
             </p>
             <p className="disclaimer">
               Simulação educacional. Não constitui recomendação de investimento.

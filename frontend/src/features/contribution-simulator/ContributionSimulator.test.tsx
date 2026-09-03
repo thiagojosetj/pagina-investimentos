@@ -76,7 +76,9 @@ describe('ContributionSimulator', () => {
     expect(screen.getByLabelText('Valor atual de Ações')).toHaveValue('4800,00')
     expect(screen.getByText(/Soma das metas:/)).toHaveTextContent('100,00%')
     expect(
-      screen.getByText('O aporte segue os déficits da carteira.'),
+      screen.getByText(
+        'O aporte é simulado a partir dos déficits da carteira.',
+      ),
     ).toBeInTheDocument()
   })
 
