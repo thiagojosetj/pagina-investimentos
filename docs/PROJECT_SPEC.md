@@ -2,7 +2,7 @@
 
 ## 1. Visão do produto
 
-O Planejador de Carteira é uma aplicação web pessoal e educacional para registrar uma carteira fictícia, comparar a alocação atual com metas configuradas pelo usuário e planejar novos aportes. O diferencial do portfólio é uma regra financeira pequena, explicável e rigorosamente testada, apoiada por uma aplicação full stack bem documentada.
+O Planejador de Carteira é uma aplicação web pessoal e educacional para acompanhar uma carteira por categorias e ativos, registrar movimentações, visualizar indicadores e planejar novos aportes. O simulador de alocação é um dos módulos da plataforma, não o produto inteiro. O diferencial do portfólio combina regras financeiras pequenas, explicáveis e rigorosamente testadas com uma aplicação full stack bem documentada.
 
 O produto não pretende substituir corretora, consolidador oficial, sistema contábil ou orientação profissional.
 
@@ -12,6 +12,21 @@ O produto não pretende substituir corretora, consolidador oficial, sistema cont
 - Evoluir em fatias verticais úteis, compatíveis com sessões de uma a três horas.
 - Manter precisão monetária, isolamento entre usuários e rastreabilidade como requisitos arquiteturais.
 - Produzir uma experiência clara com dados manuais e sintéticos antes de integrar provedores externos.
+
+## 2.1. Visão funcional em evolução
+
+A experiência principal desejada é um dashboard capaz de consolidar, com origem e data de referência explícitas:
+
+- patrimônio e eventual saldo em caixa;
+- posições separadas por categoria e por ativo;
+- quantidade, preço médio, custo, cotação e valor de mercado de cada posição;
+- resultado realizado e não realizado segundo metodologia educacional documentada;
+- proventos recebidos e indicadores de dividendos com período e fórmula identificados;
+- alocação atual, meta e desvio por classe e por ativo;
+- gráficos de composição e evolução;
+- acesso ao simulador de novos aportes baseado nas metas do usuário.
+
+Rentabilidade, saldo, dividend yield e resultado possuem mais de uma definição válida. As fórmulas e o tratamento de compras, vendas, custos, proventos e períodos precisam ser aprovados antes da implementação. Alertas de desvio e simulações podem explicar a distância até as metas do usuário, mas não selecionar ativos nem se apresentar como recomendação financeira.
 
 ## 3. Escopo do MVP
 

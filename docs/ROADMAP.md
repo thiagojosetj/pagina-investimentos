@@ -6,7 +6,7 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 
 ### INC-001 — Estrutura e documentação inicial
 
-- **Status:** concluído localmente.
+- **Status:** concluído.
 - **Objetivo:** criar uma raiz reproduzível, documentar produto, decisões e ambiente.
 - **Dependências:** stack e escopo inicial aprovados.
 - **Critérios de aceite:** arquivos obrigatórios presentes; exemplos sintéticos; comandos sem caminhos absolutos.
@@ -15,7 +15,7 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 
 ### INC-002 — Regra pura de alocação
 
-- **Status:** concluído localmente.
+- **Status:** concluído.
 - **Objetivo:** distribuir um aporte proporcionalmente aos déficits monetários projetados.
 - **Dependências:** ADR-003 e ADR-004.
 - **Critérios de aceite:** sem ponto flutuante; sem vendas; soma das sugestões igual ao aporte; desempate determinístico.
@@ -24,7 +24,7 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 
 ### INC-003 — API do simulador
 
-- **Status:** concluído localmente.
+- **Status:** concluído.
 - **Objetivo:** expor a regra por um contrato HTTP versionado.
 - **Dependências:** INC-002.
 - **Critérios de aceite:** DTOs explícitos, strings decimais, validação, Problem Details e OpenAPI.
@@ -33,7 +33,7 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 
 ### INC-004 — Interface funcional do simulador
 
-- **Status:** concluído localmente.
+- **Status:** concluído.
 - **Objetivo:** entregar uma tela responsiva que consuma a API real.
 - **Dependências:** INC-003.
 - **Critérios de aceite:** editar/adicionar/remover classes, normalizar vírgula, mostrar loading/empty/error/success e comparar alocação atual/projetada.
@@ -42,7 +42,7 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 
 ### INC-005 — CI e primeira publicação
 
-- **Status:** configuração local concluída; execução real e publicação pendentes.
+- **Status:** concluído.
 - **Objetivo:** publicar o repositório e validar os dois módulos no GitHub Actions.
 - **Dependências:** INC-001 a INC-004 e aprovação do estado exato do push.
 - **Critérios de aceite:** repositório público vazio criado, `origin` correto, push normal de `main`, jobs backend/frontend verdes.
@@ -145,8 +145,57 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 - **Verificações:** regras de valuation, API, UI responsiva e isolamento entre usuários.
 - **Definition of Done:** primeiro fluxo estável de cadastro até planejamento do aporte.
 
+## Fase 4 — Acompanhamento da carteira
+
+Os itens desta fase refletem a visão desejada, mas a divisão entre MVP e pós-MVP ainda precisa ser ratificada.
+
+### INC-016 — Definir indicadores e fórmulas
+
+- **Status:** proposto; aprovação obrigatória.
+- **Objetivo:** definir patrimônio, saldo, custo, preço médio, resultados, rentabilidade e indicadores de proventos sem ambiguidade.
+- **Dependências:** modelo de movimentações do INC-012.
+- **Critérios de aceite:** período, fórmula, escala, arredondamento e tratamento de compras, vendas, custos e proventos documentados.
+- **Verificações:** exemplos sintéticos normais e casos-limite calculados manualmente.
+- **Definition of Done:** fórmulas aprovadas antes de aparecerem na API ou na interface.
+
+### INC-017 — Dashboard por categoria e ativo
+
+- **Status:** proposto.
+- **Objetivo:** consolidar patrimônio, posições, resultados e alocação em uma superfície responsiva.
+- **Dependências:** INC-015 e INC-016.
+- **Critérios de aceite:** visão por categoria e ativo, estados sem dados/cotação e origem dos valores visível.
+- **Verificações:** testes de domínio, endpoint, componente e integração frontend/backend.
+- **Definition of Done:** o dashboard reconcilia seus totais com as movimentações e cotações persistidas.
+
+### INC-018 — Proventos manuais e indicadores
+
+- **Status:** proposto.
+- **Objetivo:** registrar proventos e exibir totais por ativo e período.
+- **Dependências:** INC-013 e INC-016.
+- **Critérios de aceite:** tipo, data de referência, data de pagamento, valor e moeda validados; fórmulas claramente rotuladas.
+- **Verificações:** dividendos, JCP, amortizações, estorno e períodos sem pagamento.
+- **Definition of Done:** os indicadores podem ser reproduzidos a partir dos fatos persistidos.
+
+### INC-019 — Pesquisa e contrato do primeiro provedor de mercado
+
+- **Status:** proposto; aprovação obrigatória.
+- **Objetivo:** selecionar uma fonte legalmente adequada para metadados e cotações com fallback manual.
+- **Dependências:** universo inicial de ativos aprovado.
+- **Critérios de aceite:** documentação oficial, termos, licença, custo, cobertura, defasagem, rate limit e atribuição registrados.
+- **Verificações:** prova técnica isolada, timeout, indisponibilidade, símbolo ausente e fake determinístico.
+- **Definition of Done:** provedor e contrato aprovados antes de integrar dados externos ao domínio.
+
+### INC-020 — Gráficos de composição e evolução
+
+- **Status:** proposto.
+- **Objetivo:** visualizar alocação por classe/ativo e evolução dos indicadores aprovados.
+- **Dependências:** INC-017 e histórico suficiente.
+- **Critérios de aceite:** unidades, períodos, legendas, tooltips e estados vazios acessíveis; nenhum gráfico implica previsão.
+- **Verificações:** testes de transformação dos dados, componentes e responsividade.
+- **Definition of Done:** cada gráfico usa dados reconciliados e informa período e fonte.
+
 ## Pós-MVP candidato
 
-Prioridade futura, sujeita a pesquisa e aprovação: proventos, filtros históricos, watchlist, benchmarks, importação CSV/Excel idempotente, exportação segura, primeiro provedor substituível de cotações, deploy público e E2E no navegador.
+Prioridade futura, sujeita a pesquisa e aprovação: filtros históricos avançados, watchlist, benchmarks, importação CSV/Excel idempotente, exportação segura, notificações, múltiplas moedas, deploy da aplicação e E2E no navegador.
 
 Integrações financeiras só podem entrar após consulta a fontes oficiais, termos/licenças, custos, limites, atribuição, data da pesquisa e riscos. B3 autenticada, credenciais bancárias e endpoints internos permanecem fora de escopo.

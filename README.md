@@ -1,6 +1,6 @@
 # Planejador de Carteira
 
-Plataforma full stack educacional para comparar a alocação atual de uma carteira com metas definidas pelo próprio usuário e simular novos aportes de forma determinística.
+Projeto de uma plataforma full stack educacional para acompanhar uma carteira por categorias e ativos, analisar sua evolução e planejar aportes. O módulo disponível atualmente compara a alocação informada com metas definidas pelo próprio usuário e simula novos aportes de forma determinística.
 
 > **Aviso:** este projeto é uma ferramenta de estudo e planejamento. Não seleciona ativos, não analisa perfil de investidor e não constitui recomendação de compra ou venda.
 
@@ -18,7 +18,11 @@ O primeiro corte vertical funcional está implementado:
 - documentação OpenAPI e Swagger UI;
 - testes automatizados do domínio, da API e do fluxo crítico da interface.
 
+O código está publicado em [`thiagojosetj/pagina-investimentos`](https://github.com/thiagojosetj/pagina-investimentos), e a primeira execução real da CI foi aprovada nos jobs de backend e frontend.
+
 Ainda **não** existem contas, autenticação, persistência de carteiras, ativos, movimentações ou cotações. O PostgreSQL está preparado no Compose para os próximos incrementos, mas não é necessário para executar o simulador atual.
+
+A visão do produto inclui um dashboard por categorias e ativos, posições derivadas de movimentações, patrimônio, custos, resultados, proventos e gráficos. Esses recursos estão planejados, mas ainda não devem ser interpretados como funcionalidades entregues. Qualquer cotação externa dependerá de pesquisa e aprovação do provedor, licença, limites e defasagem.
 
 ## Stack implementada
 

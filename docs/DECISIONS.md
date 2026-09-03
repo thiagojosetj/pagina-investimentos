@@ -111,6 +111,27 @@ Usar `springdoc-openapi` 3.1, compatível com Spring Boot 4, para gerar o contra
 - Hospedagem e ambientes públicos.
 - Primeiro provedor de cotações, seus termos e licença.
 
+## Pesquisa preliminar — Google e dados de mercado
+
+**Consulta:** 2 de setembro de 2026. **Status:** nenhum provedor selecionado.
+
+A documentação oficial localizada oferece `GOOGLEFINANCE` como uma função do Google Sheets, não como uma API de cotações destinada ao backend desta aplicação. O próprio Google informa que as cotações podem atrasar até 20 minutos, não cobrem todos os mercados, podem faltar para alguns símbolos e que dados históricos da função não podem ser acessados pela Sheets API ou por Apps Script. O aviso legal também restringe copiar, armazenar e redistribuir esses dados sem consentimento. Portanto, usar uma planilha como ponte automática para o backend seria tecnicamente frágil e juridicamente inadequado sem licença específica.
+
+Uma integração Google separada continua possível para autenticação por OpenID Connect ou, futuramente, importação/exportação consentida no Google Sheets. Isso não resolve a origem das cotações e deverá ser decidido junto da estratégia de autenticação.
+
+O portal B3 for Developers informa que suas APIs são B2B e não oferecem acesso direto para pessoas físicas. A política de consumo de Market Data também prevê análise e contrato para desenvolvimento de produtos. Assim, dados B3 não serão copiados ou redistribuídos sem fonte e licença compatíveis.
+
+Antes de implementar cotações, serão comparados provedores documentados com cobertura real dos ativos escolhidos, custo sustentável, permissão de exibição, histórico, limites e fallback manual. Scraping do Google Finance, de corretoras ou de áreas autenticadas permanece rejeitado.
+
+Referências oficiais consultadas:
+
+- [Função GOOGLEFINANCE e limitações](https://support.google.com/docs/answer/3093281)
+- [Aviso legal do Google Finance](https://www.google.com/intl/pt-BR/googlefinance/disclaimer/)
+- [Google Sheets API](https://developers.google.com/workspace/sheets/api/reference/rest)
+- [Google Identity Services](https://developers.google.com/identity)
+- [B3 for Developers](https://developers.b3.com.br/)
+- [Política de consumo de Market Data B3](https://www.b3.com.br/data/files/7F/D0/F8/0C/1541B9105B12E5A9AC094EA8/Market%20Data%20B3%20Consumption%20Policy.pdf)
+
 ## Referências consultadas
 
 Consulta realizada em 2 de setembro de 2026:
@@ -123,4 +144,4 @@ Consulta realizada em 2 de setembro de 2026:
 - [Compatibilidade do springdoc-openapi](https://springdoc.org/)
 - [Configurações compartilháveis do IntelliJ IDEA](https://www.jetbrains.com/help/idea/run-debug-configuration.html)
 
-Nenhuma fonte de dados financeiros foi consultada ou integrada neste incremento.
+Nenhuma fonte de dados financeiros foi integrada. A pesquisa preliminar acima não constitui aprovação de provedor.
