@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -21,12 +23,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * lido direto pelo conversor de mensagem do Spring, então sem este filtro a lista de alocações é
  * materializada inteira em memória antes de a validação {@code @Size(max = 20)} rejeitá-la.
  *
+ * <p>A ordem é a mais alta possível para que o filtro rode antes de qualquer outro da cadeia,
+ * inclusive do {@code OrderedFormContentFilter}, que consome o corpo de requisições {@code
+ * form-urlencoded} em PUT, PATCH e DELETE.
+ *
  * <p>Limitação conhecida: a checagem usa o {@code Content-Length} declarado. Uma requisição com
  * {@code Transfer-Encoding: chunked} não declara tamanho e passa por este filtro. O cliente desta
  * API envia corpo JSON com tamanho declarado, e a defesa principal contra tráfego externo é o
  * {@code server.address}, que prende a API ao loopback.
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
   private static final String PROBLEM_BODY =
