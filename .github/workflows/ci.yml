@@ -35,7 +35,10 @@ jobs:
             backend/pom.xml
             backend/.mvn/wrapper/maven-wrapper.properties
 
-      - name: Verify backend
+      - name: Validate Docker Compose
+        run: docker compose --env-file .env.example config --quiet
+
+      - name: Verify backend and PostgreSQL migration
         working-directory: backend
         run: ./mvnw --batch-mode --no-transfer-progress verify
 
