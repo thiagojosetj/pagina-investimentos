@@ -24,9 +24,13 @@ A experiência principal desejada é um dashboard capaz de consolidar, com orige
 - proventos recebidos e indicadores de dividendos com período e fórmula identificados;
 - alocação atual, meta e desvio por classe e por ativo;
 - gráficos de composição e evolução;
-- acesso ao simulador de novos aportes baseado nas metas do usuário.
+- acesso ao simulador de novos aportes por preenchimento manual ou por uma fotografia da carteira persistida do próprio usuário.
 
 Rentabilidade, saldo, dividend yield e resultado possuem mais de uma definição válida. As fórmulas e o tratamento de compras, vendas, custos, proventos e períodos precisam ser aprovados antes da implementação. Alertas de desvio e simulações podem explicar a distância até as metas do usuário, mas não selecionar ativos nem se apresentar como recomendação financeira.
+
+Quando houver carteira persistida, o simulador deverá oferecer “usar minha carteira” e carregar posições, avaliações e metas sem exigir nova digitação. A primeira evolução continuará distribuindo o aporte entre classes; distribuir entre ativos só será permitido quando o próprio usuário definir metas ou outra regra explícita para cada ativo, evitando transformar a simulação em seleção implícita de investimentos.
+
+Caixa aparece na demonstração apenas como hipótese de interface. O modelo persistido de conta e movimentações de caixa ainda não foi aprovado; enquanto ele não existir, telas conectadas deverão usar o termo “valor de mercado das posições” e não inferir saldo de caixa.
 
 ## 3. Escopo do MVP
 
@@ -36,6 +40,14 @@ Rentabilidade, saldo, dividend yield e resultado possuem mais de uma definição
 - Comparação visual da alocação atual e projetada.
 - Estratégia proporcional ao déficit monetário e sem vendas.
 - API versionada, validação, erros uniformes, OpenAPI e testes automatizados.
+
+### Incremento demonstrativo subsequente
+
+- Visão geral sem persistência, com valores sintéticos por categoria e item.
+- Total do cenário sintético separado entre posições e uma hipótese visual de caixa.
+- Filtro por Ações, FIIs, ETFs, Renda fixa e Caixa.
+- Navegação entre a visão geral e o simulador.
+- Modos claro e escuro com preferência local e respeito à configuração inicial do sistema.
 
 ### Planejado para completar o MVP
 
@@ -117,56 +129,76 @@ Com patrimônio atual de R$ 10.000,00, metas `40/25/15/20` e posições `48/18/1
 
 O segundo caso não corrige todos os desvios; distribui todo o valor proporcionalmente aos déficits calculados sobre o total projetado.
 
-## 6. Modelo de dados proposto
+## 6. Modelo de dados inicial e evolução proposta
 
-Nenhuma tabela está implementada. O desenho abaixo deve ser revisado antes da primeira migration.
+A migration `V1__create_identity_and_portfolio_tables.sql` implementa somente a fundação aprovada abaixo. O incremento implementado e validado localmente acrescenta mapeamentos JPA, repositories e um serviço transacional interno para carteira e classes; nenhuma operação pública foi criada para esses registros.
 
-### Primeira etapa de persistência
+### Primeira etapa de persistência implementada
 
-- `app_user`: identidade local, e-mail normalizado, credencial derivada e timestamps.
-- `portfolio`: nome, moeda-base, proprietário e timestamps.
-- `allocation_class`: classe configurada dentro da carteira; nome, ordem visual e vínculo com a carteira.
-- `allocation_target`: percentual-alvo vigente por classe e carteira.
+- `app_user`: UUID interno, nome de exibição, versão otimista e timestamps; nenhuma senha local foi criada antecipadamente.
+- `external_identity`: vínculo com usuário, `provider`, `subject`, e-mail recebido do provedor, estado de verificação, versão e timestamps. O par `provider + subject` é único; e-mail não identifica a conta e pode se repetir.
+- `portfolio`: UUID, nome, moeda-base `BRL`, proprietário, versão e timestamps. O nome é único por proprietário sem diferenciar maiúsculas e minúsculas.
+- `allocation_class`: classe configurada dentro da carteira, nome, ordem visual, percentual-alvo vigente, versão e timestamps. Nome e ordem são únicos dentro da carteira; o percentual usa `NUMERIC(7,4)` entre `0.0000` e `100.0000`.
+
+Os UUIDs são gerados pela aplicação, sem extensão específica no banco. Timestamps usam `TIMESTAMPTZ` e o backend opera em UTC. As chaves estrangeiras usam deleção restrita até que retenção, auditoria e exclusão de conta/carteira sejam decididas; não existe hard delete exposto. A camada de persistência mantém `updated_at` explicitamente.
+
+A soma de metas e o limite de uma a vinte classes são invariantes entre várias linhas. O serviço interno substitui o conjunto completo em uma transação, valida a soma exata `100.0000` com escala de quatro casas e exige ownership em todas as operações. A escrita usa compare-and-set sobre a versão da carteira para rejeitar edição concorrente; um `CHECK` isolado não consegue garantir essas regras.
+
+Nesta primeira implementação, a substituição integral remove as metas anteriores e cria novas linhas com novos UUIDs. Essa semântica é interna e temporária: a estabilidade dos identificadores deverá ser decidida e implementada antes de `portfolio_asset` possuir uma chave estrangeira para `allocation_class` ou de IDs de metas integrarem um contrato público.
 
 Relacionamentos:
 
 ```text
-app_user 1 ── N portfolio 1 ── N allocation_class 1 ── 1 allocation_target
+app_user 1 ── N external_identity
+app_user 1 ── N portfolio 1 ── N allocation_class
 ```
 
-### Etapa de movimentações
+### Catálogo, ativos da carteira e movimentações
 
-- `asset`: ativo cadastrado manualmente, código, nome, tipo e moeda.
-- `portfolio_transaction`: lançamento de compra ou venda com ativo, data/hora, quantidade, preço unitário, custos e chave de origem opcional.
-- `manual_quote`: cotação informada manualmente, data/hora de referência, moeda e origem explícita.
+- `instrument`: identidade pública e opcional de um ativo listado selecionado em provedor aprovado; usa símbolo mais MIC/bolsa, nome, moeda, tipo normalizado e referência externa. Não será criado antes da integração real.
+- `portfolio_asset`: vínculo privado e obrigatório entre carteira, classe e item acompanhado. Pode referenciar um `instrument` listado ou representar renda fixa cadastrada manualmente.
+- `fixed_income_terms`: detalhes 1:1 adicionados somente na fatia de renda fixa, como tipo, emissor, vencimento, indexador, taxa e modo unitário ou nocional.
+- `position_movement`: fato imutável de aquisição ou alienação com data/hora, valor bruto, custos, quantidade e preço quando aplicáveis, origem e chave idempotente.
+- `manual_valuation`: avaliação privada com tipo `UNIT_PRICE` ou `TOTAL_VALUE`, fonte e instante de referência.
+- `income_event`: provento privado introduzido em incremento próprio; não altera quantidade nem custo médio.
 
 Relacionamentos esperados:
 
 ```text
-allocation_class 1 ── N asset
-portfolio 1 ── N portfolio_transaction N ── 1 asset
-asset 1 ── N manual_quote
+instrument 0..1 ── N portfolio_asset N ── 1 portfolio
+allocation_class 1 ── N portfolio_asset
+portfolio_asset 1 ── N position_movement
+portfolio_asset 1 ── N manual_valuation
+portfolio_asset 1 ── N income_event
+portfolio_asset 1 ── 0..1 fixed_income_terms
 ```
+
+Ticker isolado não será chave global, pois pode colidir entre bolsas. Resultados externos serão identificados ao menos por símbolo e MIC; a classificação escolhida pelo usuário permanece no `portfolio_asset`, não no catálogo do provedor.
+
+Renda fixa nacional deverá admitir inicialmente `TREASURY`, `CDB`, `LCI`, `LCA`, `CRI`, `CRA`, `DEBENTURE` e `OTHER`. Aplicações do mesmo produto com taxas ou vencimentos diferentes serão itens separados. Esses termos começam descritivos: rentabilidade contratada, accrual, dias úteis, cupons, impostos e marcação a mercado exigem regras próprias antes de qualquer cálculo automático.
+
+Caixa não fará parte da primeira migration. Quando entrar, será modelado por `cash_account` e fatos em `cash_movement`; o saldo será derivado. Até lá, o dashboard conectado mostrará somente o valor das posições, conforme aprovado pelo usuário.
 
 ### Persistido versus derivado
 
-Persistir fatos de entrada: usuários, carteiras, classes, metas, ativos, movimentações e cotações identificadas. Derivar quantidade, custo da posição, preço médio, valor de mercado, patrimônio, desvios e sugestões de aporte.
+Na fundação atual, o schema admite identidades, carteiras, classes e metas. As próximas migrations persistirão apenas fatos de entrada aprovados: vínculos privados de ativos, termos contratados, movimentações, avaliações e proventos identificados. Quantidade ou principal, custo da posição, preço médio, valor atual, resultados, saldo de caixa, totais por classe, desvios e sugestões de aporte continuarão derivados.
 
-As posições serão reconstruídas ordenando movimentações por data/hora e identificador estável. A venda não poderá exceder a quantidade disponível. Alterar um lançamento exigirá nova reconstrução; caches só serão considerados quando a medição justificar.
+As posições serão reconstruídas ordenando movimentações por data/hora e identificador estável; nenhuma tabela `position` será criada inicialmente. A venda não poderá exceder a quantidade disponível. Correções deverão preservar auditoria e provocar nova reconstrução; caches ou snapshots só serão considerados quando a medição justificar.
 
 ### Precisão proposta no PostgreSQL
 
 - dinheiro consolidado: `NUMERIC(19,2)`;
 - preço unitário: `NUMERIC(19,8)`;
 - quantidade: `NUMERIC(28,10)`;
+- taxa contratada: `NUMERIC(13,8)` com unidade explícita;
 - percentual: `NUMERIC(7,4)` com `CHECK` entre 0 e 100;
 - moeda: código ISO 4217, inicialmente limitado a `BRL`.
 
-O mapeamento Java usará `BigDecimal` com escala validada nas bordas e tipos de valor no domínio. Nenhuma coluna monetária usará `REAL` ou `DOUBLE PRECISION`.
+O mapeamento Java das metas usa `BigDecimal` com escala validada nas bordas; os futuros valores monetários continuarão exigindo tipos de valor no domínio. Nenhuma coluna monetária usará `REAL` ou `DOUBLE PRECISION`.
 
 ### Auditoria e idempotência
 
-- `created_at`, `updated_at` e identificadores imutáveis nas entidades mutáveis.
+- `created_at`, `updated_at`, `version` e identificadores imutáveis nas entidades mutáveis da primeira migration.
 - Registros de movimentação devem preservar autoria e momento de criação.
 - Quando importação entrar no escopo, criar `import_batch` com hash do arquivo normalizado e restrição única por carteira; cada linha terá número e chave idempotente.
 - Não criar tabelas de importação antes desse incremento.
@@ -174,6 +206,8 @@ O mapeamento Java usará `BigDecimal` com escala validada nas bordas e tipos de 
 ### Limites conhecidos
 
 - O modelo inicial não cobre desdobramentos, grupamentos, amortizações, subscrições, transferências de custódia ou tributação.
+- Instrumento global, renda fixa, movimentações, caixa, avaliações e proventos não pertencem à primeira migration; o desenho apenas reserva um caminho de evolução.
+- A substituição atual recria os IDs das metas e precisa ser revisada antes da associação com ativos ou da exposição desses IDs em contrato público.
 - A metodologia de preço médio será uma simplificação educacional documentada, não uma apuração fiscal oficial.
 - A estratégia de correção/remoção de movimentações precisa ser aprovada antes da migration correspondente.
 
@@ -183,5 +217,5 @@ O mapeamento Java usará `BigDecimal` com escala validada nas bordas e tipos de 
 - API sem stack trace ou detalhes internos em respostas.
 - Segredos somente em ambiente local/CI; exemplos sempre fictícios.
 - Verificações reproduzíveis por wrappers e lockfiles.
-- Migrations versionadas e testes com PostgreSQL real quando a persistência entrar.
+- Migrations Flyway versionadas e imutáveis; estrutura e mapeamentos JPA devem ser validados pelo Hibernate em PostgreSQL real antes de concluir o INC-008.
 - `main` estável e publicação somente após aprovação do estado exato.

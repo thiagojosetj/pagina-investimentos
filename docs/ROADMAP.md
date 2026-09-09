@@ -53,36 +53,37 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 
 ### INC-006 — Ratificar o primeiro modelo persistido
 
-- **Status:** proposto.
+- **Status:** concluído.
 - **Objetivo:** revisar usuários, carteiras, classes e metas antes da migration.
 - **Dependências:** modelo proposto em `PROJECT_SPEC.md` e aprovação do usuário.
 - **Critérios de aceite:** entidades, ownership, escalas, constraints, auditoria e dados derivados definidos.
-- **Verificações:** revisão de cenários de exclusão, concorrência e evolução do schema.
+- **Verificações:** revisão de ownership, exclusão restrita, concorrência otimista, escalas, índices e evolução do schema.
 - **Definition of Done:** decisão registrada sem criar tabela antecipadamente.
 
 ### INC-007 — PostgreSQL, Flyway e teste de integração
 
-- **Status:** proposto.
+- **Status:** concluído.
 - **Objetivo:** conectar a API ao banco e aplicar a primeira migration versionada.
 - **Dependências:** INC-006.
 - **Critérios de aceite:** configuração por ambiente, migration imutável, healthcheck e isolamento do Compose.
-- **Verificações:** Testcontainers com PostgreSQL real, teste de startup/migration e `docker compose config`.
-- **Definition of Done:** clone limpo consegue criar o schema sem `db push` ou alteração manual.
+- **Verificações:** Testcontainers com PostgreSQL 18.6 real, startup do contexto, aplicação da V1, constraints principais e `docker compose config`.
+- **Definition of Done:** clone limpo cria o schema pelo Flyway, sem `db push`, DDL do Hibernate ou alteração manual.
 
-### INC-008 — Carteira, classes e metas na API
+### INC-008 — Carteira, classes e metas na camada de aplicação
 
-- **Status:** proposto.
-- **Objetivo:** criar e consultar uma carteira fictícia com suas metas.
+- **Status:** concluído localmente; ainda sem endpoint público por decisão de escopo.
+- **Objetivo:** persistir e consultar uma carteira fictícia com suas metas na camada de aplicação, ainda sem expor operações anônimas.
 - **Dependências:** INC-007.
-- **Critérios de aceite:** validação de soma, DTOs, erros, ownership provisório explícito e transações no backend.
-- **Verificações:** testes de serviço, repository e endpoint com PostgreSQL real.
-- **Definition of Done:** dados sobrevivem ao reinício e o endpoint não expõe entidades JPA.
+- **Critérios de aceite:** validação de uma a vinte classes e soma exata `100.0000`, transação integral, compare-and-set pela versão da carteira e ownership obrigatório em toda operação; nenhum usuário fixo, controller ou endpoint provisório.
+- **Verificações:** cinco testes puros da validação das metas e oito testes de serviço/repository com PostgreSQL real aprovados; suíte backend completa com 34 testes e zero falhas.
+- **Definition of Done:** atendida — os dados são relidos em nova transação, ownership/concorrência/rollback foram validados e a camada de aplicação não expõe entidades JPA.
+- **Limite conhecido:** a substituição integral atual recria os UUIDs das metas; revisar essa decisão antes de `portfolio_asset` ou de um contrato público depender desses IDs.
 
 ### INC-009 — Persistência na interface
 
 - **Status:** proposto.
 - **Objetivo:** carregar e editar as metas da carteira no fluxo existente.
-- **Dependências:** INC-008.
+- **Dependências:** INC-008 e INC-011.
 - **Critérios de aceite:** estados de carregamento, conflito, erro e confirmação; nenhuma perda silenciosa.
 - **Verificações:** testes de componente e integração com fake da API.
 - **Definition of Done:** recarregar a página recupera a configuração persistida.
@@ -91,19 +92,19 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 
 ### INC-010 — Decidir autenticação e ameaças básicas
 
-- **Status:** proposto; aprovação obrigatória.
-- **Objetivo:** escolher sessão/cookies, fluxo de registro e recuperação sem expor secrets ao frontend.
-- **Dependências:** INC-008.
-- **Critérios de aceite:** CSRF, cookies, hash de senha, rate limit, logout e ownership documentados.
+- **Status:** Google OpenID Connect e sessão backend aprovados; threat model e configuração ainda pendentes.
+- **Objetivo:** detalhar Google OpenID Connect, criação da conta interna e sessão por cookie sem expor secrets ao frontend.
+- **Dependências:** INC-007.
+- **Critérios de aceite:** redirects permitidos, vínculo por `provider + subject`, CSRF, cookies, expiração, rate limit, logout e ownership documentados.
 - **Verificações:** threat model pequeno e revisão dos contratos públicos afetados.
-- **Definition of Done:** decisão aprovada antes de implementar credenciais.
+- **Definition of Done:** fluxo e configuração aprovados antes de implementar a identidade externa.
 
 ### INC-011 — Autenticação e autorização vertical
 
 - **Status:** proposto.
-- **Objetivo:** registrar, entrar, sair e proteger uma carteira do usuário.
-- **Dependências:** INC-010.
-- **Critérios de aceite:** senha derivada com algoritmo adequado, sessão segura e verificação de ownership no servidor.
+- **Objetivo:** entrar com Google, criar ou localizar a conta interna, sair e proteger uma carteira do usuário.
+- **Dependências:** INC-008 e INC-010.
+- **Critérios de aceite:** identidade validada pelo backend, sessão segura e verificação de ownership no servidor; e-mail não é usado como identificador imutável.
 - **Verificações:** testes de autenticação, CSRF, usuário anônimo e tentativa de acesso cruzado.
 - **Definition of Done:** usuário A não consegue ler ou alterar recurso do usuário B.
 
@@ -139,7 +140,7 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 ### INC-015 — Cotação manual e dashboard
 
 - **Status:** proposto.
-- **Objetivo:** informar cotação com timestamp/origem e alimentar patrimônio, desvios e simulador persistido.
+- **Objetivo:** informar cotação com timestamp/origem e alimentar valor de mercado das posições, desvios e simulador persistido.
 - **Dependências:** INC-013 e INC-014.
 - **Critérios de aceite:** fonte `MANUAL`, possível defasagem visível e estados sem cotação tratados.
 - **Verificações:** regras de valuation, API, UI responsiva e isolamento entre usuários.
@@ -160,8 +161,8 @@ Os itens desta fase refletem a visão desejada, mas a divisão entre MVP e pós-
 
 ### INC-017 — Dashboard por categoria e ativo
 
-- **Status:** proposto.
-- **Objetivo:** consolidar patrimônio, posições, resultados e alocação em uma superfície responsiva.
+- **Status:** proposto; demonstração visual sintética implementada localmente, sem persistência ou cotações.
+- **Objetivo:** consolidar valor das posições, resultados e alocação em uma superfície responsiva; caixa só compõe o saldo depois do INC-023.
 - **Dependências:** INC-015 e INC-016.
 - **Critérios de aceite:** visão por categoria e ativo, estados sem dados/cotação e origem dos valores visível.
 - **Verificações:** testes de domínio, endpoint, componente e integração frontend/backend.
@@ -173,12 +174,12 @@ Os itens desta fase refletem a visão desejada, mas a divisão entre MVP e pós-
 - **Objetivo:** registrar proventos e exibir totais por ativo e período.
 - **Dependências:** INC-013 e INC-016.
 - **Critérios de aceite:** tipo, data de referência, data de pagamento, valor e moeda validados; fórmulas claramente rotuladas.
-- **Verificações:** dividendos, JCP, amortizações, estorno e períodos sem pagamento.
+- **Verificações:** dividendos, JCP, rendimentos, estorno e períodos sem pagamento; amortizações exigem um incremento próprio.
 - **Definition of Done:** os indicadores podem ser reproduzidos a partir dos fatos persistidos.
 
 ### INC-019 — Pesquisa e contrato do primeiro provedor de mercado
 
-- **Status:** proposto; aprovação obrigatória.
+- **Status:** pesquisa inicial concluída; shortlist e contrato ainda exigem aprovação.
 - **Objetivo:** selecionar uma fonte legalmente adequada para metadados e cotações com fallback manual.
 - **Dependências:** universo inicial de ativos aprovado.
 - **Critérios de aceite:** documentação oficial, termos, licença, custo, cobertura, defasagem, rate limit e atribuição registrados.
@@ -193,6 +194,42 @@ Os itens desta fase refletem a visão desejada, mas a divisão entre MVP e pós-
 - **Critérios de aceite:** unidades, períodos, legendas, tooltips e estados vazios acessíveis; nenhum gráfico implica previsão.
 - **Verificações:** testes de transformação dos dados, componentes e responsividade.
 - **Definition of Done:** cada gráfico usa dados reconciliados e informa período e fonte.
+
+### INC-021 — Busca e cadastro assistido de ativos listados
+
+- **Status:** proposto; depende do primeiro provedor aprovado.
+- **Objetivo:** filtrar por tipo e pesquisar símbolo ou nome, como FIIs contendo `MX`, antes de registrar um ativo na carteira.
+- **Dependências:** INC-013 e INC-019.
+- **Critérios de aceite:** debounce, cancelamento de resposta obsoleta, filtro por tipo/mercado, identidade de integração por provedor + ID externo, listagem identificada por símbolo + MIC, metadados normalizados e formulário editável de compra.
+- **Verificações:** busca vazia, nome parcial, símbolo parcial, homônimos em bolsas diferentes, tipo sem resultado, rate limit, indisponibilidade e fake determinístico.
+- **Definition of Done:** selecionar um resultado preenche somente metadados públicos; quantidade, preço de compra, data, custos e classe continuam sob controle do usuário.
+
+### INC-022 — Renda fixa nacional manual
+
+- **Status:** proposto; universo inicial aprovado, regras de cálculo pendentes.
+- **Objetivo:** cadastrar Tesouro, CDB, LCI, LCA, CRI, CRA, debênture e outros contratos sem depender de ticker universal.
+- **Dependências:** INC-013 e modelo `fixed_income_terms` aprovado.
+- **Critérios de aceite:** emissor, tipo, vencimento, indexador, taxa e modo unitário/nocional validados; avaliação manual com data e fonte.
+- **Verificações:** produtos com taxas/vencimentos diferentes, prefixado, percentual de índice, índice + spread, ausência de avaliação e dados inválidos.
+- **Definition of Done:** a posição aparece separadamente e nenhuma rentabilidade contratada ou marcação a mercado é inventada.
+
+### INC-023 — Conta e movimentações de caixa
+
+- **Status:** proposto; não pertence à primeira migration.
+- **Objetivo:** incluir caixa real no saldo por meio de fatos reconciliáveis.
+- **Dependências:** movimentações da carteira estáveis e modelo de caixa aprovado.
+- **Critérios de aceite:** depósitos, retiradas e eventos vinculados são idempotentes; saldo é sempre derivado e não fica negativo sem regra explícita.
+- **Verificações:** concorrência, estorno, compra/venda, provento, custo e isolamento entre usuários.
+- **Definition of Done:** saldo total soma posições avaliadas e caixa reconciliado sem dupla contagem.
+
+### INC-024 — Simulador preenchido pela carteira salva
+
+- **Status:** proposto; comportamento geral solicitado pelo usuário, regra por ativo ainda pendente.
+- **Objetivo:** oferecer “usar minha carteira” para carregar posições avaliadas e metas do usuário sem redigitação.
+- **Dependências:** INC-009, INC-015 e autorização do INC-011.
+- **Critérios de aceite:** somente carteiras pertencentes ao usuário podem ser selecionadas; valores, fontes e instante da fotografia ficam visíveis; a simulação não altera a carteira.
+- **Verificações:** carteira vazia, posição sem avaliação, cotação defasada, troca de carteira, acesso cruzado e atualização da fotografia.
+- **Definition of Done:** o simulador reproduz a soma por classe da fotografia selecionada e permite voltar ao preenchimento manual. Distribuição por ativo só entra após metas ou regra por ativo aprovadas.
 
 ## Pós-MVP candidato
 

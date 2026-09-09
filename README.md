@@ -6,7 +6,9 @@ Projeto de uma plataforma full stack educacional para acompanhar uma carteira po
 
 ## Estado atual
 
-O primeiro corte vertical funcional está implementado:
+### Versão publicada
+
+O primeiro corte vertical funcional está implementado e publicado:
 
 - formulário responsivo com exemplo totalmente fictício;
 - classes, valores atuais, metas e novo aporte editáveis;
@@ -18,17 +20,33 @@ O primeiro corte vertical funcional está implementado:
 - documentação OpenAPI e Swagger UI;
 - testes automatizados do domínio, da API e do fluxo crítico da interface.
 
-O código está publicado em [`thiagojosetj/pagina-investimentos`](https://github.com/thiagojosetj/pagina-investimentos), e a primeira execução real da CI foi aprovada nos jobs de backend e frontend.
+### Incrementos locais em revisão e validação
 
-Ainda **não** existem contas, autenticação, persistência de carteiras, ativos, movimentações ou cotações. O PostgreSQL está preparado no Compose para os próximos incrementos, mas não é necessário para executar o simulador atual.
+- visão geral demonstrativa com total do cenário sintético, posições, hipótese de caixa e alocação por categoria;
+- filtro de itens sintéticos por Ações, FIIs, ETFs, Renda fixa e Caixa;
+- navegação acessível entre a visão geral e o simulador;
+- modos claro e escuro, com preferência visual salva no navegador;
+- fundação de persistência com PostgreSQL e Flyway, sem geração automática de DDL pelo Hibernate;
+- primeira migration versionada para usuário, identidade externa, carteira e classes de alocação;
+- mapeamentos JPA e repositories internos para carteira e classes de alocação;
+- serviço transacional interno, ainda sem endpoint, que exige o proprietário em todas as operações e substitui integralmente as metas usando a versão da carteira como compare-and-set;
+- validação de uma a vinte classes, percentuais com quatro casas e soma exata de `100.0000`;
+- cinco testes puros da validação das metas aprovados;
+- oito testes de integração do serviço e sete testes de migration/contexto aprovados com PostgreSQL real via Testcontainers; suíte backend completa com 34 testes e zero falhas.
+
+O repositório [`thiagojosetj/pagina-investimentos`](https://github.com/thiagojosetj/pagina-investimentos) é público. A primeira versão publicada corresponde ao simulador, e sua CI foi aprovada; os incrementos locais seguintes só ficarão disponíveis no GitHub após revisão e novo push aprovado.
+
+O schema inicial e a camada interna de persistência de carteiras/metas existem localmente, mas ainda **não** há contas acessíveis, autenticação nem endpoint para salvar ou consultar carteiras. Também não existem ativos, movimentações ou cotações. A visão geral continua sendo uma demonstração visual explicitamente sintética, e não um dashboard conectado.
+
+Na implementação interna atual, substituir as metas recria seus UUIDs. Essa escolha ainda não faz parte de contrato público e deverá ser revista antes de `portfolio_asset` referenciar classes de alocação ou de esses identificadores serem expostos pela API.
 
 A visão do produto inclui um dashboard por categorias e ativos, posições derivadas de movimentações, patrimônio, custos, resultados, proventos e gráficos. Esses recursos estão planejados, mas ainda não devem ser interpretados como funcionalidades entregues. Qualquer cotação externa dependerá de pesquisa e aprovação do provedor, licença, limites e defasagem.
 
 ## Stack implementada
 
-- Backend: Java 21, Spring Boot 4.1, Maven Wrapper e JUnit 6.
+- Backend: Java 21, Spring Boot 4.1, Spring Data JPA, Flyway, Maven Wrapper e JUnit 6.
 - Frontend: React 19, Vite 8, TypeScript 6, Vitest e Testing Library.
-- Banco preparado: PostgreSQL 18 em Docker Compose.
+- Banco: PostgreSQL 18 em Docker Compose e Testcontainers nos testes de integração.
 - Qualidade: Spotless, Oxlint, Prettier, typecheck e GitHub Actions.
 
 O sistema começa como um monólito modular com frontend separado. O backend é o único proprietário das regras financeiras; o frontend coleta entradas e apresenta resultados.
@@ -40,18 +58,25 @@ Pré-requisitos:
 - JDK 21;
 - Node.js 24 LTS e npm;
 - Git;
-- Docker Desktop apenas para o PostgreSQL opcional.
+- Docker Desktop para o PostgreSQL local e para os testes de integração do backend.
 
-No PowerShell, abra dois terminais na raiz do projeto.
+No PowerShell, abra três terminais na raiz do projeto.
 
-Terminal 1 — API:
+Terminal 1 — PostgreSQL:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d --wait postgres
+```
+
+Terminal 2 — API:
 
 ```powershell
 Set-Location .\backend
 .\mvnw.cmd spring-boot:run
 ```
 
-Terminal 2 — interface:
+Terminal 3 — interface:
 
 ```powershell
 Set-Location .\frontend
@@ -86,31 +111,36 @@ Set-Location ..\frontend
 npm run check
 ```
 
-`npm run check` executa format-check, lint, typecheck, testes e build. O `verify` do Maven compila, testa, empacota e confirma a formatação Java.
+O script completo valida também a sintaxe do Docker Compose e verifica se o Docker Engine responde, sem iniciá-lo automaticamente. `npm run check` executa format-check, lint, typecheck, testes e build. O `verify` do Maven compila, testa, empacota, confirma a formatação Java e aplica a migration em um PostgreSQL descartável. O Docker Desktop deve estar ativo; o PostgreSQL do Compose não precisa estar iniciado para os testes.
+
+No estado atual do INC-008, `mvn verify` executa 34 testes: 19 testes sem infraestrutura e 15 testes com PostgreSQL real via Testcontainers. A verificação local mais recente terminou com zero falhas.
 
 ## PostgreSQL com Docker
 
-O banco ainda não é consumido pelo simulador, mas o ambiente isolado já pode ser validado:
+A API usa o banco desde a inicialização. O Flyway cria ou valida automaticamente a migration `V1`; o Hibernate está impedido de criar tabelas e valida os mapeamentos JPA já escritos contra PostgreSQL real:
 
 ```powershell
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up -d --wait postgres
 docker compose ps
-docker compose stop postgres
 ```
 
-O volume é exclusivo deste projeto e é preservado pelo comando `stop`. Não use `docker compose down -v` sem entender que esse comando apaga os dados locais do banco.
+Depois de interromper a API, `docker compose stop postgres` para somente o banco deste projeto e preserva seu volume. Não use `docker compose down -v` sem entender que esse comando apaga os dados locais do banco.
+
+Se o Docker Desktop falhar ao abrir com `sailor-ingest.sock` e erro 1920, consulte a recuperação manual limitada em [`docs/local-development.md`](docs/local-development.md#docker-desktop-falha-ao-abrir-com-sailor-ingestsock-e-erro-1920). Não use reset de fábrica ou limpeza de volumes como tentativa de correção.
 
 ## IntelliJ IDEA
 
 Abra a pasta raiz `pagina-investimentos`, não apenas `backend` ou `frontend`. As configurações portáveis em `.run/` oferecem:
 
-- `Backend` — executar ou depurar a API;
+- `Backend` — executar ou depurar a API, supondo que o PostgreSQL já esteja ativo;
 - `Frontend` — executar a interface;
 - `Full stack` — iniciar os dois processos;
 - `Backend - Verify` — validar o módulo Java;
 - `Frontend - Checks` — validar o módulo web;
-- `PostgreSQL` — subir o serviço pelo Docker Compose.
+- `PostgreSQL` — subir somente o serviço pelo Docker Compose.
+
+O Docker não é iniciado implicitamente por `Backend` ou `Full stack`. Inicie primeiro a configuração `PostgreSQL` quando precisar da API. Essa separação evita que uma execução Java abra o Docker Desktop sem intenção.
 
 Na primeira abertura, confirme JDK 21 no módulo Maven, Node.js 24 como interpretador do projeto e a conexão com o Docker Desktop. Detalhes e troubleshooting estão em [`docs/local-development.md`](docs/local-development.md).
 
