@@ -4,22 +4,32 @@
   --surface-alt: #f8faf7;
   --ink: #102a2b;
   --muted-strong: #4f6261;
-  --muted: #758280;
+  --muted: #5d6d6b;
   --border: #dce3dc;
   --border-strong: #c7d1ca;
+  --control-border: #71827f;
   --teal: #087e71;
   --teal-dark: #075f57;
   --teal-soft: #e0f1ec;
-  --green: #3f8e5a;
+  --green: #2f6f45;
   --green-soft: #dceee2;
-  --amber: #ca8b24;
+  --amber: #855b12;
   --amber-soft: #fff3d9;
   --red: #a84138;
   --red-soft: #fbe9e6;
   --shadow: 0 20px 54px rgba(27, 52, 47, 0.09);
+  --panel-shadow: 0 12px 36px rgba(27, 52, 47, 0.06);
+  --surface-translucent: rgba(255, 255, 255, 0.64);
+  --page-glow: rgba(8, 126, 113, 0.08);
+  --focus-ring: #087e71;
+  --emphasis-surface: #102a2b;
+  --emphasis-text: #ffffff;
+  --emphasis-muted: rgba(255, 255, 255, 0.65);
+  --accent-text: #ffffff;
   --font-display:
     'Aptos Display', 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
   --font-body: 'Aptos', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  color-scheme: light;
   color: var(--ink);
   background: var(--paper);
   font-family: var(--font-body);
@@ -27,6 +37,37 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme='dark'] {
+  --paper: #0c1715;
+  --surface: #122320;
+  --surface-alt: #172b27;
+  --ink: #edf6f3;
+  --muted-strong: #bed0cb;
+  --muted: #9db2ac;
+  --border: #2a413c;
+  --border-strong: #3a554e;
+  --control-border: #68847d;
+  --teal: #69d8c5;
+  --teal-dark: #9de9dc;
+  --teal-soft: #193d36;
+  --green: #91d5a2;
+  --green-soft: #1c3c29;
+  --amber: #efc575;
+  --amber-soft: #423318;
+  --red: #f1a098;
+  --red-soft: #442522;
+  --shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+  --panel-shadow: 0 14px 40px rgba(0, 0, 0, 0.2);
+  --surface-translucent: rgba(18, 35, 32, 0.84);
+  --page-glow: rgba(105, 216, 197, 0.09);
+  --focus-ring: #69d8c5;
+  --emphasis-surface: #69d8c5;
+  --emphasis-text: #09201c;
+  --emphasis-muted: rgba(9, 32, 28, 0.7);
+  --accent-text: #09201c;
+  color-scheme: dark;
 }
 
 * {
@@ -37,16 +78,18 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(
-      circle at 88% 7%,
-      rgba(8, 126, 113, 0.08),
-      transparent 25rem
-    ),
+    radial-gradient(circle at 88% 7%, var(--page-glow), transparent 25rem),
     var(--paper);
 }
 
@@ -64,7 +107,7 @@ input {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible {
-  outline: 3px solid rgba(8, 126, 113, 0.28);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -77,6 +120,6 @@ button:disabled {
 }
 
 ::selection {
-  color: #fff;
+  color: var(--accent-text);
   background: var(--teal);
 }

@@ -5,11 +5,17 @@
   padding: 0 40px;
 }
 
+.app-shell main:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
 .app-header {
   min-height: 88px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -47,6 +53,66 @@
   font-size: 0.72rem;
 }
 
+.app-nav {
+  margin-left: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-translucent);
+  display: flex;
+  gap: 3px;
+}
+
+.app-nav button {
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted-strong);
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.app-nav button.active {
+  color: var(--emphasis-text);
+  background: var(--emphasis-surface);
+}
+
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.theme-toggle {
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  color: var(--muted-strong);
+  background: var(--surface-translucent);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.theme-toggle:hover {
+  border-color: var(--teal);
+  color: var(--teal-dark);
+}
+
+.theme-toggle svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -55,7 +121,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   color: var(--muted-strong);
-  background: rgba(255, 255, 255, 0.56);
+  background: var(--surface-translucent);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -148,6 +214,21 @@ footer p {
   .intro-copy {
     max-width: 680px;
   }
+
+  .app-header {
+    padding: 14px 0;
+    flex-wrap: wrap;
+  }
+
+  .app-nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .app-nav button {
+    flex: 1;
+  }
 }
 
 @media (max-width: 560px) {
@@ -157,6 +238,17 @@ footer p {
 
   .app-header {
     min-height: 74px;
+    gap: 12px;
+  }
+
+  .theme-toggle {
+    width: 34px;
+    padding: 7px;
+    justify-content: center;
+  }
+
+  .theme-toggle span {
+    display: none;
   }
 
   .status-badge {
