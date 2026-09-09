@@ -20,7 +20,7 @@ O primeiro corte vertical funcional está implementado e publicado:
 - documentação OpenAPI e Swagger UI;
 - testes automatizados do domínio, da API e do fluxo crítico da interface.
 
-### Incrementos locais em revisão e validação
+### Incrementos publicados na sequência
 
 - visão geral demonstrativa com total do cenário sintético, posições, hipótese de caixa e alocação por categoria;
 - filtro de itens sintéticos por Ações, FIIs, ETFs, Renda fixa e Caixa;
@@ -34,7 +34,7 @@ O primeiro corte vertical funcional está implementado e publicado:
 - cinco testes puros da validação das metas aprovados;
 - oito testes de integração do serviço e sete testes de migration/contexto aprovados com PostgreSQL real via Testcontainers; suíte backend completa com 37 testes e zero falhas.
 
-O repositório [`thiagojosetj/pagina-investimentos`](https://github.com/thiagojosetj/pagina-investimentos) é público. A primeira versão publicada corresponde ao simulador, e sua CI foi aprovada; os incrementos locais seguintes só ficarão disponíveis no GitHub após revisão e novo push aprovado.
+O repositório [`thiagojosetj/pagina-investimentos`](https://github.com/thiagojosetj/pagina-investimentos) é público e `main` já contém todos os incrementos acima. O resultado da CI de cada push deve ser conferido em GitHub Actions antes de tratar um commit como validado remotamente.
 
 O schema inicial e a camada interna de persistência de carteiras/metas existem localmente, mas ainda **não** há contas acessíveis, autenticação nem endpoint para salvar ou consultar carteiras. Também não existem ativos, movimentações ou cotações. A visão geral continua sendo uma demonstração visual explicitamente sintética, e não um dashboard conectado.
 

@@ -1,12 +1,12 @@
 # Status do projeto
 
-**Atualizado em:** 8 de setembro de 2026
+**Atualizado em:** 9 de setembro de 2026
 
 ## Estado real
 
 O primeiro corte vertical está implementado, validado localmente e publicado. Ele oferece uma interface React responsiva conectada a uma API Spring Boot que calcula a distribuição de um novo aporte por déficit monetário projetado.
 
-O repositório público [`thiagojosetj/pagina-investimentos`](https://github.com/thiagojosetj/pagina-investimentos) recebeu o primeiro push em `main`, no commit `2dcdc84976f11c7ab98f6bcef26f4c24d8df98d6`, e sua CI terminou com sucesso nos jobs Backend e Frontend. A versão pública permanece nesse commit; os incrementos locais posteriores, incluindo esta visão geral, aguardam novo push aprovado.
+O primeiro push em `main` foi o commit `2dcdc84976f11c7ab98f6bcef26f4c24d8df98d6`, cuja CI terminou com sucesso nos jobs Backend e Frontend. Desde então `main` recebeu os incrementos seguintes — persistência de carteira e metas, visão geral demonstrativa e o endurecimento de rede da API — e está publicada no commit `46fba3e3b314717958204e3e873ecb3aa3bcbc54`. O resultado da CI desse estado ainda não foi conferido e deve ser lido em GitHub Actions.
 
 O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviço interno de carteiras/metas existem, mas ainda não há endpoint para essas operações por decisão de escopo.
 
@@ -27,7 +27,7 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 - Documentação de produto, decisões, roadmap e desenvolvimento local.
 - Repositório público clonável com primeira CI validada.
 
-## Entregue localmente no INC-008
+## Entregue no INC-008
 
 - Entidades e repositories JPA internos para `portfolio` e `allocation_class`.
 - Serviço sem endpoint que exige ownership na criação, leitura e substituição das metas.
