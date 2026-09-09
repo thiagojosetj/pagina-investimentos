@@ -141,7 +141,7 @@ O conjunto de uma a vinte metas é validado por inteiro, com `BigDecimal` em esc
 
 Para manter este primeiro incremento pequeno, a substituição remove todas as linhas anteriores e insere novas metas com novos UUIDs. Isso evita tratar IDs internos como contrato antes de existir consumidor, mas não é a estratégia definitiva: IDs estáveis devem ser decididos antes de criar `portfolio_asset`, adicionar outra chave estrangeira para `allocation_class` ou publicar esses identificadores na API.
 
-Cinco testes puros da validação das metas e oito testes PostgreSQL/Testcontainers do serviço passaram. A suíte backend completa executou 34 testes sem falhas, incluindo migration, mapeamentos JPA, ownership, concorrência e rollback.
+Cinco testes puros da validação das metas e oito testes PostgreSQL/Testcontainers do serviço passaram. A suíte backend completa executou 37 testes sem falhas, incluindo migration, mapeamentos JPA, ownership, concorrência e rollback.
 
 ## Decisões pendentes
 

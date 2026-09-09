@@ -32,7 +32,7 @@ O primeiro corte vertical funcional está implementado e publicado:
 - serviço transacional interno, ainda sem endpoint, que exige o proprietário em todas as operações e substitui integralmente as metas usando a versão da carteira como compare-and-set;
 - validação de uma a vinte classes, percentuais com quatro casas e soma exata de `100.0000`;
 - cinco testes puros da validação das metas aprovados;
-- oito testes de integração do serviço e sete testes de migration/contexto aprovados com PostgreSQL real via Testcontainers; suíte backend completa com 34 testes e zero falhas.
+- oito testes de integração do serviço e sete testes de migration/contexto aprovados com PostgreSQL real via Testcontainers; suíte backend completa com 37 testes e zero falhas.
 
 O repositório [`thiagojosetj/pagina-investimentos`](https://github.com/thiagojosetj/pagina-investimentos) é público. A primeira versão publicada corresponde ao simulador, e sua CI foi aprovada; os incrementos locais seguintes só ficarão disponíveis no GitHub após revisão e novo push aprovado.
 
@@ -113,7 +113,7 @@ npm run check
 
 O script completo valida também a sintaxe do Docker Compose e verifica se o Docker Engine responde, sem iniciá-lo automaticamente. `npm run check` executa format-check, lint, typecheck, testes e build. O `verify` do Maven compila, testa, empacota, confirma a formatação Java e aplica a migration em um PostgreSQL descartável. O Docker Desktop deve estar ativo; o PostgreSQL do Compose não precisa estar iniciado para os testes.
 
-No estado atual do INC-008, `mvn verify` executa 34 testes: 19 testes sem infraestrutura e 15 testes com PostgreSQL real via Testcontainers. A verificação local mais recente terminou com zero falhas.
+No estado atual do INC-008, `mvn verify` executa 37 testes: 22 testes sem infraestrutura e 15 testes com PostgreSQL real via Testcontainers. A verificação local mais recente terminou com zero falhas.
 
 ## PostgreSQL com Docker
 

@@ -100,7 +100,7 @@ Set-Location .\frontend
 npm run dev
 ```
 
-Porta: `5173`. Durante o desenvolvimento, o proxy Vite encaminha `/api` para `http://localhost:8080`.
+Porta: `5173`. Durante o desenvolvimento, o proxy Vite encaminha `/api` para `http://127.0.0.1:8080`.
 
 ### URLs úteis
 
