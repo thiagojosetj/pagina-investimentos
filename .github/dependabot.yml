@@ -1,5 +1,9 @@
 version: 2
 
+# Atualizações minor e patch chegam agrupadas em uma pull request por ecossistema.
+# Atualizações major ficam fora dos grupos e chegam uma por vez, para que uma quebra
+# de compatibilidade possa ser avaliada e revertida isoladamente.
+
 updates:
   - package-ecosystem: maven
     directory: /backend
@@ -7,9 +11,12 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      spring:
+      backend-compativel:
         patterns:
-          - org.springframework*
+          - "*"
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: npm
     directory: /frontend
@@ -17,10 +24,22 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      dev-tooling:
-        dependency-type: development
+      frontend-compativel:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions-compativel:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
