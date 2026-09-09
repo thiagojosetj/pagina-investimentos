@@ -38,9 +38,9 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 
 Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`, após a recuperação do Docker: exit code 0.
 
-- Backend: Maven `verify`, 34 testes, 0 falhas e artefato gerado.
+- Backend: Maven `verify`, 37 testes, 0 falhas e artefato gerado.
 - Backend/PostgreSQL: 15 testes com PostgreSQL 18.6 real via Testcontainers — sete de migration/contexto e oito do serviço de carteiras/metas.
-- Backend sem infraestrutura: 19 testes aprovados — 14 do simulador/API e cinco da validação das metas.
+- Backend sem infraestrutura: 22 testes aprovados — 14 do simulador/API, cinco da validação das metas e três do limite de tamanho de requisição.
 - Frontend: format-check, Oxlint, TypeScript, 14 testes Vitest e build Vite.
 - Integração local (3 de setembro): frontend, proxy Vite, API, Actuator e OpenAPI responderam HTTP 200; o exemplo retornou `0 / 1200 / 400 / 400`. Esse smoke test HTTP não foi repetido na manutenção de 8 de setembro.
 - Docker: Compose validado e PostgreSQL 18.6 saudável em 8 de setembro, com o volume de desenvolvimento preservado. A aplicação da V1 nesse volume havia sido verificada em 3 de setembro; os testes de 8 de setembro reaplicaram a migration em bancos descartáveis.

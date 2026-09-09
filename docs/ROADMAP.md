@@ -75,7 +75,7 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 - **Objetivo:** persistir e consultar uma carteira fictícia com suas metas na camada de aplicação, ainda sem expor operações anônimas.
 - **Dependências:** INC-007.
 - **Critérios de aceite:** validação de uma a vinte classes e soma exata `100.0000`, transação integral, compare-and-set pela versão da carteira e ownership obrigatório em toda operação; nenhum usuário fixo, controller ou endpoint provisório.
-- **Verificações:** cinco testes puros da validação das metas e oito testes de serviço/repository com PostgreSQL real aprovados; suíte backend completa com 34 testes e zero falhas.
+- **Verificações:** cinco testes puros da validação das metas e oito testes de serviço/repository com PostgreSQL real aprovados; suíte backend completa com 37 testes e zero falhas.
 - **Definition of Done:** atendida — os dados são relidos em nova transação, ownership/concorrência/rollback foram validados e a camada de aplicação não expõe entidades JPA.
 - **Limite conhecido:** a substituição integral atual recria os UUIDs das metas; revisar essa decisão antes de `portfolio_asset` ou de um contrato público depender desses IDs.
 
