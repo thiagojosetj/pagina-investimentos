@@ -4,6 +4,10 @@ Projeto de uma plataforma full stack educacional para acompanhar uma carteira po
 
 > **Aviso:** este projeto é uma ferramenta de estudo e planejamento. Não seleciona ativos, não analisa perfil de investidor e não constitui recomendação de compra ou venda.
 
+![Simulador de aportes: um aporte de R$ 500,00 distribuído entre as classes abaixo da meta projetada](docs/images/simulador-aportes.png)
+
+Simulador de aportes com o exemplo sintético da própria interface. O aporte de R$ 500,00 é insuficiente para zerar os déficits, então é dividido proporcionalmente entre eles: R$ 375,00 + R$ 79,55 + R$ 45,45 fecham exatamente os R$ 500,00, sem sobra nem centavo criado. Ações já está acima da meta e recebe R$ 0,00. O cálculo é feito no backend em centavos inteiros; a interface apenas formata o resultado.
+
 ## Estado atual
 
 ### Versão publicada
