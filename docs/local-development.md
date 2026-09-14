@@ -167,6 +167,31 @@ npm run build
 
 O servidor de testes do Vitest não precisa ficar aberto; `test:run` encerra após uma execução. `npm test` permanece observando alterações e é útil durante desenvolvimento.
 
+### Conferir as correções de requisições e interface
+
+Com Backend e Frontend ativos, abra a interface e escolha **Simulador**. No modo responsivo das ferramentas do navegador, teste 320, 360 e 390 px nos temas claro/escuro. Campos, rótulos, botão de remoção e resultados devem permanecer dentro do painel.
+
+Clique em **Adicionar classe** e digite: o nome novo deve receber foco. Ao remover FIIs, o foco deve ir para ETFs; ao remover a última classe, para a anterior. O botão de remover a única classe permanece desabilitado. Testar viewport emulado não substitui teste físico de teclado virtual e toque em Android/iOS.
+
+Para rodar somente os testes do limite JSON, na raiz:
+
+```powershell
+Push-Location backend
+try {
+    .\mvnw.cmd --no-transfer-progress '-Dtest=RequestSizeLimitFilterTest,RequestSizeLimitFilterMvcTest' test
+} finally {
+    Pop-Location
+}
+```
+
+Com a API local ativa, este teste sintético envia um corpo acima do limite usando transferência chunked; o resultado esperado é `413`:
+
+```powershell
+(' ' * 65537) | curl.exe --silent --show-error --http1.1 --max-time 15 --output NUL --write-out '%{http_code}' --header 'Content-Type: application/json' --header 'Transfer-Encoding: chunked' --data-binary '@-' 'http://127.0.0.1:8080/api/v1/allocation-simulations/contributions'
+```
+
+O padrão é 65.536 bytes. A propriedade `portfolio.api.max-request-bytes` permite configurar um inteiro positivo menor que `Integer.MAX_VALUE`; qualquer aumento exige avaliar memória e concorrência. O filtro verifica o tamanho declarado de qualquer request e conta bytes reais de JSON em POST/PUT/PATCH/DELETE, lendo no máximo limite + 1 antes de chamar o MVC. A leitura aceita é síncrona; novos endpoints de upload, streaming ou async precisam de política própria. Isto não substitui timeouts, rate limit ou autenticação no futuro ambiente público.
+
 ## 7. Parar serviços sem perder dados
 
 Interrompa Java/Vite com `Ctrl+C` nos respectivos terminais. Para o banco:

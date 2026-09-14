@@ -150,6 +150,7 @@ Cinco testes puros da validação das metas e oito testes PostgreSQL/Testcontain
 - Regra de correção/exclusão de movimentações e nível de auditoria.
 - Hospedagem e ambientes públicos.
 - Primeiro provedor de cotações, seus termos e licença.
+- Escopo de lançamento web e celular: proposta web responsiva → PWA opcional → cliente nativo apenas com necessidade confirmada, em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md). A stack atual permanece aprovada; não há decisão de hospedagem ou framework móvel.
 
 ## Pesquisa preliminar — Google e dados de mercado
 

@@ -2,6 +2,21 @@
 
 O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futuros são propostas; decisões materiais continuam sujeitas à aprovação descrita em `AGENTS.md`.
 
+## Fila imediata — revisão de 13 de setembro de 2026
+
+As tarefas abaixo não substituem as dependências das fases seguintes. Cada sessão entrega um resultado pequeno, não autenticação, deploy ou aplicativo completo em três horas. Contexto web/celular em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
+
+| ID / prioridade | Objetivo e dependências | Aceite e verificações | Definition of Done / status |
+| --- | --- | --- | --- |
+| HARD-001 / alta | Fechar bypass do limite JSON sem `Content-Length`; depende da proteção HTTP existente | Limite de bytes reais, leitura limitada, mesmo 413, corpo válido preservado; testes de fronteira, UTF-8 e controller | Concluído na branch de revisão: 24 testes do filtro/controller e suíte completa aprovados; sem alteração de auth/schema/cálculo |
+| WEB-001 / alta | Corrigir cortes em 320 px e foco ao adicionar/remover classes; depende INC-004 | Controles dentro do painel, labels legíveis, foco previsível; testes de componente e inspeção geométrica em navegador | Concluído na branch de revisão: 18 testes frontend e inspeção real de 320 a 1440 px aprovados; sem PWA/framework novo |
+| INC-008A / alta | Decidir IDs estáveis; depende INC-008 e aprovação | Exemplos de renomeação, reordenação e remoção, efeito sobre referências e concorrência; revisão por outra IA | Proposto: decisão aprovada antes da implementação e de expor IDs |
+| INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Teste concorrente deve impedir versão antiga combinada com metas novas; alinhar nomes de 80 caracteres na persistência versus 60 no simulador sem truncamento | Proposto: estratégia e compatibilidade revisadas antes do endpoint |
+| INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposto: documento e contratos aprovados antes de INC-011 |
+| RELEASE-001 / futura | Comparar hospedagem e preparar checklist; depende definição de orçamento e escopo público | Custos atuais, HTTPS, banco privado, backups/restauração e logs; fontes oficiais e riscos | Proposto: escolha aprovada, sem criar serviço antecipadamente |
+| PWA-001 / futura | Validar instalação online-first; depende aprovação específica e ambiente HTTPS | Manifest, ícones e instalação nos dispositivos escolhidos; sem cache privado ou promessa offline | Proposto: prova real e limitações documentadas |
+| MOBILE-001 / futura | Avaliar uma tela nativa autenticada; depende necessidade nativa/lojas confirmada | Comparar login, UX, testes, distribuição e custo com Expo ou Capacitor | Proposto: ADR aprovado; nenhum segundo cliente antecipado |
+
 ## Fase 0 — Fundação e primeira fatia
 
 ### INC-001 — Estrutura e documentação inicial
