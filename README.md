@@ -1,6 +1,9 @@
 # Planejador de Carteira
 
-Projeto de uma plataforma full stack educacional para acompanhar uma carteira por categorias e ativos, analisar sua evolução e planejar aportes. O módulo disponível atualmente compara a alocação informada com metas definidas pelo próprio usuário e simula novos aportes de forma determinística.
+[![CI](https://github.com/thiagojosetj/pagina-investimentos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/thiagojosetj/pagina-investimentos/actions/workflows/ci.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
+
+Plataforma full stack educacional para planejar a alocação de uma carteira de investimentos. O módulo disponível hoje compara a alocação informada com metas definidas pelo próprio usuário e simula novos aportes de forma determinística.
 
 > **Aviso:** este projeto é uma ferramenta de estudo e planejamento. Não seleciona ativos, não analisa perfil de investidor e não constitui recomendação de compra ou venda.
 
@@ -8,84 +11,75 @@ Projeto de uma plataforma full stack educacional para acompanhar uma carteira po
 
 Simulador de aportes com o exemplo sintético da própria interface. O aporte de R$ 500,00 é insuficiente para zerar os déficits, então é dividido proporcionalmente entre eles: R$ 375,00 + R$ 79,55 + R$ 45,45 fecham exatamente os R$ 500,00, sem sobra nem centavo criado. Ações já está acima da meta e recebe R$ 0,00. O cálculo é feito no backend em centavos inteiros; a interface apenas formata o resultado.
 
-## Estado atual
+## O que funciona hoje
 
-### Versão publicada
+- **Simulador de aportes de ponta a ponta:** interface React com classes, valores atuais, metas e aporte editáveis, conectada a uma API Spring Boot.
+- **Distribuição proporcional aos déficits** sobre o patrimônio projetado, sem sugerir vendas.
+- **Visão geral demonstrativa** com dados sintéticos, filtro por categoria e modos claro e escuro.
+- **API documentada** com OpenAPI e Swagger UI, com erros no formato `application/problem+json`.
+- **Persistência de carteiras e metas** com PostgreSQL e Flyway, coberta por testes de integração, ainda sem endpoint público.
 
-O primeiro corte vertical funcional está implementado e publicado:
+## Destaques técnicos
 
-- formulário responsivo com exemplo totalmente fictício;
-- classes, valores atuais, metas e novo aporte editáveis;
-- API Java que calcula metas sobre o patrimônio projetado;
-- distribuição proporcional aos déficits monetários, sem sugerir vendas;
-- valores monetários processados em centavos inteiros e serializados como strings;
-- distribuição determinística dos centavos residuais;
-- respostas de erro em `application/problem+json`;
-- documentação OpenAPI e Swagger UI;
-- testes automatizados do domínio, da API e do fluxo crítico da interface.
+- **Dinheiro em centavos inteiros.** Os valores trafegam como strings decimais e são calculados em `BigInteger`. Os centavos que sobram são distribuídos pelo método dos maiores restos, com desempate determinístico, então a soma sempre fecha exatamente com o aporte.
+- **Regras no backend.** O frontend coleta entradas e formata resultados; nenhum cálculo financeiro crítico é feito no navegador.
+- **Organização por funcionalidade**, com camadas `api`, `application`, `domain` e `persistence`, DTOs e mappers explícitos.
+- **Schema versionado.** O Flyway é o dono do schema e o Hibernate apenas valida os mapeamentos (`ddl-auto=validate`).
+- **Atualização de metas protegida contra concorrência** pela versão da carteira (compare-and-set).
+- **Testes em várias camadas:** domínio, API, integração com PostgreSQL real via Testcontainers e fluxo da interface com Vitest e Testing Library.
+- **Configuração defensiva:** API ligada a `127.0.0.1` por padrão, limite de tamanho do corpo das requisições (HTTP 413) e respostas de erro sem stack trace.
+- **CI no GitHub Actions** com jobs separados para backend e frontend, actions fixadas por SHA e permissões mínimas, além de Dependabot para Maven, npm e Actions.
 
-### Incrementos publicados na sequência
+## Ainda não implementado
 
-- visão geral demonstrativa com total do cenário sintético, posições, hipótese de caixa e alocação por categoria;
-- filtro de itens sintéticos por Ações, FIIs, ETFs, Renda fixa e Caixa;
-- navegação acessível entre a visão geral e o simulador;
-- modos claro e escuro, com preferência visual salva no navegador;
-- fundação de persistência com PostgreSQL e Flyway, sem geração automática de DDL pelo Hibernate;
-- primeira migration versionada para usuário, identidade externa, carteira e classes de alocação;
-- mapeamentos JPA e repositories internos para carteira e classes de alocação;
-- serviço transacional interno, ainda sem endpoint, que exige o proprietário em todas as operações e substitui integralmente as metas usando a versão da carteira como compare-and-set;
-- validação de uma a vinte classes, percentuais com quatro casas e soma exata de `100.0000`;
-- cinco testes puros da validação das metas aprovados;
-- oito testes de integração do serviço e sete testes de migration/contexto aprovados com PostgreSQL real via Testcontainers; suíte backend completa com 37 testes e zero falhas.
+- Contas, autenticação (planejada com login Google) e endpoints para salvar ou consultar carteiras.
+- Ativos, movimentações, cotações, rentabilidade e proventos.
+- Dashboard conectado: a visão geral atual usa uma fixture sintética.
 
-O repositório [`thiagojosetj/pagina-investimentos`](https://github.com/thiagojosetj/pagina-investimentos) é público e `main` já contém todos os incrementos acima. O resultado da CI de cada push deve ser conferido em GitHub Actions antes de tratar um commit como validado remotamente.
+Qualquer cotação externa dependerá de pesquisa e aprovação do provedor, licença, limites e defasagem.
 
-O schema inicial e a camada interna de persistência de carteiras/metas existem localmente, mas ainda **não** há contas acessíveis, autenticação nem endpoint para salvar ou consultar carteiras. Também não existem ativos, movimentações ou cotações. A visão geral continua sendo uma demonstração visual explicitamente sintética, e não um dashboard conectado.
+## Stack
 
-Na implementação interna atual, substituir as metas recria seus UUIDs. Essa escolha ainda não faz parte de contrato público e deverá ser revista antes de `portfolio_asset` referenciar classes de alocação ou de esses identificadores serem expostos pela API.
+- **Backend:** Java 21, Spring Boot 4.1, Spring Data JPA, Flyway, Maven Wrapper e JUnit 6.
+- **Frontend:** React 19, Vite 8, TypeScript 7, Vitest 5 e Testing Library.
+- **Banco:** PostgreSQL 18 em Docker Compose e Testcontainers nos testes de integração.
+- **Qualidade:** Spotless, Oxlint, Prettier, typecheck e GitHub Actions.
 
-A visão do produto inclui um dashboard por categorias e ativos, posições derivadas de movimentações, patrimônio, custos, resultados, proventos e gráficos. Esses recursos estão planejados, mas ainda não devem ser interpretados como funcionalidades entregues. Qualquer cotação externa dependerá de pesquisa e aprovação do provedor, licença, limites e defasagem.
-
-## Stack implementada
-
-- Backend: Java 21, Spring Boot 4.1, Spring Data JPA, Flyway, Maven Wrapper e JUnit 6.
-- Frontend: React 19, Vite 8, TypeScript 6, Vitest e Testing Library.
-- Banco: PostgreSQL 18 em Docker Compose e Testcontainers nos testes de integração.
-- Qualidade: Spotless, Oxlint, Prettier, typecheck e GitHub Actions.
-
-O sistema começa como um monólito modular com frontend separado. O backend é o único proprietário das regras financeiras; o frontend coleta entradas e apresenta resultados.
+O sistema começa como um monólito modular com frontend separado. O backend é o único proprietário das regras financeiras.
 
 ## Executar localmente
 
-Pré-requisitos:
+Pré-requisitos: JDK 21, Node.js 24 LTS com npm e Docker (Docker Desktop no Windows e no macOS). Abra três terminais na raiz do projeto.
 
-- JDK 21;
-- Node.js 24 LTS e npm;
-- Git;
-- Docker Desktop para o PostgreSQL local e para os testes de integração do backend.
-
-No PowerShell, abra três terminais na raiz do projeto.
-
-Terminal 1 — PostgreSQL:
+PowerShell:
 
 ```powershell
+# Terminal 1 — PostgreSQL
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up -d --wait postgres
-```
 
-Terminal 2 — API:
-
-```powershell
+# Terminal 2 — API
 Set-Location .\backend
 .\mvnw.cmd spring-boot:run
-```
 
-Terminal 3 — interface:
-
-```powershell
+# Terminal 3 — interface
 Set-Location .\frontend
 npm ci
 npm run dev
+```
+
+Bash (Linux, macOS ou Git Bash):
+
+```bash
+# Terminal 1 — PostgreSQL
+cp -n .env.example .env
+docker compose up -d --wait postgres
+
+# Terminal 2 — API
+cd backend && ./mvnw spring-boot:run
+
+# Terminal 3 — interface
+cd frontend && npm ci && npm run dev
 ```
 
 Acesse:
@@ -95,58 +89,26 @@ Acesse:
 - Swagger UI: <http://localhost:8080/swagger-ui/index.html>
 - OpenAPI JSON: <http://localhost:8080/v3/api-docs>
 
-O servidor Vite encaminha requisições iniciadas por `/api` para a API na porta `8080`.
+O servidor Vite encaminha as requisições iniciadas por `/api` para a API na porta `8080`. Para parar o banco sem perder dados, use `docker compose stop postgres`; `docker compose down -v` apaga o volume local.
+
+Configurações de execução para o IntelliJ IDEA ficam em `.run/`. Detalhes do ambiente e solução de problemas estão em [`docs/local-development.md`](docs/local-development.md).
 
 ## Testes e verificações
 
-Validação completa pelo PowerShell, a partir da raiz:
+Validação completa no Windows, a partir da raiz:
 
 ```powershell
 .\scripts\check.ps1
 ```
 
-Ou por módulo:
+Por módulo, em qualquer sistema:
 
-```powershell
-Set-Location .\backend
-.\mvnw.cmd --no-transfer-progress verify
-
-Set-Location ..\frontend
-npm run check
+```bash
+cd backend && ./mvnw --no-transfer-progress verify
+cd frontend && npm run check
 ```
 
-O script completo valida também a sintaxe do Docker Compose e verifica se o Docker Engine responde, sem iniciá-lo automaticamente. `npm run check` executa format-check, lint, typecheck, testes e build. O `verify` do Maven compila, testa, empacota, confirma a formatação Java e aplica a migration em um PostgreSQL descartável. O Docker Desktop deve estar ativo; o PostgreSQL do Compose não precisa estar iniciado para os testes.
-
-No estado atual do INC-008, `mvn verify` executa 37 testes: 22 testes sem infraestrutura e 15 testes com PostgreSQL real via Testcontainers. A verificação local mais recente terminou com zero falhas.
-
-## PostgreSQL com Docker
-
-A API usa o banco desde a inicialização. O Flyway cria ou valida automaticamente a migration `V1`; o Hibernate está impedido de criar tabelas e valida os mapeamentos JPA já escritos contra PostgreSQL real:
-
-```powershell
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker compose up -d --wait postgres
-docker compose ps
-```
-
-Depois de interromper a API, `docker compose stop postgres` para somente o banco deste projeto e preserva seu volume. Não use `docker compose down -v` sem entender que esse comando apaga os dados locais do banco.
-
-Se o Docker Desktop falhar ao abrir com `sailor-ingest.sock` e erro 1920, consulte a recuperação manual limitada em [`docs/local-development.md`](docs/local-development.md#docker-desktop-falha-ao-abrir-com-sailor-ingestsock-e-erro-1920). Não use reset de fábrica ou limpeza de volumes como tentativa de correção.
-
-## IntelliJ IDEA
-
-Abra a pasta raiz `pagina-investimentos`, não apenas `backend` ou `frontend`. As configurações portáveis em `.run/` oferecem:
-
-- `Backend` — executar ou depurar a API, supondo que o PostgreSQL já esteja ativo;
-- `Frontend` — executar a interface;
-- `Full stack` — iniciar os dois processos;
-- `Backend - Verify` — validar o módulo Java;
-- `Frontend - Checks` — validar o módulo web;
-- `PostgreSQL` — subir somente o serviço pelo Docker Compose.
-
-O Docker não é iniciado implicitamente por `Backend` ou `Full stack`. Inicie primeiro a configuração `PostgreSQL` quando precisar da API. Essa separação evita que uma execução Java abra o Docker Desktop sem intenção.
-
-Na primeira abertura, confirme JDK 21 no módulo Maven, Node.js 24 como interpretador do projeto e a conexão com o Docker Desktop. Detalhes e troubleshooting estão em [`docs/local-development.md`](docs/local-development.md).
+O `verify` do Maven compila, executa os testes (inclusive os de integração com PostgreSQL via Testcontainers, que exigem o Docker ativo) e confere a formatação Java com Spotless; `./mvnw spotless:apply` corrige a formatação. `npm run check` executa format-check, lint, typecheck, testes e build.
 
 ## Contrato do simulador
 
@@ -197,7 +159,7 @@ Decimais no JSON usam ponto e são enviados como strings. A interface aceita pon
 - [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md) — escopo e modelo proposto.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — incrementos pequenos e critérios de aceite.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisões e alternativas avaliadas.
-- [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — estado real e próximo passo.
+- [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — estado detalhado e próximo passo.
 - [`docs/local-development.md`](docs/local-development.md) — ambiente local detalhado.
 
 ## Dados e licença
@@ -208,4 +170,4 @@ Código distribuído sob a [licença MIT](LICENSE).
 
 ## English summary
 
-Educational full-stack portfolio planning app built with Java, Spring Boot, React and TypeScript. The current release provides a deterministic contribution simulator based exclusively on user-defined allocation targets. It is not financial advice and uses synthetic examples only.
+Educational full-stack portfolio planning app built with Java 21, Spring Boot, PostgreSQL, React and TypeScript. The current release provides a deterministic contribution simulator: amounts are handled as integer cents and leftover cents are assigned with the largest remainder method, so the split always adds up to the contribution. It is not financial advice and uses synthetic examples only.
