@@ -23,6 +23,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # @types/node acompanha a versão major do Node.js usada no projeto e na CI (24).
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
     groups:
       frontend-compativel:
         patterns:
