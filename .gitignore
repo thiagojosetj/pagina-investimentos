@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Local development assistant instructions (kept outside version control)
+AGENTS.md
+
 # IntelliJ IDEA and editors
 .idea/
 *.iml

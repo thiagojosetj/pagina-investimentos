@@ -199,7 +199,6 @@ Decimais no JSON usam ponto e são enviados como strings. A interface aceita pon
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisões e alternativas avaliadas.
 - [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — estado real e próximo passo.
 - [`docs/local-development.md`](docs/local-development.md) — ambiente local detalhado.
-- [`AGENTS.md`](AGENTS.md) — regras permanentes de colaboração e segurança.
 
 ## Dados e licença
 
