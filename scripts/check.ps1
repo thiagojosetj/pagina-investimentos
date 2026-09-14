@@ -16,7 +16,7 @@ try {
         }
     }
     catch {
-        throw 'Docker Engine is unavailable. Open Docker Desktop manually before running the full checks. See docs/local-development.md for socket startup errors. No service was started by this script.'
+        throw 'Docker Engine is unavailable. Open Docker Desktop manually before running the full checks. See docs/local-development.md if Docker Desktop does not start. No service was started by this script.'
     }
 }
 finally {

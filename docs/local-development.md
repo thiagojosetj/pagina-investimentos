@@ -179,46 +179,9 @@ O volume continua presente. Não pare ou remova containers, imagens, redes ou vo
 
 ## 8. Troubleshooting
 
-### Docker Desktop falha ao abrir com `sailor-ingest.sock` e erro 1920
+### Docker Desktop não inicia
 
-No ambiente Windows investigado, arquivos de comunicação interna do Docker (`sockets`) ficaram inacessíveis. O log do backend do Docker registrou falha ao renomear `sailor-ingest.sock` para `.stale`, e `Get-Acl` retornou o erro 1920. Isso aconteceu antes de o banco ou a aplicação iniciarem. O motivo original de os sockets ficarem inacessíveis ainda não foi determinado.
-
-A atualização de 4.89.0 para 4.90.0 não resolveu a recorrência neste computador: o erro reapareceu após uma parada normal seguida de reabertura. As [notas oficiais da versão 4.90](https://docs.docker.com/desktop/release-notes/#4900) mencionam uma correção relacionada a sockets após encerramento abrupto, mas esse texto não comprova que o caso local esteja corrigido. Consulta: 8 de setembro de 2026.
-
-Não fique repetindo a inicialização e não use **Reset to factory defaults**, `prune`, remoção de volumes ou `wsl --unregister` para contornar esse erro. As tentativas explícitas de reabrir o Desktop reproduzem a janela de falha. As configurações compartilhadas de Backend/Full stack não possuem tarefa de abertura automática do Docker.
-
-#### Recuperação manual e limitada
-
-O script `scripts/repair-docker-runtime.ps1` é uma mitigação, não uma correção definitiva do Docker. Ele atua no runtime global do Docker do usuário, por isso só deve ser executado quando nenhum outro projeto estiver usando o Docker:
-
-1. Encerre o Docker Desktop por **Quit** e confirme que seus processos e o serviço `com.docker.service` estão parados. O script verifica isso e não encerra serviços por conta própria.
-2. Na raiz do projeto, visualize a operação antes de aplicá-la:
-
-   ```powershell
-   .\scripts\repair-docker-runtime.ps1 -WhatIf
-   ```
-
-3. Somente se o diagnóstico corresponder ao erro descrito, execute e confira os alvos antes de confirmar:
-
-   ```powershell
-   .\scripts\repair-docker-runtime.ps1
-   ```
-
-4. Abra o Docker Desktop uma vez, aguarde e valide:
-
-   ```powershell
-   docker info --format '{{.ServerVersion}}'
-   docker compose up -d --wait postgres
-   docker compose ps
-   ```
-
-O utilitário só aceita os diretórios normais `%LOCALAPPDATA%\Docker\run` e `%LOCALAPPDATA%\docker-secrets-engine`, contendo exclusivamente os sockets conhecidos e vazios. Exige evidência do erro 1920 e valida todos os alvos antes da alteração. Renomeia esses diretórios no mesmo local, acrescentando `.stale-...`, para que o Docker recrie o runtime. Não apaga os backups, não toca em `Docker\wsl`, discos `.vhdx`, containers, imagens ou volumes e recusa conteúdo inesperado. Não está ligado à IDE, ao build ou à CI.
-
-As duas renomeações não são uma operação atômica: se a segunda falhar, a primeira permanece no backup informado. Não restaure backups sobre diretórios recriados pelo Docker. Para validar apenas as proteções do script, sem acessar o runtime real, execute `./scripts/test-repair-docker-runtime.ps1`; seus 26 checks usam operações simuladas e foram executados no PowerShell 7 e no Windows PowerShell 5.1.
-
-Na investigação foi preservada uma cópia externa ao repositório do disco de dados, com o Docker parado e SHA-256 idêntico ao original, seguindo a [orientação oficial de backup](https://docs.docker.com/desktop/settings-and-maintenance/backup-and-restore/). Esse backup pode conter dados de outros projetos e não deve ser versionado ou enviado junto de diagnósticos. Consulta: 8 de setembro de 2026.
-
-Se a falha persistir, preserve os backups e interrompa as tentativas. Uma investigação adicional com o suporte do Docker ou troca de versão exige uma avaliação separada; relatórios de diagnóstico devem ser revisados quanto à privacidade antes de qualquer envio.
+Confira se o Docker Desktop está atualizado e se o WSL 2 está habilitado. Não use **Reset to factory defaults**, `prune`, remoção de volumes ou `wsl --unregister` como tentativa de correção, porque esses caminhos podem apagar dados de outros projetos. Consulte a [documentação oficial de solução de problemas](https://docs.docker.com/desktop/troubleshoot-and-support/troubleshoot/).
 
 ### Porta 8080 ou 5173 ocupada
 

@@ -36,7 +36,7 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 
 ## Verificações locais registradas
 
-Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`, após a recuperação do Docker: exit code 0.
+Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`: exit code 0.
 
 - Backend: Maven `verify`, 37 testes, 0 falhas e artefato gerado.
 - Backend/PostgreSQL: 15 testes com PostgreSQL 18.6 real via Testcontainers — sete de migration/contexto e oito do serviço de carteiras/metas.
@@ -44,15 +44,12 @@ Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`
 - Frontend: format-check, Oxlint, TypeScript, 14 testes Vitest e build Vite.
 - Integração local (3 de setembro): frontend, proxy Vite, API, Actuator e OpenAPI responderam HTTP 200; o exemplo retornou `0 / 1200 / 400 / 400`. Esse smoke test HTTP não foi repetido na manutenção de 8 de setembro.
 - Docker: Compose validado e PostgreSQL 18.6 saudável em 8 de setembro, com o volume de desenvolvimento preservado. A aplicação da V1 nesse volume havia sido verificada em 3 de setembro; os testes de 8 de setembro reaplicaram a migration em bancos descartáveis.
-- Recuperação do Docker: 26 verificações sintéticas do utilitário aprovadas no PowerShell 7 e Windows PowerShell 5.1; `-WhatIf` real não alterou os diretórios, a execução explícita recuperou o daemon e a proteção recusou nova execução com Docker ativo.
 - Preflight de `check.ps1`: com daemon desligado, encerrou com orientação antes do Maven, sem iniciar o Docker; com daemon ativo, a validação completa passou.
 - Configurações `.run/`: seis XMLs analisados sem erro; `git diff --check` sem problemas de whitespace.
 
 Esses números correspondem à execução local real mais recente e devem ser atualizados caso os testes mudem antes do commit final.
 
 ## Limitações conhecidas
-
-- Docker Desktop: a atualização de 4.89.0 para 4.90.0 não eliminou o erro de sockets inacessíveis neste computador; ele foi reproduzido após parada normal e reabertura. A recuperação manual dos diretórios de runtime restaurou o Engine 29.7.2 e o PostgreSQL do projeto com seu volume preservado. Há backup externo do disco de dados, verificado por SHA-256 antes da atualização. O utilitário de recuperação exige Docker parado e diagnóstico específico; não é uma correção definitiva nem roda automaticamente. Procedimento em `local-development.md`.
 
 - A fundação do schema e a camada JPA interna existem, mas ainda não há endpoint de carteira nem autenticação.
 - A substituição integral recria IDs de metas; isso deve ser revisto antes de classes serem referenciadas por ativos ou expostas em contrato público.
