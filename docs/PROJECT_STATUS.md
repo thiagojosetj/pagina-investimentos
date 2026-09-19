@@ -38,7 +38,7 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 
 A substituição interna agora distingue classes existentes pelo UUID e novas por `id = null`. Classes omitidas são removidas; renomeação, reordenação e ajuste de meta preservam identidade. O serviço valida IDs contra a carteira após reivindicar sua versão e usa uma etapa transacional temporária para evitar conflitos dos índices únicos em trocas de nomes ou ordem. Não há migration, endpoint novo, login nem mudança no cálculo do simulador.
 
-Em 19 de setembro, a branch partiu de `origin/main` em `e6794e2`. O PR #6 (`fix/request-body-limit`) continua aberto e com os jobs Backend e Frontend aprovados; não foi mesclado. O Docker Engine local estava indisponível nesta sessão. `spotless:apply test-compile` e 24 testes backend sem Docker passaram; no frontend, `npm run check` passou com 14 testes, lint, format-check, typecheck e build. Os testes de integração PostgreSQL e a CI deste incremento dependem do PR e ainda precisam ser registrados antes de concluir a entrega.
+Em 19 de setembro, a branch partiu de `origin/main` em `e6794e2`. O PR #6 (`fix/request-body-limit`) continua aberto e não foi mesclado. O Docker Engine local estava indisponível nesta sessão. `spotless:apply test-compile`, 24 testes backend sem Docker, `spotless:check` e o build Java passaram; no frontend, `npm run check` passou com 14 testes, lint, format-check, typecheck e build. No PR #7, a CI executou 44 testes backend sem falhas, incluindo 13 testes de integração do serviço com PostgreSQL/Testcontainers; os jobs Backend e Frontend passaram. O PR permanece aberto para revisão, sem deploy público.
 
 ## Verificações locais registradas
 

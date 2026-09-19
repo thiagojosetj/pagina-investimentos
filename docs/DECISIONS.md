@@ -145,7 +145,7 @@ Cinco testes puros da validação das metas e oito testes PostgreSQL/Testcontain
 
 ## ADR-012 — Identidade estável das classes na substituição de metas
 
-**Status:** implementada na branch `feat/stable-allocation-class-ids`; validar os testes de integração antes de integrar.
+**Status:** implementada na branch `feat/stable-allocation-class-ids`; os testes de integração passaram na CI do PR #7. A integração em `main` depende da revisão do PR.
 
 O comando interno de substituição recebe um UUID para cada classe existente. `id = null` cria uma classe; omitir um ID existente remove essa classe do conjunto. Renomear, reordenar ou mudar o percentual mantém o UUID e `created_at`; a versão da carteira continua protegida pelo compare-and-set e avança uma vez por substituição.
 

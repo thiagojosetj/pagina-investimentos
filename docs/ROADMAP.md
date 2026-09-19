@@ -81,13 +81,13 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 
 ### INC-008A — IDs estáveis das classes de alocação
 
-- **Status:** implementado na branch `feat/stable-allocation-class-ids`; integração e CI pendentes.
+- **Status:** implementado e validado na CI do PR #7; revisão e integração em `main` pendentes.
 - **Objetivo:** preservar a identidade de classes mantidas ao substituir as metas de uma carteira.
 - **Prioridade:** alta.
 - **Dependências:** INC-008 e aprovação do incremento seguinte pelo usuário.
 - **Critérios de aceite:** ID informado e pertencente à carteira é mantido ao renomear/reordenar/editar; ID nulo cria classe nova; ID omitido remove; IDs repetidos, desconhecidos ou de outra carteira são rejeitados; swaps respeitam índices únicos e a versão da carteira avança uma vez.
-- **Verificações:** testes puros de validação, integração PostgreSQL com mudança de ordem/nome, ownership, rollback e concorrência; Maven verify e CI do PR.
-- **Definition of Done:** testes reais aprovados, documentação correspondente atualizada, diff revisado e PR publicado para revisão independente.
+- **Verificações:** 24 testes backend locais sem Docker; 44 testes backend na CI, incluindo 13 testes de integração PostgreSQL do serviço, todos sem falhas; Frontend CI aprovado.
+- **Definition of Done:** atendida para publicação do PR — testes reais aprovados, documentação atualizada, diff revisado e PR publicado. A integração em `main` depende da revisão.
 
 ### INC-009 — Persistência na interface
 
