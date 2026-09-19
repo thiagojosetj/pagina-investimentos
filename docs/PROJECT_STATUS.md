@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Atualizado em:** 9 de setembro de 2026
+**Atualizado em:** 19 de setembro de 2026
 
 ## Estado real
 
@@ -32,7 +32,13 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 - Entidades e repositories JPA internos para `portfolio` e `allocation_class`.
 - Serviço sem endpoint que exige ownership na criação, leitura e substituição das metas.
 - Substituição integral transacional de uma a vinte metas, soma exata `100.0000` e compare-and-set pela versão da carteira.
-- A substituição recria os UUIDs das metas; esse comportamento ainda não é contrato público e deverá mudar ou ser ratificado antes de `portfolio_asset`.
+- O INC-008A na branch `feat/stable-allocation-class-ids` altera a substituição interna para manter UUID e data de criação das classes preservadas. A integração com ativos e a API de carteira ainda não existem.
+
+## Incremento em revisão — INC-008A
+
+A substituição interna agora distingue classes existentes pelo UUID e novas por `id = null`. Classes omitidas são removidas; renomeação, reordenação e ajuste de meta preservam identidade. O serviço valida IDs contra a carteira após reivindicar sua versão e usa uma etapa transacional temporária para evitar conflitos dos índices únicos em trocas de nomes ou ordem. Não há migration, endpoint novo, login nem mudança no cálculo do simulador.
+
+Em 19 de setembro, a branch partiu de `origin/main` em `e6794e2`. O PR #6 (`fix/request-body-limit`) continua aberto e com os jobs Backend e Frontend aprovados; não foi mesclado. O Docker Engine local estava indisponível nesta sessão. `spotless:apply test-compile` e 24 testes backend sem Docker passaram; no frontend, `npm run check` passou com 14 testes, lint, format-check, typecheck e build. Os testes de integração PostgreSQL e a CI deste incremento dependem do PR e ainda precisam ser registrados antes de concluir a entrega.
 
 ## Verificações locais registradas
 
@@ -52,7 +58,7 @@ Esses números correspondem à execução local real mais recente e devem ser at
 ## Limitações conhecidas
 
 - A fundação do schema e a camada JPA interna existem, mas ainda não há endpoint de carteira nem autenticação.
-- A substituição integral recria IDs de metas; isso deve ser revisto antes de classes serem referenciadas por ativos ou expostas em contrato público.
+- A política de exclusão de classes já referenciadas por ativos precisa ser definida antes de criar essas referências. A leitura de carteira e metas em duas consultas ainda precisa de garantia de snapshot consistente.
 - Valores atuais são informados manualmente por classe; não existem ativos ou movimentações.
 - Nenhum dado de mercado ou provedor externo.
 - Apenas BRL.
@@ -63,4 +69,4 @@ Esses números correspondem à execução local real mais recente e devem ser at
 
 ## Próximo incremento recomendado
 
-Ratificar a estratégia de IDs estáveis para metas e concluir o threat model do login Google antes de expor carteiras em um contrato HTTP autenticado.
+Após a validação dos IDs estáveis, garantir snapshot consistente de carteira/metas, alinhar o limite dos nomes (80 na persistência e 60 no simulador) e concluir o threat model do login Google antes de expor carteiras em um contrato HTTP autenticado.

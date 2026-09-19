@@ -144,7 +144,7 @@ Os UUIDs são gerados pela aplicação, sem extensão específica no banco. Time
 
 A soma de metas e o limite de uma a vinte classes são invariantes entre várias linhas. O serviço interno substitui o conjunto completo em uma transação, valida a soma exata `100.0000` com escala de quatro casas e exige ownership em todas as operações. A escrita usa compare-and-set sobre a versão da carteira para rejeitar edição concorrente; um `CHECK` isolado não consegue garantir essas regras.
 
-Nesta primeira implementação, a substituição integral remove as metas anteriores e cria novas linhas com novos UUIDs. Essa semântica é interna e temporária: a estabilidade dos identificadores deverá ser decidida e implementada antes de `portfolio_asset` possuir uma chave estrangeira para `allocation_class` ou de IDs de metas integrarem um contrato público.
+Na substituição interna de metas, cada classe existente é identificada por seu UUID. Renomear, reordenar ou alterar a meta mantém o ID e a criação; um item sem ID cria uma classe, e a ausência de um ID anteriormente presente remove essa classe. O serviço rejeita IDs que não pertençam à carteira e mantém a operação integralmente transacional. Antes de vincular ativos às classes, a política de exclusão de classes referenciadas deverá ser definida.
 
 Relacionamentos:
 
@@ -207,7 +207,7 @@ O mapeamento Java das metas usa `BigDecimal` com escala validada nas bordas; os 
 
 - O modelo inicial não cobre desdobramentos, grupamentos, amortizações, subscrições, transferências de custódia ou tributação.
 - Instrumento global, renda fixa, movimentações, caixa, avaliações e proventos não pertencem à primeira migration; o desenho apenas reserva um caminho de evolução.
-- A substituição atual recria os IDs das metas e precisa ser revisada antes da associação com ativos ou da exposição desses IDs em contrato público.
+- A política de exclusão de classes referenciadas por ativos ainda precisa ser definida antes da associação com ativos. A interface/API pública de edição de metas ainda não existe.
 - A metodologia de preço médio será uma simplificação educacional documentada, não uma apuração fiscal oficial.
 - A estratégia de correção/remoção de movimentações precisa ser aprovada antes da migration correspondente.
 

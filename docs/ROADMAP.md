@@ -77,7 +77,17 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 - **Critérios de aceite:** validação de uma a vinte classes e soma exata `100.0000`, transação integral, compare-and-set pela versão da carteira e ownership obrigatório em toda operação; nenhum usuário fixo, controller ou endpoint provisório.
 - **Verificações:** cinco testes puros da validação das metas e oito testes de serviço/repository com PostgreSQL real aprovados; suíte backend completa com 37 testes e zero falhas.
 - **Definition of Done:** atendida — os dados são relidos em nova transação, ownership/concorrência/rollback foram validados e a camada de aplicação não expõe entidades JPA.
-- **Limite conhecido:** a substituição integral atual recria os UUIDs das metas; revisar essa decisão antes de `portfolio_asset` ou de um contrato público depender desses IDs.
+- **Limite conhecido:** o fluxo interno anterior recriava UUIDs; o INC-008A preserva os IDs na branch de revisão. A política de exclusão quando houver ativos ainda precisa ser definida.
+
+### INC-008A — IDs estáveis das classes de alocação
+
+- **Status:** implementado na branch `feat/stable-allocation-class-ids`; integração e CI pendentes.
+- **Objetivo:** preservar a identidade de classes mantidas ao substituir as metas de uma carteira.
+- **Prioridade:** alta.
+- **Dependências:** INC-008 e aprovação do incremento seguinte pelo usuário.
+- **Critérios de aceite:** ID informado e pertencente à carteira é mantido ao renomear/reordenar/editar; ID nulo cria classe nova; ID omitido remove; IDs repetidos, desconhecidos ou de outra carteira são rejeitados; swaps respeitam índices únicos e a versão da carteira avança uma vez.
+- **Verificações:** testes puros de validação, integração PostgreSQL com mudança de ordem/nome, ownership, rollback e concorrência; Maven verify e CI do PR.
+- **Definition of Done:** testes reais aprovados, documentação correspondente atualizada, diff revisado e PR publicado para revisão independente.
 
 ### INC-009 — Persistência na interface
 
