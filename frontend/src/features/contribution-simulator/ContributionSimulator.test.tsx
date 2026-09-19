@@ -82,6 +82,55 @@ describe('ContributionSimulator', () => {
     ).toBeInTheDocument()
   })
 
+  it('focuses the new class name after adding a class', async () => {
+    const user = userEvent.setup()
+    render(<ContributionSimulator />)
+
+    await user.click(screen.getByRole('button', { name: 'Adicionar classe' }))
+
+    expect(screen.getByLabelText('Nome da classe 5')).toHaveFocus()
+    expect(screen.getByLabelText('Nome da classe 5')).toHaveValue('Classe 5')
+  })
+
+  it('focuses the following class name after removing a middle class', async () => {
+    const user = userEvent.setup()
+    render(<ContributionSimulator />)
+
+    await user.click(screen.getByRole('button', { name: 'Remover FIIs' }))
+
+    expect(screen.getByLabelText('Nome da classe 2')).toHaveFocus()
+    expect(screen.getByLabelText('Nome da classe 2')).toHaveValue('ETFs')
+  })
+
+  it('focuses the previous class name after removing the last class', async () => {
+    const user = userEvent.setup()
+    render(<ContributionSimulator />)
+
+    await user.click(screen.getByRole('button', { name: 'Remover Renda fixa' }))
+
+    expect(screen.getByLabelText('Nome da classe 3')).toHaveFocus()
+    expect(screen.getByLabelText('Nome da classe 3')).toHaveValue('ETFs')
+  })
+
+  it('keeps one class and does not remove it when its button is disabled', async () => {
+    const user = userEvent.setup()
+    render(<ContributionSimulator />)
+
+    await user.click(screen.getByRole('button', { name: 'Remover Renda fixa' }))
+    await user.click(screen.getByRole('button', { name: 'Remover ETFs' }))
+    await user.click(screen.getByRole('button', { name: 'Remover FIIs' }))
+
+    const removeLastClass = screen.getByRole('button', {
+      name: 'Remover Ações',
+    })
+    expect(removeLastClass).toBeDisabled()
+    expect(screen.getByLabelText('Nome da classe 1')).toHaveFocus()
+    await user.click(removeLastClass)
+
+    expect(screen.getAllByRole('group')).toHaveLength(1)
+    expect(screen.getByLabelText('Nome da classe 1')).toHaveValue('Ações')
+  })
+
   it('sends normalized decimal strings and presents the calculated plan', async () => {
     const user = userEvent.setup()
     const fetchMock = vi.fn().mockResolvedValue(

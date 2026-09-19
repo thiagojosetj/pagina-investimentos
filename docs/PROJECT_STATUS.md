@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Atualizado em:** 9 de setembro de 2026
+**Atualizado em:** 14 de setembro de 2026
 
 ## Estado real
 
@@ -34,7 +34,25 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 - Substituição integral transacional de uma a vinte metas, soma exata `100.0000` e compare-and-set pela versão da carteira.
 - A substituição recria os UUIDs das metas; esse comportamento ainda não é contrato público e deverá mudar ou ser ratificado antes de `portfolio_asset`.
 
-## Verificações locais registradas
+## Incremento em revisão — HARD-001 e WEB-001
+
+Implementado na branch `fix/request-body-limit`, a partir de `e3f8ada`, sem merge automático em `main`. Em 14 de setembro, `git fetch origin` encontrou quatro commits posteriores em `main` (até `e6794e2`), com mudanças de documentação/toolchain, não dos arquivos de código deste incremento. A CI de `main` nesse SHA foi consultada e estava aprovada. As mudanças da outra revisão foram preservadas; o PR deverá validar a combinação antes de qualquer merge.
+
+- Limite padrão de 65.536 bytes aplicado ao corpo real dos comandos JSON síncronos, inclusive sem tamanho declarado/chunked. Pré-leitura de até limite + 1 byte, rejeição 413 antes do MVC e corpo aceito preservado para o conversor.
+- Layout do simulador e posições ajustado para telas estreitas, com rótulos visíveis e controles de toque maiores. Adicionar classe foca seu nome; remover foca a próxima ou a anterior.
+- Proposta de evolução web/celular e colaboração com outra IA em `WEB_MOBILE_PLAN.md`; nenhum framework móvel, login, provedor ou deploy acrescentado.
+
+Validação em 14 de setembro de 2026:
+
+- `./scripts/check.ps1`: exit 0. Backend com 58 testes, zero falhas/erros/ignorados, Spotless e build aprovados. São 15 testes PostgreSQL/Testcontainers e 43 sem banco (incluindo 21 do filtro e três de integração filtro/controller).
+- Frontend: format-check, lint, typecheck, 18 testes e build aprovados. Quatro regressões de foco foram acrescentadas.
+- API real: Actuator `UP` e POST JSON chunked acima de 64 KiB retornou 413 pelo Tomcat, sem depender apenas de mocks.
+- Navegador Edge headless: 320, 360, 390, 768 e 1440 px, claro/escuro, visão geral, formulário e resultado integrado à API (30 combinações). Sem overflow horizontal ou controles fora do painel nos cenários verificados; foco ao adicionar/remover validado no navegador.
+- Screenshot de 320 px inspecionada; a verificação com viewport emulado não substitui teste em aparelho Android/iOS físico. Evidências temporárias ficaram em `backend/target`, ignorado pelo Git.
+
+Limites: esta proteção cobre JSON síncrono em POST/PUT/PATCH/DELETE e o tamanho declarado das demais requisições; não implementa upload, leitura assíncrona, rate limit ou proteção contra clientes lentos. O domínio financeiro, migrations, autenticação e contrato válido do simulador não mudaram.
+
+## Histórico de verificações anteriores
 
 Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`: exit code 0.
 
@@ -47,7 +65,7 @@ Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`
 - Preflight de `check.ps1`: com daemon desligado, encerrou com orientação antes do Maven, sem iniciar o Docker; com daemon ativo, a validação completa passou.
 - Configurações `.run/`: seis XMLs analisados sem erro; `git diff --check` sem problemas de whitespace.
 
-Esses números correspondem à execução local real mais recente e devem ser atualizados caso os testes mudem antes do commit final.
+Os números desta seção são históricos. A execução mais recente deste incremento está na seção anterior.
 
 ## Limitações conhecidas
 
