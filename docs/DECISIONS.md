@@ -141,11 +141,13 @@ O conjunto de uma a vinte metas é validado por inteiro, com `BigDecimal` em esc
 
 Para manter este primeiro incremento pequeno, a substituição remove todas as linhas anteriores e insere novas metas com novos UUIDs. Isso evita tratar IDs internos como contrato antes de existir consumidor, mas não é a estratégia definitiva: IDs estáveis devem ser decididos antes de criar `portfolio_asset`, adicionar outra chave estrangeira para `allocation_class` ou publicar esses identificadores na API.
 
+Essa política inicial de recriação de IDs foi substituída pela ADR-012; o restante da decisão permanece válido.
+
 Cinco testes puros da validação das metas e oito testes PostgreSQL/Testcontainers do serviço passaram. A suíte backend completa executou 37 testes sem falhas, incluindo migration, mapeamentos JPA, ownership, concorrência e rollback.
 
 ## ADR-012 — Identidade estável das classes na substituição de metas
 
-**Status:** implementada na branch `feat/stable-allocation-class-ids`; os testes de integração passaram na CI do PR #7. A integração em `main` depende da revisão do PR.
+**Status:** implementada e validada na CI do PR #7, incluindo testes de integração PostgreSQL.
 
 O comando interno de substituição recebe um UUID para cada classe existente. `id = null` cria uma classe; omitir um ID existente remove essa classe do conjunto. Renomear, reordenar ou mudar o percentual mantém o UUID e `created_at`; a versão da carteira continua protegida pelo compare-and-set e avança uma vez por substituição.
 
@@ -161,6 +163,7 @@ Alternativas descartadas neste momento: atualização direta, que pode violar os
 - Regra de correção/exclusão de movimentações e nível de auditoria.
 - Hospedagem e ambientes públicos.
 - Primeiro provedor de cotações, seus termos e licença.
+- Escopo de lançamento web e celular: proposta web responsiva → PWA opcional → cliente nativo apenas com necessidade confirmada, em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md). A stack atual permanece aprovada; não há decisão de hospedagem ou framework móvel.
 
 ## Pesquisa preliminar — Google e dados de mercado
 

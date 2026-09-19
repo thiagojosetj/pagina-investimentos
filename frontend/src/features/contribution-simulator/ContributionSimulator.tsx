@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { simulateContribution } from './api'
 import type {
@@ -240,8 +240,18 @@ export function ContributionSimulator() {
   const [isLoading, setIsLoading] = useState(false)
   const nextClassNumber = useRef(5)
   const activeRequest = useRef<AbortController | null>(null)
+  const classNameInputs = useRef(new Map<string, HTMLInputElement>())
+  const pendingFocusClassId = useRef<string | null>(null)
 
   useEffect(() => () => activeRequest.current?.abort(), [])
+
+  useLayoutEffect(() => {
+    const classId = pendingFocusClassId.current
+    if (classId !== null) {
+      classNameInputs.current.get(classId)?.focus()
+      pendingFocusClassId.current = null
+    }
+  }, [allocations])
 
   const targetTotal = useMemo(
     () =>
@@ -273,10 +283,12 @@ export function ContributionSimulator() {
     invalidateSimulation()
     const number = nextClassNumber.current
     nextClassNumber.current += 1
+    const classId = `custom-class-${number}`
+    pendingFocusClassId.current = classId
     setAllocations((current) => [
       ...current,
       {
-        classId: `custom-class-${number}`,
+        classId,
         name: `Classe ${number}`,
         currentAmount: '0,00',
         targetPercentage: '0',
@@ -286,6 +298,8 @@ export function ContributionSimulator() {
 
   function removeAllocation(index: number) {
     invalidateSimulation()
+    pendingFocusClassId.current =
+      allocations[index + 1]?.classId ?? allocations[index - 1]?.classId ?? null
     setAllocations((current) =>
       current.filter((_, itemIndex) => itemIndex !== index),
     )
@@ -393,6 +407,13 @@ export function ContributionSimulator() {
                 />
                 <input
                   aria-label={`Nome da classe ${index + 1}`}
+                  ref={(input) => {
+                    if (input) {
+                      classNameInputs.current.set(allocation.classId, input)
+                    } else {
+                      classNameInputs.current.delete(allocation.classId)
+                    }
+                  }}
                   maxLength={60}
                   onChange={(event) =>
                     updateAllocation(index, 'name', event.target.value)

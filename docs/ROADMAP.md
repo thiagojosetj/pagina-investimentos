@@ -2,6 +2,21 @@
 
 O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futuros são propostas; decisões materiais continuam sujeitas à aprovação descrita em `AGENTS.md`.
 
+## Acompanhamento dos incrementos — 19 de setembro de 2026
+
+As tarefas abaixo não substituem as dependências das fases seguintes. Cada sessão entrega um resultado pequeno, não autenticação, deploy ou aplicativo completo em três horas. Contexto web/celular em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
+
+| ID / prioridade | Objetivo e dependências | Aceite e verificações | Definition of Done / status |
+| --- | --- | --- | --- |
+| HARD-001 / alta | Fechar bypass do limite JSON sem `Content-Length`; depende da proteção HTTP existente | Limite de bytes reais, leitura limitada, mesmo 413, corpo válido preservado; testes de fronteira, UTF-8 e controller | Concluído no PR #6; CI da `main` com o merge aprovada |
+| WEB-001 / alta | Corrigir cortes em 320 px e foco ao adicionar/remover classes; depende INC-004 | Controles dentro do painel, labels legíveis, foco previsível; testes de componente e inspeção geométrica em navegador | Concluído no PR #6; CI da `main` com o merge aprovada |
+| INC-008A / alta | Preservar IDs das classes; depende INC-008 | Renomeação, reordenação, criação e remoção sem perder a identidade das classes mantidas; ownership e concorrência | Implementado e validado no PR #7 |
+| INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Teste concorrente deve impedir versão antiga combinada com metas novas; alinhar nomes de 80 caracteres na persistência versus 60 no simulador sem truncamento | Proposto: estratégia e compatibilidade revisadas antes do endpoint |
+| INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposto: documento e contratos aprovados antes de INC-011 |
+| RELEASE-001 / futura | Comparar hospedagem e preparar checklist; depende definição de orçamento e escopo público | Custos atuais, HTTPS, banco privado, backups/restauração e logs; fontes oficiais e riscos | Proposto: escolha aprovada, sem criar serviço antecipadamente |
+| PWA-001 / futura | Validar instalação online-first; depende aprovação específica e ambiente HTTPS | Manifest, ícones e instalação nos dispositivos escolhidos; sem cache privado ou promessa offline | Proposto: prova real e limitações documentadas |
+| MOBILE-001 / futura | Avaliar uma tela nativa autenticada; depende necessidade nativa/lojas confirmada | Comparar login, UX, testes, distribuição e custo com Expo ou Capacitor | Proposto: ADR aprovado; nenhum segundo cliente antecipado |
+
 ## Fase 0 — Fundação e primeira fatia
 
 ### INC-001 — Estrutura e documentação inicial
@@ -77,17 +92,17 @@ O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futur
 - **Critérios de aceite:** validação de uma a vinte classes e soma exata `100.0000`, transação integral, compare-and-set pela versão da carteira e ownership obrigatório em toda operação; nenhum usuário fixo, controller ou endpoint provisório.
 - **Verificações:** cinco testes puros da validação das metas e oito testes de serviço/repository com PostgreSQL real aprovados; suíte backend completa com 37 testes e zero falhas.
 - **Definition of Done:** atendida — os dados são relidos em nova transação, ownership/concorrência/rollback foram validados e a camada de aplicação não expõe entidades JPA.
-- **Limite conhecido:** o fluxo interno anterior recriava UUIDs; o INC-008A preserva os IDs na branch de revisão. A política de exclusão quando houver ativos ainda precisa ser definida.
+- **Limite conhecido:** o fluxo interno anterior recriava UUIDs; o INC-008A preserva os IDs das classes mantidas. A política de exclusão quando houver ativos ainda precisa ser definida.
 
 ### INC-008A — IDs estáveis das classes de alocação
 
-- **Status:** implementado e validado na CI do PR #7; revisão e integração em `main` pendentes.
+- **Status:** implementado e validado na CI do PR #7; o estado da integração pode ser conferido no próprio PR.
 - **Objetivo:** preservar a identidade de classes mantidas ao substituir as metas de uma carteira.
 - **Prioridade:** alta.
 - **Dependências:** INC-008 e aprovação do incremento seguinte pelo usuário.
 - **Critérios de aceite:** ID informado e pertencente à carteira é mantido ao renomear/reordenar/editar; ID nulo cria classe nova; ID omitido remove; IDs repetidos, desconhecidos ou de outra carteira são rejeitados; swaps respeitam índices únicos e a versão da carteira avança uma vez.
 - **Verificações:** 24 testes backend locais sem Docker; 44 testes backend na CI, incluindo 13 testes de integração PostgreSQL do serviço, todos sem falhas; Frontend CI aprovado.
-- **Definition of Done:** atendida para publicação do PR — testes reais aprovados, documentação atualizada, diff revisado e PR publicado. A integração em `main` depende da revisão.
+- **Definition of Done:** atendida — testes reais aprovados, documentação atualizada, diff revisado e PR publicado.
 
 ### INC-009 — Persistência na interface
 

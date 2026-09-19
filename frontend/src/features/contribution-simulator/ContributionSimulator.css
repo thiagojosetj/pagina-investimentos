@@ -269,6 +269,11 @@
   border-bottom: 2px solid var(--teal);
 }
 
+.contribution-input:focus-within {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .contribution-input b {
   color: var(--teal-dark);
   font-size: 0.86rem;
@@ -501,6 +506,7 @@
   margin: 0;
   color: var(--ink);
   font-size: 0.86rem;
+  overflow-wrap: anywhere;
 }
 
 .allocation-result-title p,
@@ -576,26 +582,75 @@
     display: none;
   }
 
+  .panel-heading,
+  .result-heading,
+  .form-tools {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .text-button,
+  .add-button {
+    min-height: 44px;
+  }
+
   .allocation-row {
-    grid-template-columns: minmax(120px, 1.1fr) minmax(110px, 0.9fr) 28px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
     gap: 8px;
   }
 
-  .class-field {
-    grid-column: 1 / span 2;
+  .allocation-row label {
+    display: grid;
+    gap: 6px;
+  }
+
+  .allocation-row label > span:first-child {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+    color: var(--muted-strong);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .allocation-row .class-field {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    grid-template-columns: 9px minmax(0, 1fr);
+    align-items: center;
+    padding-right: 52px;
+  }
+
+  .class-field > span:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .allocation-row input {
+    min-height: 44px;
+    font-size: 1rem;
   }
 
   .money-field {
     grid-column: 1;
+    grid-row: 2;
   }
 
   .target-field {
     grid-column: 2;
+    grid-row: 2;
   }
 
   .remove-button {
-    grid-column: 3;
+    width: 44px;
+    height: 44px;
+    grid-column: 2;
     grid-row: 1;
+    align-self: end;
+    justify-self: end;
   }
 
   .contribution-field {
@@ -624,6 +679,8 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 12px;
     padding: 12px 0;
     border-right: 0;
     border-bottom: 1px solid var(--border);
@@ -635,5 +692,14 @@
 
   .portfolio-comparison > div {
     grid-template-columns: 82px 1fr;
+  }
+
+  .allocation-result-title {
+    grid-template-columns: 9px minmax(0, 1fr);
+  }
+
+  .allocation-result-title > strong {
+    grid-column: 2;
+    overflow-wrap: anywhere;
   }
 }

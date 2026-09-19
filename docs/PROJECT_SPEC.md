@@ -74,6 +74,8 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 
 Esses itens permanecem como candidatos pós-MVP; não são funcionalidades prometidas.
 
+A intenção de lançar para web e celular foi reforçada em 13 de setembro de 2026. Isso não altera automaticamente o MVP: melhorias de responsividade pertencem à interface atual; PWA, aplicativo nativo e hospedagem continuam propostas sujeitas à aprovação. A comparação e os requisitos de segurança/operação estão em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
+
 ## 5. Regra do simulador de aportes
 
 ### Entradas

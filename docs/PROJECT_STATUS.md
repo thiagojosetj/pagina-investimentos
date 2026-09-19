@@ -32,15 +32,33 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 - Entidades e repositories JPA internos para `portfolio` e `allocation_class`.
 - Serviço sem endpoint que exige ownership na criação, leitura e substituição das metas.
 - Substituição integral transacional de uma a vinte metas, soma exata `100.0000` e compare-and-set pela versão da carteira.
-- O INC-008A na branch `feat/stable-allocation-class-ids` altera a substituição interna para manter UUID e data de criação das classes preservadas. A integração com ativos e a API de carteira ainda não existem.
+- O INC-008A preserva UUID e data de criação das classes mantidas na substituição interna. A integração com ativos e a API de carteira ainda não existem.
 
-## Incremento em revisão — INC-008A
+## INC-008A — IDs estáveis das classes (PR #7)
 
 A substituição interna agora distingue classes existentes pelo UUID e novas por `id = null`. Classes omitidas são removidas; renomeação, reordenação e ajuste de meta preservam identidade. O serviço valida IDs contra a carteira após reivindicar sua versão e usa uma etapa transacional temporária para evitar conflitos dos índices únicos em trocas de nomes ou ordem. Não há migration, endpoint novo, login nem mudança no cálculo do simulador.
 
-Em 19 de setembro, a branch partiu de `origin/main` em `e6794e2`. O PR #6 (`fix/request-body-limit`) continua aberto e não foi mesclado. O Docker Engine local estava indisponível nesta sessão. `spotless:apply test-compile`, 24 testes backend sem Docker, `spotless:check` e o build Java passaram; no frontend, `npm run check` passou com 14 testes, lint, format-check, typecheck e build. No PR #7, a CI executou 44 testes backend sem falhas, incluindo 13 testes de integração do serviço com PostgreSQL/Testcontainers; os jobs Backend e Frontend passaram. O PR permanece aberto para revisão, sem deploy público.
+Em 19 de setembro, a branch partiu de `origin/main` em `e6794e2`. O Docker Engine local estava indisponível naquela sessão. `spotless:apply test-compile`, 24 testes backend sem Docker, `spotless:check` e o build Java passaram; no frontend, `npm run check` passou com 14 testes, lint, format-check, typecheck e build. No PR #7, a CI executou 44 testes backend sem falhas, incluindo 13 testes de integração do serviço com PostgreSQL/Testcontainers; os jobs Backend e Frontend passaram. Não houve deploy público.
 
-## Verificações locais registradas
+## HARD-001 e WEB-001 — proteção JSON e interface móvel (PR #6)
+
+Implementado originalmente na branch `fix/request-body-limit`, a partir de `e3f8ada`. O PR #6 foi mesclado em `main` em 19 de setembro, após os PRs #4 e #5 de dependências. A CI da combinação na `main` aprovou Backend e Frontend.
+
+- Limite padrão de 65.536 bytes aplicado ao corpo real dos comandos JSON síncronos, inclusive sem tamanho declarado/chunked. Pré-leitura de até limite + 1 byte, rejeição 413 antes do MVC e corpo aceito preservado para o conversor.
+- Layout do simulador e posições ajustado para telas estreitas, com rótulos visíveis e controles de toque maiores. Adicionar classe foca seu nome; remover foca a próxima ou a anterior.
+- Proposta de evolução web/celular e colaboração com outra IA em `WEB_MOBILE_PLAN.md`; nenhum framework móvel, login, provedor ou deploy acrescentado.
+
+Validação em 14 de setembro de 2026:
+
+- `./scripts/check.ps1`: exit 0. Backend com 58 testes, zero falhas/erros/ignorados, Spotless e build aprovados. São 15 testes PostgreSQL/Testcontainers e 43 sem banco (incluindo 21 do filtro e três de integração filtro/controller).
+- Frontend: format-check, lint, typecheck, 18 testes e build aprovados. Quatro regressões de foco foram acrescentadas.
+- API real: Actuator `UP` e POST JSON chunked acima de 64 KiB retornou 413 pelo Tomcat, sem depender apenas de mocks.
+- Navegador Edge headless: 320, 360, 390, 768 e 1440 px, claro/escuro, visão geral, formulário e resultado integrado à API (30 combinações). Sem overflow horizontal ou controles fora do painel nos cenários verificados; foco ao adicionar/remover validado no navegador.
+- Screenshot de 320 px inspecionada; a verificação com viewport emulado não substitui teste em aparelho Android/iOS físico. Evidências temporárias ficaram em `backend/target`, ignorado pelo Git.
+
+Limites: esta proteção cobre JSON síncrono em POST/PUT/PATCH/DELETE e o tamanho declarado das demais requisições; não implementa upload, leitura assíncrona, rate limit ou proteção contra clientes lentos. O domínio financeiro, migrations, autenticação e contrato válido do simulador não mudaram.
+
+## Histórico de verificações anteriores
 
 Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`: exit code 0.
 
@@ -53,7 +71,7 @@ Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`
 - Preflight de `check.ps1`: com daemon desligado, encerrou com orientação antes do Maven, sem iniciar o Docker; com daemon ativo, a validação completa passou.
 - Configurações `.run/`: seis XMLs analisados sem erro; `git diff --check` sem problemas de whitespace.
 
-Esses números correspondem à execução local real mais recente e devem ser atualizados caso os testes mudem antes do commit final.
+Os números desta seção são históricos; as verificações mais recentes de INC-008A e HARD-001/WEB-001 estão nas respectivas seções acima.
 
 ## Limitações conhecidas
 

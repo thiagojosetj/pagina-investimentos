@@ -387,9 +387,19 @@
   }
 
   .holding-row {
-    grid-template-columns: minmax(150px, 1fr) auto;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
     gap: 7px 16px;
     padding: 14px 6px;
+  }
+
+  .holding-row > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .allocation-action button,
+  .category-filters button {
+    min-height: 44px;
   }
 
   .holding-row > :nth-child(3),
