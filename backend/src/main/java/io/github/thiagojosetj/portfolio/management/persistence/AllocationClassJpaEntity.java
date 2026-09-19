@@ -98,4 +98,17 @@ public class AllocationClassJpaEntity {
   public Instant getUpdatedAt() {
     return updatedAt;
   }
+
+  /** Frees unique name/order values inside the replacement transaction without deleting the row. */
+  public void stageReplacement(String temporaryName, short temporaryOrder) {
+    name = temporaryName;
+    displayOrder = temporaryOrder;
+  }
+
+  public void updateTarget(String name, short displayOrder, BigDecimal percentage, Instant now) {
+    this.name = name;
+    this.displayOrder = displayOrder;
+    targetPercentage = percentage;
+    updatedAt = now;
+  }
 }

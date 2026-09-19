@@ -18,6 +18,8 @@ As decisões abaixo registram o contexto conhecido em 3 de setembro de 2026. Mud
 
 Usar Java 21, Spring Boot 4.1 e Maven no backend; React 19, Vite 8 e TypeScript no frontend; PostgreSQL 18 na persistência. A escolha prioriza Java sem abandonar TypeScript e mantém o produto concluível em pequenos incrementos.
 
+O frontend utiliza TypeScript 7 e Vitest 5 conforme o lockfile atualizado; a regra financeira permanece no backend.
+
 React com Vite é suficiente para um dashboard autenticado. SSR, React Server Components e BFF não oferecem benefício atual que justifique Next.js. Se essa necessidade surgir, deverá ser demonstrada antes de substituir a ferramenta.
 
 ## ADR-002 — Monólito modular e regras no backend
@@ -141,11 +143,24 @@ O conjunto de uma a vinte metas é validado por inteiro, com `BigDecimal` em esc
 
 Para manter este primeiro incremento pequeno, a substituição remove todas as linhas anteriores e insere novas metas com novos UUIDs. Isso evita tratar IDs internos como contrato antes de existir consumidor, mas não é a estratégia definitiva: IDs estáveis devem ser decididos antes de criar `portfolio_asset`, adicionar outra chave estrangeira para `allocation_class` ou publicar esses identificadores na API.
 
+Essa política inicial de recriação de IDs foi substituída pela ADR-012; o restante da decisão permanece válido.
+
 Cinco testes puros da validação das metas e oito testes PostgreSQL/Testcontainers do serviço passaram. A suíte backend completa executou 37 testes sem falhas, incluindo migration, mapeamentos JPA, ownership, concorrência e rollback.
+
+## ADR-012 — Identidade estável das classes na substituição de metas
+
+**Status:** implementada e validada na CI do PR #7, incluindo testes de integração PostgreSQL.
+
+O comando interno de substituição recebe um UUID para cada classe existente. `id = null` cria uma classe; omitir um ID existente remove essa classe do conjunto. Renomear, reordenar ou mudar o percentual mantém o UUID e `created_at`; a versão da carteira continua protegida pelo compare-and-set e avança uma vez por substituição.
+
+O serviço valida nomes, soma e IDs repetidos antes de gravar. Após reivindicar a versão da carteira, carrega as classes pertencentes àquela carteira e rejeita qualquer ID desconhecido ou de outra carteira sem revelar sua origem. A transação reverte a reivindicação se a validação falhar.
+
+Os índices únicos existentes verificam nome e ordem imediatamente. Para permitir trocas simultâneas sem apagar as linhas preservadas, o serviço exclui somente classes omitidas, move temporariamente as mantidas para nomes e ordens livres, descarrega essas alterações no banco e então grava os valores finais e as novas classes. Os nomes temporários evitam os nomes antigos e finais, inclusive os informados para classes novas. Nenhum valor temporário deve sobreviver ao commit; uma falha provoca rollback de toda a substituição. Não há nova migration nem endpoint de carteira neste incremento.
+
+Alternativas descartadas neste momento: atualização direta, que pode violar os índices únicos durante swaps; exclusão e recriação, que destrói a identidade; alteração do schema apenas para facilitar a troca, que ampliaria o incremento. A futura exclusão de uma classe já referenciada por ativos exigirá regra própria. Leitura consistente de carteira e metas e o limite de nomes 80 versus 60 caracteres permanecem pendentes.
 
 ## Decisões pendentes
 
-- Estratégia de IDs estáveis e atualização das metas antes de `portfolio_asset` ou de contrato público.
 - Detalhes de implantação da autenticação: domínios, redirects, expiração de sessão, CSRF, logout e configuração do Google Cloud.
 - Regra de correção/exclusão de movimentações e nível de auditoria.
 - Hospedagem e ambientes públicos.

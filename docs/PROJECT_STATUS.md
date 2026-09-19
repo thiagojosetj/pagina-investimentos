@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Atualizado em:** 14 de setembro de 2026
+**Atualizado em:** 19 de setembro de 2026
 
 ## Estado real
 
@@ -32,15 +32,21 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 - Entidades e repositories JPA internos para `portfolio` e `allocation_class`.
 - Serviço sem endpoint que exige ownership na criação, leitura e substituição das metas.
 - Substituição integral transacional de uma a vinte metas, soma exata `100.0000` e compare-and-set pela versão da carteira.
-- A substituição recria os UUIDs das metas; esse comportamento ainda não é contrato público e deverá mudar ou ser ratificado antes de `portfolio_asset`.
+- O INC-008A preserva UUID e data de criação das classes mantidas na substituição interna. A integração com ativos e a API de carteira ainda não existem.
 
-## Incremento em revisão — HARD-001 e WEB-001
+## INC-008A — IDs estáveis das classes (PR #7)
 
-Implementado na branch `fix/request-body-limit`, a partir de `e3f8ada`, sem merge automático em `main`. Em 14 de setembro, `git fetch origin` encontrou quatro commits posteriores em `main` (até `e6794e2`), com mudanças de documentação/toolchain, não dos arquivos de código deste incremento. A CI de `main` nesse SHA foi consultada e estava aprovada. As mudanças da outra revisão foram preservadas; o PR deverá validar a combinação antes de qualquer merge.
+A substituição interna agora distingue classes existentes pelo UUID e novas por `id = null`. Classes omitidas são removidas; renomeação, reordenação e ajuste de meta preservam identidade. O serviço valida IDs contra a carteira após reivindicar sua versão e usa uma etapa transacional temporária para evitar conflitos dos índices únicos em trocas de nomes ou ordem. Não há migration, endpoint novo, login nem mudança no cálculo do simulador.
+
+Em 19 de setembro, a branch partiu de `origin/main` em `e6794e2`. O Docker Engine local estava indisponível naquela sessão. `spotless:apply test-compile`, 24 testes backend sem Docker, `spotless:check` e o build Java passaram; no frontend, `npm run check` passou com 14 testes, lint, format-check, typecheck e build. No PR #7, a CI executou 44 testes backend sem falhas, incluindo 13 testes de integração do serviço com PostgreSQL/Testcontainers; os jobs Backend e Frontend passaram. Não houve deploy público.
+
+## HARD-001 e WEB-001 — proteção JSON e interface móvel (PR #6)
+
+Implementado originalmente na branch `fix/request-body-limit`, a partir de `e3f8ada`. O PR #6 foi mesclado em `main` em 19 de setembro, após os PRs #4 e #5 de dependências. A CI da combinação na `main` aprovou Backend e Frontend.
 
 - Limite padrão de 65.536 bytes aplicado ao corpo real dos comandos JSON síncronos, inclusive sem tamanho declarado/chunked. Pré-leitura de até limite + 1 byte, rejeição 413 antes do MVC e corpo aceito preservado para o conversor.
 - Layout do simulador e posições ajustado para telas estreitas, com rótulos visíveis e controles de toque maiores. Adicionar classe foca seu nome; remover foca a próxima ou a anterior.
-- Proposta de evolução web/celular e colaboração com outra IA em `WEB_MOBILE_PLAN.md`; nenhum framework móvel, login, provedor ou deploy acrescentado.
+- Proposta de evolução web/celular em `WEB_MOBILE_PLAN.md`; nenhum framework móvel, login, provedor ou deploy acrescentado.
 
 Validação em 14 de setembro de 2026:
 
@@ -65,12 +71,12 @@ Validação completa repetida em 8 de setembro de 2026 com `./scripts/check.ps1`
 - Preflight de `check.ps1`: com daemon desligado, encerrou com orientação antes do Maven, sem iniciar o Docker; com daemon ativo, a validação completa passou.
 - Configurações `.run/`: seis XMLs analisados sem erro; `git diff --check` sem problemas de whitespace.
 
-Os números desta seção são históricos. A execução mais recente deste incremento está na seção anterior.
+Os números desta seção são históricos; as verificações mais recentes de INC-008A e HARD-001/WEB-001 estão nas respectivas seções acima.
 
 ## Limitações conhecidas
 
 - A fundação do schema e a camada JPA interna existem, mas ainda não há endpoint de carteira nem autenticação.
-- A substituição integral recria IDs de metas; isso deve ser revisto antes de classes serem referenciadas por ativos ou expostas em contrato público.
+- A política de exclusão de classes já referenciadas por ativos precisa ser definida antes de criar essas referências. A leitura de carteira e metas em duas consultas ainda precisa de garantia de snapshot consistente.
 - Valores atuais são informados manualmente por classe; não existem ativos ou movimentações.
 - Nenhum dado de mercado ou provedor externo.
 - Apenas BRL.
@@ -81,4 +87,4 @@ Os números desta seção são históricos. A execução mais recente deste incr
 
 ## Próximo incremento recomendado
 
-Ratificar a estratégia de IDs estáveis para metas e concluir o threat model do login Google antes de expor carteiras em um contrato HTTP autenticado.
+Após a validação dos IDs estáveis, garantir snapshot consistente de carteira/metas, alinhar o limite dos nomes (80 na persistência e 60 no simulador) e concluir o threat model do login Google antes de expor carteiras em um contrato HTTP autenticado.

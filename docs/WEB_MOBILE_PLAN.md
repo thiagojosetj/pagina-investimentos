@@ -37,15 +37,6 @@ Referências primárias consultadas nesta revisão: [instalação de PWAs](https
 
 Não há publicação do site nem aplicativo móvel entregue nesta revisão. Requisitos e custos de lojas serão pesquisados novamente quando houver plataforma escolhida.
 
-## Colaboração com outra IA
-
-- Antes de começar e antes de publicar commits, executar `git fetch origin` e conferir branch, upstream, divergência, alterações locais e PRs abertos.
-- Usar uma branch por incremento; não deixar dois agentes editarem simultaneamente os mesmos arquivos/checkout. Se houver trabalho paralelo independente, usar checkout/worktree separado dentro deste projeto.
-- Entregar SHA-base, commits, arquivos, comandos/resultados reais e limitações no PR. Revisar o diff, não apenas o resumo do agente.
-- Se `main` avançar durante o trabalho, inspecionar as diferenças e combinar a integração antes de merge/rebase. Nunca sobrescrever trabalho com reset ou force-push.
-- Nesta rodada, o usuário autorizou commits e push quando necessário. Publicar a branch para revisão não implica autorização para mesclar, contratar hospedagem ou fazer deploy.
-- As tarefas pequenas e dependências ficam em `ROADMAP.md`; o que realmente passou fica em `PROJECT_STATUS.md`.
-
 ## Escolhas futuras do usuário
 
 Nenhuma destas perguntas bloqueia as correções locais atuais. Antes de abrir a frente correspondente, confirmar:
