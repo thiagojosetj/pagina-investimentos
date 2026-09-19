@@ -8,6 +8,7 @@ import static org.mockito.Mockito.reset;
 
 import io.github.thiagojosetj.portfolio.TestcontainersConfiguration;
 import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetDefinition;
+import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetUpdate;
 import io.github.thiagojosetj.portfolio.management.domain.PortfolioValidationException;
 import io.github.thiagojosetj.portfolio.management.persistence.AllocationClassJpaRepository;
 import java.math.BigDecimal;
@@ -94,13 +95,11 @@ class PortfolioManagementServiceIntegrationTest {
   }
 
   @Test
-  void replacesTheWholeTargetSetAndIncrementsThePortfolioVersionOnce() {
+  void retainsExistingIdsAndTimestampsWhileAddingAndRemovingTargets() {
     UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
     PortfolioView created = createBalancedPortfolio(ownerUserId);
-    Set<UUID> previousTargetIds =
-        created.allocationTargets().stream()
-            .map(PortfolioView.AllocationTargetView::id)
-            .collect(java.util.stream.Collectors.toSet());
+    PortfolioView.AllocationTargetView shares = created.allocationTargets().get(0);
+    PortfolioView.AllocationTargetView fixedIncome = created.allocationTargets().get(1);
 
     PortfolioView replaced =
         service.replaceAllocationTargets(
@@ -108,25 +107,200 @@ class PortfolioManagementServiceIntegrationTest {
                 ownerUserId,
                 created.id(),
                 created.version(),
-                List.of(target("Ações", "45"), target("FIIs", "25"), target("Renda fixa", "30"))));
+                List.of(
+                    update(shares.id(), "Ações brasileiras", "45"),
+                    newTarget("FIIs", "25"),
+                    newTarget("ETFs", "30"))));
 
     assertThat(replaced.version()).isEqualTo(created.version() + 1);
     assertThat(replaced.updatedAt()).isAfterOrEqualTo(created.updatedAt());
     assertThat(replaced.allocationTargets())
         .extracting(PortfolioView.AllocationTargetView::name)
-        .containsExactly("Ações", "FIIs", "Renda fixa");
+        .containsExactly("Ações brasileiras", "FIIs", "ETFs");
     assertThat(replaced.allocationTargets())
         .extracting(PortfolioView.AllocationTargetView::displayOrder)
         .containsExactly(0, 1, 2);
-    assertThat(replaced.allocationTargets())
-        .extracting(PortfolioView.AllocationTargetView::id)
-        .doesNotContainAnyElementsOf(previousTargetIds);
+    assertThat(replaced.allocationTargets().get(0).id()).isEqualTo(shares.id());
+    assertThat(replaced.allocationTargets().get(0).createdAt()).isEqualTo(shares.createdAt());
+    assertThat(replaced.allocationTargets().get(1).id()).isNotIn(shares.id(), fixedIncome.id());
+    assertThat(replaced.allocationTargets().get(2).id()).isNotIn(shares.id(), fixedIncome.id());
+    assertThat(replaced.allocationTargets().get(1).id())
+        .isNotEqualTo(replaced.allocationTargets().get(2).id());
+    assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM allocation_class WHERE id = ?", Long.class, fixedIncome.id()))
+        .isZero();
     assertThat(
             jdbcTemplate.queryForObject(
                 "SELECT sum(target_percentage) FROM allocation_class WHERE portfolio_id = ?",
                 BigDecimal.class,
                 created.id()))
         .isEqualByComparingTo("100.0000");
+  }
+
+  @Test
+  void swapsNamesAndOrdersWithoutRecreatingEitherClass() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
+    PortfolioView before = createBalancedPortfolio(ownerUserId);
+    PortfolioView.AllocationTargetView shares = before.allocationTargets().get(0);
+    PortfolioView.AllocationTargetView fixedIncome = before.allocationTargets().get(1);
+
+    PortfolioView after =
+        service.replaceAllocationTargets(
+            new ReplaceAllocationTargetsCommand(
+                ownerUserId,
+                before.id(),
+                before.version(),
+                List.of(
+                    update(fixedIncome.id(), "Ações", "55"),
+                    update(shares.id(), "Renda fixa", "45"))));
+
+    assertThat(after.allocationTargets())
+        .extracting(
+            PortfolioView.AllocationTargetView::id,
+            PortfolioView.AllocationTargetView::name,
+            PortfolioView.AllocationTargetView::displayOrder,
+            PortfolioView.AllocationTargetView::targetPercentage)
+        .containsExactly(
+            org.assertj.core.groups.Tuple.tuple(
+                fixedIncome.id(), "Ações", 0, new BigDecimal("55.0000")),
+            org.assertj.core.groups.Tuple.tuple(
+                shares.id(), "Renda fixa", 1, new BigDecimal("45.0000")));
+    assertThat(after.allocationTargets().get(0).createdAt()).isEqualTo(fixedIncome.createdAt());
+    assertThat(after.allocationTargets().get(1).createdAt()).isEqualTo(shares.createdAt());
+  }
+
+  @Test
+  void rotatesThreeNamesAndOrdersWithoutUniqueConstraintConflicts() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
+    PortfolioView before =
+        service.createPortfolio(
+            new CreatePortfolioCommand(
+                ownerUserId,
+                "Carteira Sintética",
+                List.of(target("Ações", "40"), target("FIIs", "35"), target("ETFs", "25"))));
+    PortfolioView.AllocationTargetView shares = before.allocationTargets().get(0);
+    PortfolioView.AllocationTargetView funds = before.allocationTargets().get(1);
+    PortfolioView.AllocationTargetView etfs = before.allocationTargets().get(2);
+
+    PortfolioView after =
+        service.replaceAllocationTargets(
+            new ReplaceAllocationTargetsCommand(
+                ownerUserId,
+                before.id(),
+                before.version(),
+                List.of(
+                    update(etfs.id(), "Ações", "25"),
+                    update(shares.id(), "FIIs", "40"),
+                    update(funds.id(), "ETFs", "35"))));
+
+    assertThat(after.allocationTargets())
+        .extracting(
+            PortfolioView.AllocationTargetView::id,
+            PortfolioView.AllocationTargetView::name,
+            PortfolioView.AllocationTargetView::displayOrder)
+        .containsExactly(
+            org.assertj.core.groups.Tuple.tuple(etfs.id(), "Ações", 0),
+            org.assertj.core.groups.Tuple.tuple(shares.id(), "FIIs", 1),
+            org.assertj.core.groups.Tuple.tuple(funds.id(), "ETFs", 2));
+    assertThat(after.allocationTargets())
+        .extracting(PortfolioView.AllocationTargetView::createdAt)
+        .containsExactly(etfs.createdAt(), shares.createdAt(), funds.createdAt());
+  }
+
+  @Test
+  void rejectsADeletedClassIdWithoutChangingThePortfolio() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
+    PortfolioView initial = createBalancedPortfolio(ownerUserId);
+    UUID deletedId = initial.allocationTargets().get(0).id();
+    PortfolioView afterRemoval =
+        service.replaceAllocationTargets(
+            new ReplaceAllocationTargetsCommand(
+                ownerUserId, initial.id(), initial.version(), List.of(newTarget("FIIs", "100"))));
+
+    assertThatThrownBy(
+            () ->
+                service.replaceAllocationTargets(
+                    new ReplaceAllocationTargetsCommand(
+                        ownerUserId,
+                        initial.id(),
+                        afterRemoval.version(),
+                        List.of(
+                            update(deletedId, "Ações", "60"),
+                            update(afterRemoval.allocationTargets().get(0).id(), "FIIs", "40")))))
+        .isInstanceOfSatisfying(
+            PortfolioValidationException.class,
+            exception -> {
+              assertThat(exception.field()).isEqualTo("allocationTargets.id");
+              assertThat(exception.code()).isEqualTo("not_found");
+            });
+
+    assertThat(service.findPortfolio(ownerUserId, initial.id())).isEqualTo(afterRemoval);
+  }
+
+  @Test
+  void rejectsIdsFromAnotherPortfolioOrOwnerAndUnknownIds() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético Um");
+    UUID otherUserId = insertSyntheticUser("Usuário Sintético Dois");
+    PortfolioView owned = createBalancedPortfolio(ownerUserId);
+    PortfolioView secondPortfolio =
+        service.createPortfolio(
+            new CreatePortfolioCommand(
+                ownerUserId, "Outra Carteira", List.of(target("ETFs", "100"))));
+    PortfolioView otherOwnersPortfolio = createBalancedPortfolio(otherUserId);
+
+    for (UUID foreignId :
+        List.of(
+            secondPortfolio.allocationTargets().get(0).id(),
+            otherOwnersPortfolio.allocationTargets().get(0).id(),
+            UUID.randomUUID())) {
+      assertThatThrownBy(
+              () ->
+                  service.replaceAllocationTargets(
+                      new ReplaceAllocationTargetsCommand(
+                          ownerUserId,
+                          owned.id(),
+                          owned.version(),
+                          List.of(
+                              update(foreignId, "Ações", "60"),
+                              update(owned.allocationTargets().get(1).id(), "Renda fixa", "40")))))
+          .isInstanceOfSatisfying(
+              PortfolioValidationException.class,
+              exception -> {
+                assertThat(exception.field()).isEqualTo("allocationTargets.id");
+                assertThat(exception.code()).isEqualTo("not_found");
+              });
+      assertThat(service.findPortfolio(ownerUserId, owned.id())).isEqualTo(owned);
+    }
+    assertThat(service.findPortfolio(ownerUserId, secondPortfolio.id())).isEqualTo(secondPortfolio);
+    assertThat(service.findPortfolio(otherUserId, otherOwnersPortfolio.id()))
+        .isEqualTo(otherOwnersPortfolio);
+  }
+
+  @Test
+  void rejectsDuplicateExistingIdBeforeClaimingTheVersion() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
+    PortfolioView before = createBalancedPortfolio(ownerUserId);
+    UUID duplicatedId = before.allocationTargets().get(0).id();
+
+    assertThatThrownBy(
+            () ->
+                service.replaceAllocationTargets(
+                    new ReplaceAllocationTargetsCommand(
+                        ownerUserId,
+                        before.id(),
+                        before.version(),
+                        List.of(
+                            update(duplicatedId, "Ações", "60"),
+                            update(duplicatedId, "Renda fixa", "40")))))
+        .isInstanceOfSatisfying(
+            PortfolioValidationException.class,
+            exception -> {
+              assertThat(exception.field()).isEqualTo("allocationTargets[1].id");
+              assertThat(exception.code()).isEqualTo("duplicate");
+            });
+
+    assertThat(service.findPortfolio(ownerUserId, before.id())).isEqualTo(before);
   }
 
   @Test
@@ -141,7 +315,10 @@ class PortfolioManagementServiceIntegrationTest {
                         ownerUserId,
                         before.id(),
                         before.version(),
-                        List.of(target("Ações", "50"), target("Renda fixa", "49.9999")))))
+                        List.of(
+                            update(before.allocationTargets().get(0).id(), "Ações", "50"),
+                            update(
+                                before.allocationTargets().get(1).id(), "Renda fixa", "49.9999")))))
         .isInstanceOf(PortfolioValidationException.class);
 
     assertThat(service.findPortfolio(ownerUserId, before.id())).isEqualTo(before);
@@ -151,7 +328,7 @@ class PortfolioManagementServiceIntegrationTest {
   void rollsBackTheClaimAndDeleteWhenPersistingTheReplacementFails() {
     UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
     PortfolioView before = createBalancedPortfolio(ownerUserId);
-    doThrow(new IllegalStateException("Falha sintética após a exclusão das metas."))
+    doThrow(new IllegalStateException("Falha sintética durante a alteração das metas."))
         .when(allocationClassRepository)
         .saveAll(any());
 
@@ -163,14 +340,22 @@ class PortfolioManagementServiceIntegrationTest {
                           ownerUserId,
                           before.id(),
                           before.version(),
-                          List.of(target("Ações", "70"), target("Renda fixa", "30")))))
+                          List.of(
+                              update(before.allocationTargets().get(0).id(), "Renda fixa", "70"),
+                              newTarget("FIIs", "30")))))
           .isInstanceOf(IllegalStateException.class)
-          .hasMessage("Falha sintética após a exclusão das metas.");
+          .hasMessage("Falha sintética durante a alteração das metas.");
     } finally {
       reset(allocationClassRepository);
     }
 
     assertThat(service.findPortfolio(ownerUserId, before.id())).isEqualTo(before);
+    assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM allocation_class WHERE portfolio_id = ?",
+                Long.class,
+                before.id()))
+        .isEqualTo(2L);
   }
 
   @Test
@@ -183,7 +368,9 @@ class PortfolioManagementServiceIntegrationTest {
                 ownerUserId,
                 created.id(),
                 created.version(),
-                List.of(target("Ações", "70"), target("Renda fixa", "30"))));
+                List.of(
+                    update(created.allocationTargets().get(0).id(), "Ações", "70"),
+                    update(created.allocationTargets().get(1).id(), "Renda fixa", "30"))));
 
     assertThatThrownBy(
             () ->
@@ -192,7 +379,7 @@ class PortfolioManagementServiceIntegrationTest {
                         ownerUserId,
                         created.id(),
                         created.version(),
-                        List.of(target("FIIs", "50"), target("ETFs", "50")))))
+                        List.of(newTarget("FIIs", "50"), newTarget("ETFs", "50")))))
         .isInstanceOf(PortfolioVersionConflictException.class);
 
     assertThat(service.findPortfolio(ownerUserId, created.id())).isEqualTo(winningUpdate);
@@ -214,7 +401,7 @@ class PortfolioManagementServiceIntegrationTest {
                         otherUserId,
                         created.id(),
                         created.version(),
-                        List.of(target("FIIs", "50"), target("ETFs", "50")))))
+                        List.of(newTarget("FIIs", "50"), newTarget("ETFs", "50")))))
         .isInstanceOf(PortfolioNotFoundException.class)
         .hasMessage("Carteira não encontrada.");
 
@@ -236,7 +423,9 @@ class PortfolioManagementServiceIntegrationTest {
                 ownerUserId,
                 created.id(),
                 created.version(),
-                List.of(target("Ações", "75"), target("FIIs", "25"))));
+                List.of(
+                    update(created.allocationTargets().get(0).id(), "Ações", "75"),
+                    newTarget("FIIs", "25"))));
     Callable<Object> second =
         replacementTask(
             ready,
@@ -245,7 +434,9 @@ class PortfolioManagementServiceIntegrationTest {
                 ownerUserId,
                 created.id(),
                 created.version(),
-                List.of(target("ETFs", "35"), target("Renda fixa", "65"))));
+                List.of(
+                    newTarget("ETFs", "35"),
+                    update(created.allocationTargets().get(1).id(), "Renda fixa", "65"))));
 
     try (var executor = Executors.newFixedThreadPool(2)) {
       var firstResult = executor.submit(first);
@@ -267,6 +458,13 @@ class PortfolioManagementServiceIntegrationTest {
         stored.allocationTargets().stream().map(PortfolioView.AllocationTargetView::name).toList();
     assertThat(Set.of(List.of("Ações", "FIIs"), List.of("ETFs", "Renda fixa")))
         .contains(storedNames);
+    if (storedNames.equals(List.of("Ações", "FIIs"))) {
+      assertThat(stored.allocationTargets().get(0).id())
+          .isEqualTo(created.allocationTargets().get(0).id());
+    } else {
+      assertThat(stored.allocationTargets().get(1).id())
+          .isEqualTo(created.allocationTargets().get(1).id());
+    }
   }
 
   private Callable<Object> replacementTask(
@@ -301,5 +499,13 @@ class PortfolioManagementServiceIntegrationTest {
 
   private static AllocationTargetDefinition target(String name, String percentage) {
     return new AllocationTargetDefinition(name, new BigDecimal(percentage));
+  }
+
+  private static AllocationTargetUpdate update(UUID id, String name, String percentage) {
+    return new AllocationTargetUpdate(id, name, new BigDecimal(percentage));
+  }
+
+  private static AllocationTargetUpdate newTarget(String name, String percentage) {
+    return update(null, name, percentage);
   }
 }

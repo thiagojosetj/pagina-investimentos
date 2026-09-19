@@ -2,7 +2,9 @@ package io.github.thiagojosetj.portfolio.management.application;
 
 import io.github.thiagojosetj.portfolio.management.application.PortfolioView.AllocationTargetView;
 import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetDefinition;
+import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetReplacement;
 import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetSet;
+import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetUpdate;
 import io.github.thiagojosetj.portfolio.management.domain.PortfolioValidationException;
 import io.github.thiagojosetj.portfolio.management.persistence.AllocationClassJpaEntity;
 import io.github.thiagojosetj.portfolio.management.persistence.AllocationClassJpaRepository;
@@ -11,7 +13,12 @@ import io.github.thiagojosetj.portfolio.management.persistence.PortfolioJpaRepos
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -84,7 +91,8 @@ public class PortfolioManagementService {
           "expectedPortfolioVersion", "range", "A versão esperada da carteira é inválida.");
     }
 
-    AllocationTargetSet targetSet = AllocationTargetSet.from(command.allocationTargets());
+    AllocationTargetReplacement replacement =
+        AllocationTargetReplacement.from(command.allocationTargets());
     Instant now = databaseTimestamp();
     int claimed =
         portfolioRepository.claimOwnedVersion(
@@ -98,10 +106,94 @@ public class PortfolioManagementService {
       throw new PortfolioNotFoundException();
     }
 
-    allocationClassRepository.deleteAllOwnedByPortfolioId(
-        command.ownerUserId(), command.portfolioId());
-    persistTargets(command.portfolioId(), targetSet.targets(), now);
+    replaceOwnedTargets(command.ownerUserId(), command.portfolioId(), replacement.targets(), now);
     return loadOwnedPortfolio(command.ownerUserId(), command.portfolioId());
+  }
+
+  private void replaceOwnedTargets(
+      UUID ownerUserId, UUID portfolioId, List<AllocationTargetUpdate> updates, Instant now) {
+    // The CAS clears the persistence context; load managed rows only after claiming the version.
+    List<AllocationClassJpaEntity> current =
+        allocationClassRepository.findAllOwnedByPortfolioId(ownerUserId, portfolioId);
+    Map<UUID, AllocationClassJpaEntity> currentById = new HashMap<>();
+    current.forEach(target -> currentById.put(target.getId(), target));
+    Set<UUID> retainedIds = new HashSet<>();
+    for (AllocationTargetUpdate update : updates) {
+      if (update.id() != null) {
+        if (!currentById.containsKey(update.id())) {
+          throw invalid(
+              "allocationTargets.id", "not_found", "Uma classe informada não pertence à carteira.");
+        }
+        retainedIds.add(update.id());
+      }
+    }
+
+    List<AllocationClassJpaEntity> removed =
+        current.stream().filter(target -> !retainedIds.contains(target.getId())).toList();
+    allocationClassRepository.deleteAll(removed);
+    allocationClassRepository.flush();
+
+    stageRetainedTargets(current, updates, retainedIds);
+    allocationClassRepository.flush();
+
+    List<AllocationClassJpaEntity> finalTargets = new ArrayList<>(updates.size());
+    for (int index = 0; index < updates.size(); index++) {
+      AllocationTargetUpdate update = updates.get(index);
+      AllocationClassJpaEntity target;
+      if (update.id() == null) {
+        target =
+            AllocationClassJpaEntity.create(
+                UUID.randomUUID(),
+                portfolioId,
+                update.name(),
+                (short) index,
+                update.targetPercentage(),
+                now);
+      } else {
+        target = currentById.get(update.id());
+        target.updateTarget(update.name(), (short) index, update.targetPercentage(), now);
+      }
+      finalTargets.add(target);
+    }
+    saveTargets(finalTargets);
+  }
+
+  private void stageRetainedTargets(
+      List<AllocationClassJpaEntity> current,
+      List<AllocationTargetUpdate> updates,
+      Set<UUID> retainedIds) {
+    // Immediate unique indexes reject direct name/order swaps. Park retained rows inside the
+    // transaction, preserving their IDs/createdAt and avoiding every old/final name and order.
+    // Numeric sentinels have no case-folding ambiguity with the lower(name) unique index.
+    Set<String> occupiedNames = new HashSet<>();
+    Set<Integer> occupiedOrders = new HashSet<>();
+    current.forEach(
+        target -> {
+          occupiedNames.add(target.getName());
+          occupiedOrders.add(target.getDisplayOrder().intValue());
+        });
+    for (int index = 0; index < updates.size(); index++) {
+      occupiedNames.add(updates.get(index).name());
+      occupiedOrders.add(index);
+    }
+
+    int nameSuffix = 0;
+    int temporaryOrder = 0;
+    for (AllocationClassJpaEntity target : current) {
+      if (!retainedIds.contains(target.getId())) {
+        continue;
+      }
+      String temporaryName;
+      do {
+        temporaryName = "~" + nameSuffix++ + "~";
+      } while (!occupiedNames.add(temporaryName));
+      while (occupiedOrders.contains(temporaryOrder)) {
+        temporaryOrder++;
+      }
+      // At most 20 current and 20 final orders are reserved, well within SMALLINT.
+      occupiedOrders.add(temporaryOrder);
+      target.stageReplacement(temporaryName, (short) temporaryOrder++);
+    }
   }
 
   private void persistTargets(
@@ -120,8 +212,12 @@ public class PortfolioManagementService {
                       now);
                 })
             .toList();
+    saveTargets(entities);
+  }
+
+  private void saveTargets(List<AllocationClassJpaEntity> targets) {
     try {
-      allocationClassRepository.saveAll(entities);
+      allocationClassRepository.saveAll(targets);
       allocationClassRepository.flush();
     } catch (DataIntegrityViolationException exception) {
       if (causedByConstraint(exception, "uq_allocation_class_portfolio_name_ci")) {
