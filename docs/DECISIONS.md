@@ -18,6 +18,8 @@ As decisões abaixo registram o contexto conhecido em 3 de setembro de 2026. Mud
 
 Usar Java 21, Spring Boot 4.1 e Maven no backend; React 19, Vite 8 e TypeScript no frontend; PostgreSQL 18 na persistência. A escolha prioriza Java sem abandonar TypeScript e mantém o produto concluível em pequenos incrementos.
 
+O frontend utiliza TypeScript 7 e Vitest 5 conforme o lockfile atualizado; a regra financeira permanece no backend.
+
 React com Vite é suficiente para um dashboard autenticado. SSR, React Server Components e BFF não oferecem benefício atual que justifique Next.js. Se essa necessidade surgir, deverá ser demonstrada antes de substituir a ferramenta.
 
 ## ADR-002 — Monólito modular e regras no backend

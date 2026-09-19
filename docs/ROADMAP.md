@@ -1,6 +1,6 @@
 # Roadmap
 
-O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futuros são propostas; decisões materiais continuam sujeitas à aprovação descrita em `AGENTS.md`.
+O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futuros são propostas; decisões materiais continuam sujeitas à aprovação do autor.
 
 ## Acompanhamento dos incrementos — 19 de setembro de 2026
 
@@ -86,7 +86,7 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 
 ### INC-008 — Carteira, classes e metas na camada de aplicação
 
-- **Status:** concluído localmente; ainda sem endpoint público por decisão de escopo.
+- **Status:** concluído; ainda sem endpoint público por decisão de escopo.
 - **Objetivo:** persistir e consultar uma carteira fictícia com suas metas na camada de aplicação, ainda sem expor operações anônimas.
 - **Dependências:** INC-007.
 - **Critérios de aceite:** validação de uma a vinte classes e soma exata `100.0000`, transação integral, compare-and-set pela versão da carteira e ownership obrigatório em toda operação; nenhum usuário fixo, controller ou endpoint provisório.
