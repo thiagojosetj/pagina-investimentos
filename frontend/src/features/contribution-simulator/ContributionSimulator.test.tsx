@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ContributionSimulator } from './ContributionSimulator'
 import type { ContributionSimulationResponse } from './contracts'
+import { createDemoSimulationPreset } from '../portfolio-overview/demoPortfolio'
 
 const successfulResponse: ContributionSimulationResponse = {
   method: 'PROPORTIONAL_MONETARY_DEFICIT_V1',
@@ -80,6 +81,26 @@ describe('ContributionSimulator', () => {
         'O aporte é simulado a partir dos déficits da carteira.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('restores the original example after starting with the synthetic overview', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(
+      <ContributionSimulator initialPreset={createDemoSimulationPreset()} />,
+    )
+
+    expect(screen.getAllByRole('group')).toHaveLength(5)
+    expect(screen.getByLabelText('Valor atual de Caixa')).toHaveValue('3000,00')
+    expect(screen.getByRole('note')).toHaveTextContent('caixa hipotético')
+
+    await user.click(screen.getByRole('button', { name: 'Restaurar exemplo' }))
+
+    expect(screen.getAllByRole('group')).toHaveLength(4)
+    expect(screen.getByLabelText('Valor atual de Ações')).toHaveValue('4800,00')
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('focuses the new class name after adding a class', async () => {

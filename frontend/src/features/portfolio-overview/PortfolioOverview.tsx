@@ -4,6 +4,7 @@ import './PortfolioOverview.css'
 
 interface PortfolioOverviewProps {
   onOpenSimulator: () => void
+  onUseDemoPortfolio: () => void
 }
 
 function formatCurrency(value: string): string {
@@ -12,7 +13,10 @@ function formatCurrency(value: string): string {
   return `R$ ${groupedInteger},${decimalPart.padEnd(2, '0').slice(0, 2)}`
 }
 
-export function PortfolioOverview({ onOpenSimulator }: PortfolioOverviewProps) {
+export function PortfolioOverview({
+  onOpenSimulator,
+  onUseDemoPortfolio,
+}: PortfolioOverviewProps) {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const visibleItems = useMemo(
     () =>
@@ -121,14 +125,23 @@ export function PortfolioOverview({ onOpenSimulator }: PortfolioOverviewProps) {
             <div>
               <strong>Quer explorar um novo aporte?</strong>
               <span>
-                Use suas próprias metas em uma simulação separada desta
-                demonstração.
+                Preencha a calculadora com este cenário sintético ou continue
+                seu rascunho manual.
               </span>
             </div>
-            <button type="button" onClick={onOpenSimulator}>
-              Abrir simulador
-              <span aria-hidden="true">→</span>
-            </button>
+            <div className="allocation-actions">
+              <button type="button" onClick={onUseDemoPortfolio}>
+                Simular esta demonstração
+                <span aria-hidden="true">→</span>
+              </button>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={onOpenSimulator}
+              >
+                Abrir simulador
+              </button>
+            </div>
           </div>
         </article>
 

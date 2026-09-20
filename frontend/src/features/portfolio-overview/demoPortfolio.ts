@@ -1,3 +1,5 @@
+import type { SimulationDraftPreset } from '../contribution-simulator/contracts'
+
 export interface DemoCategory {
   id: string
   name: string
@@ -153,4 +155,17 @@ export const DEMO_PORTFOLIO: DemoPortfolio = {
       allocationPercentage: '5.00',
     },
   ],
+}
+
+export function createDemoSimulationPreset(): SimulationDraftPreset {
+  return {
+    source: 'demo',
+    contribution: '2000,00',
+    allocations: DEMO_PORTFOLIO.categories.map((category) => ({
+      classId: category.id,
+      name: category.name,
+      currentAmount: category.marketValue.replace('.', ','),
+      targetPercentage: category.targetPercentage.replace('.', ','),
+    })),
+  }
 }

@@ -219,6 +219,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+  flex-wrap: wrap;
 }
 
 .allocation-action > div {
@@ -243,6 +244,21 @@
   gap: 9px;
   font-size: 0.76rem;
   font-weight: 750;
+}
+
+.allocation-action > .allocation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.allocation-action .secondary-action {
+  border: 1px solid var(--control-border);
+  color: var(--teal);
+  background: var(--surface);
 }
 
 .category-filters {
@@ -442,5 +458,11 @@
 
   .allocation-action button {
     justify-content: space-between;
+  }
+
+  .allocation-action > .allocation-actions {
+    flex-direction: column;
+    align-items: stretch;
+    margin-left: 0;
   }
 }
