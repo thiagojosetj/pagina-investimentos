@@ -16,6 +16,7 @@ Simulador de aportes com o exemplo sintético da própria interface. O aporte de
 - **Simulador de aportes de ponta a ponta:** interface React com classes, valores atuais, metas e aporte editáveis, conectada a uma API Spring Boot.
 - **Distribuição proporcional aos déficits** sobre o patrimônio projetado, sem sugerir vendas.
 - **Visão geral demonstrativa** com dados sintéticos, filtro por categoria e modos claro e escuro.
+- **Transferência demonstrativa para o simulador:** o botão “Simular esta demonstração” preenche as cinco classes sintéticas, inclusive a hipótese de caixa, sem enviar a requisição até a pessoa confirmar a simulação. Não carrega uma carteira salva.
 - **API documentada** com OpenAPI e Swagger UI, com erros no formato `application/problem+json`.
 - **Persistência de carteiras e metas** com PostgreSQL e Flyway, coberta por testes de integração, ainda sem endpoint público.
 
@@ -35,6 +36,7 @@ Simulador de aportes com o exemplo sintético da própria interface. O aporte de
 - Contas, autenticação (planejada com login Google) e endpoints para salvar ou consultar carteiras.
 - Ativos, movimentações, cotações, rentabilidade e proventos.
 - Dashboard conectado: a visão geral atual usa uma fixture sintética.
+- Preenchimento do simulador a partir de posições reais persistidas; a transferência demonstrativa usa exclusivamente valores fixos e fictícios.
 
 Qualquer cotação externa dependerá de pesquisa e aprovação do provedor, licença, limites e defasagem.
 
@@ -90,6 +92,8 @@ Acesse:
 - OpenAPI JSON: <http://localhost:8080/v3/api-docs>
 
 O servidor Vite encaminha as requisições iniciadas por `/api` para a API na porta `8080`. Para parar o banco sem perder dados, use `docker compose stop postgres`; `docker compose down -v` apaga o volume local.
+
+Para experimentar a transferência demonstrativa, abra **Visão geral** e clique em **Simular esta demonstração**. Confira as cinco classes, incluindo Caixa (hipótese visual), e o aporte inicial editável de R$ 2.000,00; ajuste os campos se quiser e só então envie pelo botão de simulação. Trocar normalmente entre as abas preserva o rascunho manual; clicar novamente na ação demonstrativa substitui esse rascunho e limpa o resultado anterior. Nenhum dado dessa visão é uma carteira pessoal salva ou uma cotação atual.
 
 Configurações de execução para o IntelliJ IDEA ficam em `.run/`. Detalhes do ambiente e solução de problemas estão em [`docs/local-development.md`](docs/local-development.md).
 

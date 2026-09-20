@@ -10,12 +10,23 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 | --- | --- | --- | --- |
 | HARD-001 / alta | Fechar bypass do limite JSON sem `Content-Length`; depende da proteção HTTP existente | Limite de bytes reais, leitura limitada, mesmo 413, corpo válido preservado; testes de fronteira, UTF-8 e controller | Concluído no PR #6; CI da `main` com o merge aprovada |
 | WEB-001 / alta | Corrigir cortes em 320 px e foco ao adicionar/remover classes; depende INC-004 | Controles dentro do painel, labels legíveis, foco previsível; testes de componente e inspeção geométrica em navegador | Concluído no PR #6; CI da `main` com o merge aprovada |
+| WEB-002 / média | Pré-preencher o simulador com o cenário sintético da visão geral; depende INC-004 e da visão demonstrativa | Ação explícita, cinco categorias inclusive Caixa hipotético, sem requisição antes do envio; navegação simples preserva rascunho, repetição da ação reinicia rascunho/resultado; testes de componente | Implementado e validado localmente com 22 testes frontend |
 | INC-008A / alta | Preservar IDs das classes; depende INC-008 | Renomeação, reordenação, criação e remoção sem perder a identidade das classes mantidas; ownership e concorrência | Implementado e validado no PR #7 |
 | INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Teste concorrente deve impedir versão antiga combinada com metas novas; alinhar nomes de 80 caracteres na persistência versus 60 no simulador sem truncamento | Proposto: estratégia e compatibilidade revisadas antes do endpoint |
 | INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposto: documento e contratos aprovados antes de INC-011 |
 | RELEASE-001 / futura | Comparar hospedagem e preparar checklist; depende definição de orçamento e escopo público | Custos atuais, HTTPS, banco privado, backups/restauração e logs; fontes oficiais e riscos | Proposto: escolha aprovada, sem criar serviço antecipadamente |
 | PWA-001 / futura | Validar instalação online-first; depende aprovação específica e ambiente HTTPS | Manifest, ícones e instalação nos dispositivos escolhidos; sem cache privado ou promessa offline | Proposto: prova real e limitações documentadas |
 | MOBILE-001 / futura | Avaliar uma tela nativa autenticada; depende necessidade nativa/lojas confirmada | Comparar login, UX, testes, distribuição e custo com Expo ou Capacitor | Proposto: ADR aprovado; nenhum segundo cliente antecipado |
+
+### WEB-002 — Transferência explícita da demonstração para o simulador
+
+- **Status:** implementado e validado localmente; CI do incremento ainda não executada nesta etapa.
+- **Prioridade:** média.
+- **Objetivo:** permitir testar o cálculo a partir do mesmo cenário sintético mostrado na visão geral, sem redigitar as classes.
+- **Dependências:** INC-004 e visão geral demonstrativa existente.
+- **Critérios de aceite:** “Simular esta demonstração” carrega as cinco categorias, seus valores e metas — Caixa é apenas hipótese visual — e um aporte inicial editável; nenhuma requisição é enviada até confirmar a simulação; a navegação comum preserva o rascunho manual; nova transferência explícita substitui o rascunho e limpa o resultado anterior. Não há leitura de carteira salva, login ou novo modelo de caixa.
+- **Verificações:** testes da transformação do cenário e de componentes para pré-preenchimento, ausência de requisição antecipada, preservação na navegação e reinício explícito; format-check, lint, typecheck e build frontend.
+- **Definition of Done:** o cenário demonstrativo pode ser transferido, editado e enviado à API real sem duplicar a regra financeira no navegador, com testes pertinentes aprovados e limitações descritas.
 
 ## Fase 0 — Fundação e primeira fatia
 

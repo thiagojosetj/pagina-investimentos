@@ -47,6 +47,7 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 - Total do cenário sintético separado entre posições e uma hipótese visual de caixa.
 - Filtro por Ações, FIIs, ETFs, Renda fixa e Caixa.
 - Navegação entre a visão geral e o simulador.
+- Ação explícita “Simular esta demonstração” que pré-preenche o simulador com as cinco categorias sintéticas, inclusive Caixa como hipótese visual. O rascunho pode ser editado antes do envio à API; navegar normalmente entre as abas não substitui entradas manuais, enquanto repetir a ação demonstrativa reinicia o rascunho e limpa o resultado anterior.
 - Modos claro e escuro com preferência local e respeito à configuração inicial do sistema.
 
 ### Planejado para completar o MVP

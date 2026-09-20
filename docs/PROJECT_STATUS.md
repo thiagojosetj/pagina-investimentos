@@ -27,6 +27,12 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 - Documentação de produto, decisões, roadmap e desenvolvimento local.
 - Repositório público clonável com primeira CI validada.
 
+## WEB-002 — cenário demonstrativo no simulador
+
+Implementado e validado localmente: a ação explícita “Simular esta demonstração” preenche o simulador com as cinco categorias e metas sintéticas da visão geral, inclusive Caixa apenas como hipótese, e um aporte inicial editável de R$ 2.000,00. A pessoa revisa ou altera os campos antes de enviar o cálculo ao backend; a transferência por si só não faz requisição. Navegar normalmente entre as abas preserva o rascunho, enquanto acionar a transferência novamente substitui as entradas e limpa o resultado anterior. Isso não representa carteira salva, login, cotação externa nem saldo de caixa persistido.
+
+No frontend, `npm run check` passou em 19 de setembro de 2026: format-check, lint, typecheck, 22 testes e build. Na validação local, a CI do incremento ainda não havia sido executada; o backend não mudou. A CI da `main` após o PR #7 passou com 65 testes backend (20 com PostgreSQL/Testcontainers) e 18 testes frontend.
+
 ## Entregue no INC-008
 
 - Entidades e repositories JPA internos para `portfolio` e `allocation_class`.
