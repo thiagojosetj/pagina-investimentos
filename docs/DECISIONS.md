@@ -163,9 +163,23 @@ Alternativas descartadas neste momento: atualização direta, que pode violar os
 
 - Detalhes de implantação da autenticação: domínios, redirects, expiração de sessão, CSRF, logout e configuração do Google Cloud.
 - Regra de correção/exclusão de movimentações e nível de auditoria.
-- Hospedagem e ambientes públicos.
+- Hospedagem da futura versão com contas e dados persistidos; a demonstração pública sem banco usa a ADR-013.
 - Primeiro provedor de cotações, seus termos e licença.
-- Escopo de lançamento web e celular: proposta web responsiva → PWA opcional → cliente nativo apenas com necessidade confirmada, em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md). A stack atual permanece aprovada; não há decisão de hospedagem ou framework móvel.
+- Escopo de lançamento web e celular: proposta web responsiva → PWA opcional → cliente nativo apenas com necessidade confirmada, em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md). A stack atual permanece aprovada; não há decisão de framework móvel.
+
+## ADR-013 — Demonstração pública sem persistência no Render Free
+
+**Status:** aprovada pelo autor em 19 de setembro de 2026; configuração local preparada, publicação ainda não verificada.
+
+O primeiro endereço público será uma demonstração educacional, não um ambiente de carteira pessoal. Um único serviço Docker no Render Free constrói React/Vite, incorpora o resultado ao JAR Spring Boot e serve interface e API na mesma origem HTTPS. O perfil `demo` desliga DataSource, Flyway, JPA e o serviço interno de carteiras; não há banco, login, cotações externas ou dados persistidos. A API continua calculando aportes em Java. Somente o tema visual é guardado pelo navegador.
+
+Alternativas: separar frontend estático e API simplificaria a entrega dos arquivos web, mas exigiria dois serviços, CORS e mais configuração; usar PostgreSQL gratuito para esta vitrine criaria retenção ilusória, pois o banco gratuito expira. O serviço único reduz pontos de falha para este recorte. Não substitui a arquitetura futura de dados reais: autenticação, privacidade, banco durável, backups e custos exigirão decisão separada.
+
+`render.yaml` fixa explicitamente `plan: free`, região Virginia, `main` como fonte, healthcheck e deploy automático somente após os checks da CI. A imagem executa como usuário sem privilégios e limita o heap da JVM no serviço. O aviso na interface pede somente valores fictícios; entradas digitadas transitam à API para cálculo, sem serem salvas. Swagger e o endpoint de informação ficam desativados no perfil público. O limite de 65.536 bytes para JSON permanece, mas não substitui proteção contra abuso de muitas requisições.
+
+Limitações do plano: 0,1 CPU e 512 MB de RAM; o serviço dorme após 15 minutos sem acesso e pode levar cerca de um minuto para acordar. O sistema de arquivos é efêmero, e a disponibilidade não tem SLA. O serviço não deve receber carteira real nem ser tratado como produção financeira. A publicação só será declarada concluída após CI, deploy e teste HTTP reais. Procedimento em [`render-deployment.md`](render-deployment.md).
+
+**Fontes oficiais consultadas em 19 de setembro de 2026:** [Render Free](https://render.com/docs/free), [planos de computação](https://render.com/docs/compute-plans), [Blueprint YAML](https://render.com/docs/blueprint-spec), [deploy após CI](https://render.com/docs/deploys) e [Docker no Render](https://render.com/docs/docker).
 
 ## Pesquisa preliminar — Google e dados de mercado
 

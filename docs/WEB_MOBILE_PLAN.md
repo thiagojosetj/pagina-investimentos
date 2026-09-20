@@ -1,6 +1,6 @@
 # Evolução para web e celular
 
-**Revisão:** 13 de setembro de 2026. **Status:** proposta para aprovação, não uma mudança de stack ou autorização de deploy.
+**Revisão:** 19 de setembro de 2026. **Status:** plano de evolução web/celular; somente a demonstração pública sem dados persistidos foi aprovada para Render Free (ADR-013).
 
 ## Direção recomendada
 
@@ -23,10 +23,10 @@ Referências primárias consultadas nesta revisão: [instalação de PWAs](https
 - Clientes recebem contratos explícitos com strings decimais; não reimplementar cálculo financeiro em TypeScript para compartilhar entre web e celular.
 - OpenAPI, códigos de erro e tipos de transporte podem ser reutilizados quando o segundo consumidor existir de fato. Não extrair bibliotecas sem consumidor.
 - Sessão, armazenamento seguro e integração com o sistema operacional não são automaticamente portáveis entre navegador e app nativo.
-- Para a web publicada, propor frontend e `/api` na mesma origem HTTPS e banco privado. Provedor, domínio, orçamento e operação ainda precisam ser escolhidos.
+- A primeira demonstração pública foi preparada para usar frontend e `/api` na mesma origem HTTPS, mas sem banco ou conta. Uma futura web com dados pessoais exigirá banco privado e nova decisão sobre provedor, domínio, orçamento e operação.
 - Um banco hospedado atenderá dispositivos autenticados; GitHub sincroniza código, não os bancos Docker locais.
 
-## Portões antes de publicar
+## Portões antes de publicar contas e dados persistidos
 
 1. **Persistência coerente:** decidir IDs estáveis de classes; testar leitura consistente de versão/metas e compatibilidade dos nomes com o simulador antes do contrato HTTP. Não renomear/truncar dados silenciosamente.
 2. **Autenticação:** concluir o INC-010 com fluxo Google OIDC, redirects exatos, sessão backend, CSRF, logout, expiração, vínculo por `provider + subject` e isolamento entre usuários. A direção Google já foi aprovada, mas a configuração detalhada não.
@@ -35,7 +35,7 @@ Referências primárias consultadas nesta revisão: [instalação de PWAs](https
 5. **PWA:** aprovação de escopo, manifest/ícones/HTTPS e teste de instalação nos dispositivos escolhidos. Começar online-first, sem cache de carteiras, respostas privadas ou tokens. Instalação não exige por si só um service worker, conforme a referência MDN.
 6. **App nativo:** novo ADR de login e distribuição. Não abrir o login Google em WebView embutida; verificar fluxo com navegador do sistema/SDK suportado, PKCE, redirects e armazenamento seguro. A sessão web não resolve isso sozinha. Referências: [Google — aplicativos instalados](https://developers.google.com/identity/protocols/oauth2/native-app) e [RFC 8252](https://www.rfc-editor.org/info/rfc8252/).
 
-Não há publicação do site nem aplicativo móvel entregue nesta revisão. Requisitos e custos de lojas serão pesquisados novamente quando houver plataforma escolhida.
+O serviço Render da demonstração ainda não foi confirmado como publicado nesta revisão; não existe aplicativo móvel. Requisitos e custos de lojas serão pesquisados novamente quando houver plataforma escolhida.
 
 ## Escolhas futuras do usuário
 

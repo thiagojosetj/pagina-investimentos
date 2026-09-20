@@ -27,7 +27,9 @@ Não é necessário instalar Maven globalmente, pois `backend/mvnw.cmd` fixa o f
 
 Java e Node rodam diretamente no Windows para facilitar breakpoints e hot reload. A API agora abre conexão com o PostgreSQL ao iniciar: o Flyway cria ou valida o schema versionado, enquanto o Hibernate está impedido de gerar DDL e valida os mapeamentos JPA existentes.
 
-O Docker tem dois usos distintos: manter o banco de desenvolvimento no volume do projeto e fornecer bancos temporários aos testes de integração. Testcontainers cria e remove apenas seus próprios containers de teste; não usa os dados do PostgreSQL do Compose. O Docker não busca cotações nem publica o site no GitHub. As verificações isoladas do frontend não dependem dele.
+O Docker tem dois usos locais: manter o banco de desenvolvimento no volume do projeto e fornecer bancos temporários aos testes de integração. Testcontainers cria e remove apenas seus próprios containers de teste; não usa os dados do PostgreSQL do Compose. O Docker não busca cotações nem publica o site no GitHub. As verificações isoladas do frontend e o perfil opcional `simulator` do backend não dependem dele. Esse perfil só serve à demonstração do cálculo: não habilita carteiras ou metas persistidas e não substitui a validação com PostgreSQL.
+
+No Render, o Docker tem um terceiro papel: construir uma imagem com Vite e Java no mesmo serviço. O Render faz esse build a partir do `Dockerfile` no GitHub; o Docker Desktop da sua máquina pode continuar desligado. A CI também compila e testa a imagem em um runner separado. O perfil público `demo` é diferente do `simulator` local: ambos dispensam banco, mas o público também desativa Swagger e expõe somente o healthcheck. Instruções em [`render-deployment.md`](render-deployment.md).
 
 O projeto nunca precisa de `docker system prune`. `docker compose down -v` remove o volume e exige autorização explícita.
 
@@ -83,6 +85,18 @@ Set-Location .\backend
 
 O Flyway aplica a migration pendente antes de a API aceitar requisições. Se o banco estiver indisponível ou incompatível, a inicialização falha sem criar um schema parcial pelo Hibernate.
 
+### Somente o simulador, sem Docker
+
+Para testar o formulário e o cálculo enquanto o Docker Desktop estiver indisponível, não inicie o PostgreSQL. Em um terminal PowerShell separado, a partir da raiz:
+
+```powershell
+Set-Location .\backend
+$env:SPRING_PROFILES_ACTIVE = 'simulator'
+.\mvnw.cmd spring-boot:run
+```
+
+O perfil `simulator` inicia a mesma API em `127.0.0.1:8080`, mas sem DataSource, Flyway, JPA ou serviço de carteira persistida. O endpoint de simulação, o status e a validação continuam ativos. Não use esse perfil como substituto do modo completo nem como ambiente de produção. Ao voltar ao modo completo, abra um terminal novo sem `SPRING_PROFILES_ACTIVE=simulator` (ou remova essa variável da sessão atual) e inicie o PostgreSQL antes da API.
+
 Porta HTTP padrão: `8080`. Para alterá-la temporariamente:
 
 ```powershell
@@ -125,15 +139,17 @@ Porta: `5173`. Durante o desenvolvimento, o proxy Vite encaminha `/api` para `ht
 Configurações compartilhadas em `.run/`:
 
 - `Backend`: executa/depura `PortfolioApiApplication` com o JDK do módulo; o PostgreSQL precisa estar ativo antes.
+- `Backend - Simulator`: executa/depura apenas a API do simulador com o perfil `simulator`, sem Docker.
 - `Frontend`: executa `npm run dev`.
 - `Full stack`: inicia Backend e Frontend em paralelo.
+- `Simulator + Frontend`: inicia o backend no perfil `simulator` e o frontend em paralelo, sem Docker.
 - `Backend - Verify`: executa o goal Maven `verify` pelo wrapper.
 - `Frontend - Checks`: executa `npm run check`.
 - `PostgreSQL`: executa o serviço `postgres` do `compose.yaml`.
 
 Se a configuração `PostgreSQL` não localizar o daemon em outro computador, crie uma conexão Docker chamada `Docker` nas configurações da IDE ou selecione a conexão local na configuração de execução. Esse nome é uma referência local da IDE, não uma credencial.
 
-O frontend atual não consulta o PostgreSQL diretamente. `Full stack` inicia Backend e Frontend, mas não abre o Docker Desktop implicitamente. Quando precisar da API, execute primeiro `PostgreSQL` e aguarde o healthcheck. Essa separação torna a inicialização da infraestrutura uma ação intencional e evita pop-ups do Docker ao executar apenas código Java.
+O frontend atual não consulta o PostgreSQL diretamente. `Full stack` inicia Backend e Frontend, mas não abre o Docker Desktop implicitamente. Para o modo completo, execute primeiro `PostgreSQL` e aguarde o healthcheck. Para apenas simular, escolha `Simulator + Frontend`; essa opção não abre o Docker Desktop. A separação torna a inicialização da infraestrutura uma ação intencional.
 
 ## 6. Verificações
 
@@ -264,4 +280,4 @@ Ambos devem apontar para JDK 21. Ajuste o `JAVA_HOME` do seu ambiente/IDE; não 
 
 ### Interface informa que não encontrou a API
 
-Confirme `http://localhost:8080/api/v1/system/status` e os logs do backend. O build estático de produção não possui servidor configurado neste MVP; hospedagem é uma decisão futura.
+O Vite pode responder HTTP 502 quando a API na porta `8080` não está em execução. Confirme `http://localhost:8080/api/v1/system/status` e os logs do backend. Para apenas simular, use o perfil `simulator` acima, sem Docker. Para o modo completo, inicie primeiro o PostgreSQL. O build público do Render serve o Vite e a API pelo mesmo processo Java, sem usar o proxy de desenvolvimento.

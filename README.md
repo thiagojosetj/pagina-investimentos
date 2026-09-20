@@ -20,6 +20,8 @@ Simulador de aportes com o exemplo sintético da própria interface. O aporte de
 - **API documentada** com OpenAPI e Swagger UI, com erros no formato `application/problem+json`.
 - **Persistência de carteiras e metas** com PostgreSQL e Flyway, coberta por testes de integração, ainda sem endpoint público.
 
+A publicação no Render Free está **em preparação**, ainda sem URL verificada. Ela será uma demonstração sem banco ou contas: a visão geral é sintética e o simulador apenas calcula entradas fictícias, sem salvar uma carteira.
+
 ## Destaques técnicos
 
 - **Dinheiro em centavos inteiros.** Os valores trafegam como strings decimais e são calculados em `BigInteger`. Os centavos que sobram são distribuídos pelo método dos maiores restos, com desempate determinístico, então a soma sempre fecha exatamente com o aporte.
@@ -47,11 +49,17 @@ Qualquer cotação externa dependerá de pesquisa e aprovação do provedor, lic
 - **Banco:** PostgreSQL 18 em Docker Compose e Testcontainers nos testes de integração.
 - **Qualidade:** Spotless, Oxlint, Prettier, typecheck e GitHub Actions.
 
-O sistema começa como um monólito modular com frontend separado. O backend é o único proprietário das regras financeiras.
+O repositório mantém frontend e backend em módulos separados. Na demonstração pública, o build incorpora a interface estática ao JAR e um único processo Spring Boot serve a página e a API na mesma origem. O backend é o único proprietário das regras financeiras.
+
+## Demonstração online
+
+O [procedimento do Render Free](docs/render-deployment.md) descreve a criação do serviço, a verificação da URL e como atualizar a versão online. O endereço será incluído aqui somente depois de um deploy real e testado. O perfil público `demo` não conecta ao PostgreSQL, não permite salvar carteiras e desativa Swagger; o ambiente local completo permanece disponível para desenvolvimento.
+
+O serviço gratuito pode dormir após 15 minutos sem acessos e levar aproximadamente um minuto para voltar. Use apenas valores fictícios: o formulário envia entradas à API para o cálculo, mas não as armazena como carteira. Uma versão com contas e dados reais exige outra revisão de segurança e hospedagem.
 
 ## Executar localmente
 
-Pré-requisitos: JDK 21, Node.js 24 LTS com npm e Docker (Docker Desktop no Windows e no macOS). Abra três terminais na raiz do projeto.
+Pré-requisitos: JDK 21 e Node.js 24 LTS com npm. Docker (Docker Desktop no Windows e no macOS) é necessário para o modo completo com PostgreSQL e para os testes de integração; não é necessário para apenas simular aportes.
 
 PowerShell:
 
@@ -92,6 +100,16 @@ Acesse:
 - OpenAPI JSON: <http://localhost:8080/v3/api-docs>
 
 O servidor Vite encaminha as requisições iniciadas por `/api` para a API na porta `8080`. Para parar o banco sem perder dados, use `docker compose stop postgres`; `docker compose down -v` apaga o volume local.
+
+Se quiser experimentar somente o simulador sem Docker, inicie o backend em outro terminal PowerShell com o perfil local abaixo, em vez de subir o PostgreSQL e executar o backend padrão:
+
+```powershell
+Set-Location .\backend
+$env:SPRING_PROFILES_ACTIVE = 'simulator'
+.\mvnw.cmd spring-boot:run
+```
+
+Mantenha o frontend rodando normalmente em `http://localhost:5173`. Esse perfil não conecta ao banco e não disponibiliza carteiras salvas; use um novo terminal sem a variável `SPRING_PROFILES_ACTIVE` para voltar ao modo completo. No IntelliJ, a configuração **Simulator + Frontend** faz o mesmo sem iniciar o Docker.
 
 Para experimentar a transferência demonstrativa, abra **Visão geral** e clique em **Simular esta demonstração**. Confira as cinco classes, incluindo Caixa (hipótese visual), e o aporte inicial editável de R$ 2.000,00; ajuste os campos se quiser e só então envie pelo botão de simulação. Trocar normalmente entre as abas preserva o rascunho manual; clicar novamente na ação demonstrativa substitui esse rascunho e limpa o resultado anterior. Nenhum dado dessa visão é uma carteira pessoal salva ou uma cotação atual.
 
@@ -165,6 +183,7 @@ Decimais no JSON usam ponto e são enviados como strings. A interface aceita pon
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisões e alternativas avaliadas.
 - [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — estado detalhado e próximo passo.
 - [`docs/local-development.md`](docs/local-development.md) — ambiente local detalhado.
+- [`docs/render-deployment.md`](docs/render-deployment.md) — demonstração pública e atualização da versão online.
 
 ## Dados e licença
 
