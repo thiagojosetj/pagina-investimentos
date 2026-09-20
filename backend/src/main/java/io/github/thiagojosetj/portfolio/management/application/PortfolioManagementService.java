@@ -21,11 +21,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.context.annotation.Profile;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Profile("!simulator & !demo")
 public class PortfolioManagementService {
 
   private static final int MAX_PORTFOLIO_NAME_LENGTH = 100;

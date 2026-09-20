@@ -250,4 +250,43 @@ describe('ContributionSimulator', () => {
       screen.queryByText('Distribuição do novo aporte'),
     ).not.toBeInTheDocument()
   })
+
+  it('explains temporary API unavailability without local setup instructions', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('Bad Gateway', {
+          status: 502,
+          headers: { 'Content-Type': 'text/plain' },
+        }),
+      ),
+    )
+    render(<ContributionSimulator />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'A API está temporariamente indisponível. Aguarde um momento e tente novamente.',
+    )
+  })
+
+  it('explains a network failure without local setup instructions', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    )
+    render(<ContributionSimulator />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Não foi possível conectar à API. Aguarde um momento e tente novamente.',
+    )
+  })
 })
