@@ -82,3 +82,57 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  demo-image:
+    name: Public demo image
+    needs: [backend, frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build single-service image
+        run: docker build --tag portfolio-demo:ci .
+
+      - name: Smoke-test the packaged site and API
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id=$(docker run --detach \
+            --memory 512m \
+            --env SPRING_PROFILES_ACTIVE=demo \
+            --env SERVER_ADDRESS=0.0.0.0 \
+            --env PORT=10000 \
+            --env JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=50.0 -XX:+UseSerialGC' \
+            --publish 127.0.0.1:10000:10000 portfolio-demo:ci)
+          trap 'docker rm --force "$container_id" >/dev/null 2>&1 || true' EXIT
+
+          ready=false
+          for attempt in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:10000/actuator/health | grep -q '"UP"'; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            docker logs "$container_id"
+            exit 1
+          fi
+
+          page=$(curl --fail --silent http://127.0.0.1:10000/)
+          grep -q 'Planejador de Carteira' <<< "$page"
+          script_path=$(grep -oE 'src="/assets/[^"]+\.js"' <<< "$page" | head -n 1 | cut -d '"' -f 2)
+          test -n "$script_path"
+          curl --fail --silent --output /dev/null "http://127.0.0.1:10000$script_path"
+          curl --fail --silent http://127.0.0.1:10000/favicon.svg | grep -q '<svg'
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:10000/v3/api-docs)" = 404
+          response=$(curl --fail --silent --show-error \
+            --header 'Content-Type: application/json' \
+            --data '{"currency":"BRL","contribution":"100.00","allocations":[{"classId":"stocks","name":"Ações","currentAmount":"60.00","targetPercentage":"50.0000"},{"classId":"funds","name":"Fundos","currentAmount":"40.00","targetPercentage":"50.0000"}]}' \
+            http://127.0.0.1:10000/api/v1/allocation-simulations/contributions)
+          grep -q '"suggestedContribution":"40.00"' <<< "$response"

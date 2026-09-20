@@ -178,8 +178,9 @@ function App() {
                 disponíveis.
               </p>
               <p className="disclaimer">
-                Simulação educacional. Não constitui recomendação de
-                investimento.
+                Simulação educacional, sem recomendação de investimento. Use
+                apenas valores fictícios: as entradas são enviadas à API para o
+                cálculo e não são salvas em uma carteira.
               </p>
             </div>
           </section>

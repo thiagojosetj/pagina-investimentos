@@ -32,6 +32,9 @@ describe('App', () => {
     expect(
       screen.getByText(/carteiras salvas, ativos e movimentações ainda não/i),
     ).toBeInTheDocument()
+    expect(screen.getByText(/use apenas valores fictícios/i)).toHaveTextContent(
+      'as entradas são enviadas à API para o cálculo',
+    )
     await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
   })
 
