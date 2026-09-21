@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEMO_PORTFOLIO } from './demoPortfolio'
+import { createDemoSimulationPreset, DEMO_PORTFOLIO } from './demoPortfolio'
 
 function decimalToScaledInteger(value: string, scale: number): bigint {
   const [integerPart, decimalPart = ''] = value.split('.')
@@ -85,5 +85,29 @@ describe('DEMO_PORTFOLIO', () => {
     expect(
       DEMO_PORTFOLIO.items.every((item) => categoryIds.has(item.categoryId)),
     ).toBe(true)
+  })
+
+  it('transfers every synthetic category and its exact decimal strings to a simulation draft', () => {
+    const preset = createDemoSimulationPreset()
+
+    expect(preset).toEqual({
+      source: 'demo',
+      contribution: '2000,00',
+      allocations: DEMO_PORTFOLIO.categories.map((category) => ({
+        classId: category.id,
+        name: category.name,
+        currentAmount: category.marketValue.replace('.', ','),
+        targetPercentage: category.targetPercentage.replace('.', ','),
+      })),
+    })
+    expect(preset.allocations).toHaveLength(5)
+    expect(
+      preset.allocations.find((allocation) => allocation.classId === 'cash'),
+    ).toEqual({
+      classId: 'cash',
+      name: 'Caixa',
+      currentAmount: '3000,00',
+      targetPercentage: '5,00',
+    })
   })
 })

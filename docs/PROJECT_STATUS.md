@@ -4,11 +4,27 @@
 
 ## Estado real
 
-O primeiro corte vertical está implementado, validado localmente e publicado. Ele oferece uma interface React responsiva conectada a uma API Spring Boot que calcula a distribuição de um novo aporte por déficit monetário projetado.
+O primeiro corte vertical está implementado, validado localmente e publicado como código no GitHub; o site ainda não tem URL pública verificada. Ele oferece uma interface React responsiva conectada a uma API Spring Boot que calcula a distribuição de um novo aporte por déficit monetário projetado.
 
 O primeiro push em `main` foi o commit `2dcdc84976f11c7ab98f6bcef26f4c24d8df98d6`, cuja CI terminou com sucesso nos jobs Backend e Frontend. Desde então `main` recebeu e publicou os incrementos seguintes: persistência de carteira e metas, visão geral demonstrativa e o endurecimento de rede da API. A CI aprovou os jobs Backend e Frontend nas execuções mais recentes de `main`, já com JPA, Flyway e Testcontainers no pipeline. O Dependabot está ativo e abriu suas primeiras pull requests de atualização.
 
 O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviço interno de carteiras/metas existem, mas ainda não há endpoint para essas operações por decisão de escopo.
+
+## RELEASE-001 — demonstração pública no Render Free
+
+O autor aprovou uma primeira versão online com frontend e API Java no mesmo serviço gratuito, sem banco, login ou carteiras salvas. O `Dockerfile` incorpora o build Vite ao JAR; `render.yaml` fixa plano Free, branch `main`, healthcheck e deploy após a CI. O perfil `demo` desativa a persistência e as rotas de documentação da API. A interface avisa que somente valores fictícios devem ser usados e que as entradas são transmitidas à API para cálculo, sem salvar carteira.
+
+**Estado:** código e configuração preparados localmente, mas ainda sem commits, push, CI da imagem, serviço Render ou URL pública verificada. O Docker local está indisponível; a imagem terá de ser construída e exercitada no job da CI após push aprovado. A criação do serviço exigirá acesso do autor ao Render/GitHub por OAuth. O procedimento está em [`render-deployment.md`](render-deployment.md). Não há dados pessoais nem banco no deploy planejado.
+
+**Verificações locais desta preparação:** 52 testes backend sem PostgreSQL, `spotless:check` e build passaram; no frontend, 24 testes, format-check, lint, typecheck e build passaram. Um JAR montado com o `dist` do Vite em artefatos ignorados respondeu health `UP`, página e favicon HTTP 200 e API HTTP 200 com parcelas fictícias `40.00/60.00`. O Dockerfile e o limite de 512 MB serão testados pela CI, pois o Docker Engine local não está disponível. Os testes PostgreSQL completos também dependem desse runner nesta etapa.
+
+`scripts/check.ps1` foi executado e interrompeu no preflight com a mensagem de Docker Engine indisponível, antes do Maven; não iniciou nem removeu serviços. As verificações independentes de Docker foram executadas separadamente, conforme acima.
+
+## DEV-001 — simulação local sem Docker
+
+Em 19 de setembro de 2026, o frontend respondeu em `127.0.0.1:5173`, mas a API em `127.0.0.1:8080` estava desligada porque o Docker Engine/PostgreSQL local não estava disponível. O proxy Vite devolvia HTTP 502 sem JSON e a interface exibia uma mensagem genérica. O frontend agora indica que a API está indisponível. O perfil opt-in `simulator` mantém o cálculo no backend sem iniciar DataSource, Flyway, JPA ou o serviço de carteiras persistidas; o modo completo permanece inalterado. Há configurações portáveis de IntelliJ para iniciar esse perfil sem Docker.
+
+O teste de contexto do perfil confirmou ausência de persistência, health `UP`, cálculo e validação. Uma requisição real com as cinco categorias sintéticas, enviada pelo proxy do Vite, retornou `currentTotal=60000.00`, `contribution=2000.00`, `projectedTotal=62000.00` e cinco parcelas que somam exatamente `2000.00`. `npm run check` aprovou 23 testes frontend, formatação, lint, typecheck e build. O Maven Wrapper aprovou 48 testes backend sem Docker, `spotless:check` e build. Esse modo é somente local e não salva carteira; os testes PostgreSQL deste incremento continuam pendentes da CI. A branch ainda não foi publicada.
 
 ## Entregue
 
@@ -26,6 +42,12 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 - Configurações portáveis do IntelliJ e workflow de CI.
 - Documentação de produto, decisões, roadmap e desenvolvimento local.
 - Repositório público clonável com primeira CI validada.
+
+## WEB-002 — cenário demonstrativo no simulador
+
+Implementado e validado localmente: a ação explícita “Simular esta demonstração” preenche o simulador com as cinco categorias e metas sintéticas da visão geral, inclusive Caixa apenas como hipótese, e um aporte inicial editável de R$ 2.000,00. A pessoa revisa ou altera os campos antes de enviar o cálculo ao backend; a transferência por si só não faz requisição. Navegar normalmente entre as abas preserva o rascunho, enquanto acionar a transferência novamente substitui as entradas e limpa o resultado anterior. Isso não representa carteira salva, login, cotação externa nem saldo de caixa persistido.
+
+No frontend, `npm run check` passou em 19 de setembro de 2026: format-check, lint, typecheck, 22 testes e build. Na validação local, a CI do incremento ainda não havia sido executada; o backend não mudou. A CI da `main` após o PR #7 passou com 65 testes backend (20 com PostgreSQL/Testcontainers) e 18 testes frontend.
 
 ## Entregue no INC-008
 
@@ -84,6 +106,7 @@ Os números desta seção são históricos; as verificações mais recentes de I
 - O teste de rollback usa `@MockitoSpyBean`, e o Mockito emite um aviso sobre carregamento dinâmico de agente no JDK. A suíte passa no JDK 21; a configuração do agente deverá ser revista antes de uma migração para um JDK que proíba esse comportamento.
 - A visão geral usa fixture fixa e não representa um dashboard conectado; posições persistidas, rentabilidade e proventos ainda não existem.
 - O simulador ainda não consegue carregar uma carteira salva; esse fluxo depende de persistência, autenticação e posições derivadas.
+- A demonstração pública gratuita não persiste entradas, pode dormir após inatividade e ainda não tem limite por taxa de requisições. Não deve ser usada para dados financeiros reais.
 
 ## Próximo incremento recomendado
 

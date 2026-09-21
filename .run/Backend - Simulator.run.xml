@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Backend - Simulator" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="portfolio-api" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="io.github.thiagojosetj.portfolio.PortfolioApiApplication" />
+    <option name="ACTIVE_PROFILES" value="simulator" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

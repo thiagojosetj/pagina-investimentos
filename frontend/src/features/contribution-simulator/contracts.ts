@@ -11,6 +11,12 @@ export interface ContributionSimulationRequest {
   allocations: AllocationInput[]
 }
 
+export interface SimulationDraftPreset {
+  source: 'demo'
+  contribution: string
+  allocations: AllocationInput[]
+}
+
 export interface AllocationResult {
   classId: string
   name: string

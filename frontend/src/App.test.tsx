@@ -32,6 +32,9 @@ describe('App', () => {
     expect(
       screen.getByText(/carteiras salvas, ativos e movimentações ainda não/i),
     ).toBeInTheDocument()
+    expect(screen.getByText(/use apenas valores fictícios/i)).toHaveTextContent(
+      'as entradas são enviadas à API para o cálculo',
+    )
     await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
   })
 
@@ -130,6 +133,97 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { name: 'Distribuição do novo aporte' }),
     ).toBeInTheDocument()
+  })
+
+  it('uses the synthetic overview as an explicit five-class simulation draft and resets only on another transfer', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          method: 'PROPORTIONAL_MONETARY_DEFICIT_V1',
+          currency: 'BRL',
+          currentTotal: '60000.00',
+          contribution: '2000.00',
+          projectedTotal: '62000.00',
+          allocations: [],
+          disclaimer: 'Simulação educacional.',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    await user.click(
+      screen.getByRole('button', { name: 'Simular esta demonstração' }),
+    )
+
+    expect(
+      screen.getByText(
+        /valores sintéticos da visão geral, incluindo caixa hipotético/i,
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('group')).toHaveLength(5)
+    expect(screen.getByLabelText('Valor atual de Ações')).toHaveValue(
+      '24000,00',
+    )
+    expect(screen.getByLabelText('Valor atual de FIIs')).toHaveValue('12000,00')
+    expect(screen.getByLabelText('Valor atual de ETFs')).toHaveValue('9000,00')
+    expect(screen.getByLabelText('Valor atual de Renda fixa')).toHaveValue(
+      '12000,00',
+    )
+    expect(screen.getByLabelText('Valor atual de Caixa')).toHaveValue('3000,00')
+    expect(screen.getByLabelText('Meta percentual de Caixa')).toHaveValue(
+      '5,00',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Distribuição do novo aporte',
+      }),
+    ).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledOnce()
+    const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
+    const requestBody = JSON.parse(requestOptions.body as string) as {
+      contribution: string
+      allocations: Array<{
+        classId: string
+        currentAmount: string
+        targetPercentage: string
+      }>
+    }
+    expect(requestBody.contribution).toBe('2000.00')
+    expect(requestBody.allocations).toHaveLength(5)
+    expect(requestBody.allocations).toContainEqual(
+      expect.objectContaining({
+        classId: 'cash',
+        currentAmount: '3000.00',
+        targetPercentage: '5.00',
+      }),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Visão geral' }))
+    await user.click(screen.getByRole('button', { name: 'Simulador' }))
+    expect(
+      screen.getByRole('heading', { name: 'Distribuição do novo aporte' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Valor atual de Caixa')).toHaveValue('3000,00')
+
+    await user.click(screen.getByRole('button', { name: 'Visão geral' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Simular esta demonstração' }),
+    )
+    expect(
+      screen.queryByRole('heading', { name: 'Distribuição do novo aporte' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Valor atual de Caixa')).toHaveValue('3000,00')
+    expect(fetchMock).toHaveBeenCalledOnce()
   })
 
   it('avoids smooth scrolling when reduced motion is preferred', async () => {

@@ -32,12 +32,21 @@ export async function simulateContribution(
       throw error
     }
     throw new SimulationApiError(
-      'Não foi possível conectar à API. Confirme se o backend está em execução.',
+      'Não foi possível conectar à API. Aguarde um momento e tente novamente.',
     )
   }
 
   if (!response.ok) {
     const problem = await readProblem(response)
+    if (
+      !problem.detail &&
+      !problem.title &&
+      [502, 503, 504].includes(response.status)
+    ) {
+      throw new SimulationApiError(
+        'A API está temporariamente indisponível. Aguarde um momento e tente novamente.',
+      )
+    }
     throw new SimulationApiError(
       problem.detail ??
         problem.title ??

@@ -10,7 +10,12 @@ afterEach(() => {
 
 describe('PortfolioOverview', () => {
   it('shows a clearly synthetic portfolio with fixed income and cash', () => {
-    render(<PortfolioOverview onOpenSimulator={vi.fn()} />)
+    render(
+      <PortfolioOverview
+        onOpenSimulator={vi.fn()}
+        onUseDemoPortfolio={vi.fn()}
+      />,
+    )
 
     expect(screen.getByText('Fixture sintética')).toBeInTheDocument()
     expect(screen.getByText('R$ 60.000,00')).toBeInTheDocument()
@@ -29,7 +34,12 @@ describe('PortfolioOverview', () => {
     const user = userEvent.setup()
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    render(<PortfolioOverview onOpenSimulator={vi.fn()} />)
+    render(
+      <PortfolioOverview
+        onOpenSimulator={vi.fn()}
+        onUseDemoPortfolio={vi.fn()}
+      />,
+    )
 
     await user.click(screen.getByRole('button', { name: 'Renda fixa' }))
 
@@ -44,10 +54,38 @@ describe('PortfolioOverview', () => {
   it('opens the simulator from the allocation context', async () => {
     const user = userEvent.setup()
     const onOpenSimulator = vi.fn()
-    render(<PortfolioOverview onOpenSimulator={onOpenSimulator} />)
+    render(
+      <PortfolioOverview
+        onOpenSimulator={onOpenSimulator}
+        onUseDemoPortfolio={vi.fn()}
+      />,
+    )
 
     await user.click(screen.getByRole('button', { name: /Abrir simulador/ }))
 
     expect(onOpenSimulator).toHaveBeenCalledOnce()
+  })
+
+  it('starts the separate demonstration simulation only after an explicit click', async () => {
+    const user = userEvent.setup()
+    const onOpenSimulator = vi.fn()
+    const onUseDemoPortfolio = vi.fn()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(
+      <PortfolioOverview
+        onOpenSimulator={onOpenSimulator}
+        onUseDemoPortfolio={onUseDemoPortfolio}
+      />,
+    )
+
+    expect(onUseDemoPortfolio).not.toHaveBeenCalled()
+    await user.click(
+      screen.getByRole('button', { name: 'Simular esta demonstração' }),
+    )
+
+    expect(onUseDemoPortfolio).toHaveBeenCalledOnce()
+    expect(onOpenSimulator).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

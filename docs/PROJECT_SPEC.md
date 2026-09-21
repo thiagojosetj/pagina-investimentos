@@ -47,6 +47,7 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 - Total do cenário sintético separado entre posições e uma hipótese visual de caixa.
 - Filtro por Ações, FIIs, ETFs, Renda fixa e Caixa.
 - Navegação entre a visão geral e o simulador.
+- Ação explícita “Simular esta demonstração” que pré-preenche o simulador com as cinco categorias sintéticas, inclusive Caixa como hipótese visual. O rascunho pode ser editado antes do envio à API; navegar normalmente entre as abas não substitui entradas manuais, enquanto repetir a ação demonstrativa reinicia o rascunho e limpa o resultado anterior.
 - Modos claro e escuro com preferência local e respeito à configuração inicial do sistema.
 
 ### Planejado para completar o MVP
@@ -74,7 +75,7 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 
 Esses itens permanecem como candidatos pós-MVP; não são funcionalidades prometidas.
 
-A intenção de lançar para web e celular foi reforçada em 13 de setembro de 2026. Isso não altera automaticamente o MVP: melhorias de responsividade pertencem à interface atual; PWA, aplicativo nativo e hospedagem continuam propostas sujeitas à aprovação. A comparação e os requisitos de segurança/operação estão em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
+A intenção de lançar para web e celular foi reforçada em 13 de setembro de 2026. Isso não altera automaticamente o MVP: melhorias de responsividade pertencem à interface atual; PWA e aplicativo nativo continuam propostas sujeitas à aprovação. Uma demonstração pública sem dados persistidos foi aprovada para o Render Free (ADR-013), mas sua publicação ainda depende de validação real. A comparação e os requisitos de segurança/operação estão em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
 
 ## 5. Regra do simulador de aportes
 

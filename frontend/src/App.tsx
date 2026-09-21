@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import './App.css'
 import { ContributionSimulator } from './features/contribution-simulator/ContributionSimulator'
+import type { SimulationDraftPreset } from './features/contribution-simulator/contracts'
 import { PortfolioOverview } from './features/portfolio-overview/PortfolioOverview'
+import { createDemoSimulationPreset } from './features/portfolio-overview/demoPortfolio'
 
 type ActiveView = 'overview' | 'simulator'
 type ColorTheme = 'light' | 'dark'
@@ -54,6 +56,10 @@ function ThemeIcon({ theme }: { theme: ColorTheme }) {
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('overview')
   const [theme, setTheme] = useState<ColorTheme>(getInitialTheme)
+  const [demoTransfer, setDemoTransfer] = useState<{
+    version: number
+    preset: SimulationDraftPreset
+  } | null>(null)
   const mainRef = useRef<HTMLElement>(null)
 
   useLayoutEffect(() => {
@@ -83,6 +89,14 @@ function App() {
         behavior: prefersReducedMotion ? 'auto' : 'smooth',
       })
     })
+  }
+
+  function useDemoPortfolio() {
+    setDemoTransfer((current) => ({
+      version: (current?.version ?? 0) + 1,
+      preset: createDemoSimulationPreset(),
+    }))
+    openView('simulator')
   }
 
   return (
@@ -143,7 +157,10 @@ function App() {
 
       <main id="top" ref={mainRef} tabIndex={-1}>
         <div hidden={activeView !== 'overview'}>
-          <PortfolioOverview onOpenSimulator={() => openView('simulator')} />
+          <PortfolioOverview
+            onOpenSimulator={() => openView('simulator')}
+            onUseDemoPortfolio={useDemoPortfolio}
+          />
         </div>
         <div hidden={activeView !== 'simulator'}>
           <section className="intro" aria-labelledby="page-title">
@@ -161,13 +178,17 @@ function App() {
                 disponíveis.
               </p>
               <p className="disclaimer">
-                Simulação educacional. Não constitui recomendação de
-                investimento.
+                Simulação educacional, sem recomendação de investimento. Use
+                apenas valores fictícios: as entradas são enviadas à API para o
+                cálculo e não são salvas em uma carteira.
               </p>
             </div>
           </section>
 
-          <ContributionSimulator />
+          <ContributionSimulator
+            key={demoTransfer?.version ?? 0}
+            initialPreset={demoTransfer?.preset}
+          />
         </div>
       </main>
 

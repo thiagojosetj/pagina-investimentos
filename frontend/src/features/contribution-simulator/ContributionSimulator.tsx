@@ -5,6 +5,7 @@ import type {
   AllocationResult,
   ContributionSimulationRequest,
   ContributionSimulationResponse,
+  SimulationDraftPreset,
 } from './contracts'
 import './ContributionSimulator.css'
 
@@ -228,22 +229,41 @@ function SimulationResult({
   )
 }
 
-export function ContributionSimulator() {
+export function ContributionSimulator({
+  initialPreset,
+}: {
+  initialPreset?: SimulationDraftPreset
+}) {
   const [allocations, setAllocations] = useState<DraftAllocation[]>(() =>
-    INITIAL_ALLOCATIONS.map((allocation) => ({ ...allocation })),
+    (initialPreset?.allocations ?? INITIAL_ALLOCATIONS).map((allocation) => ({
+      ...allocation,
+    })),
   )
-  const [contribution, setContribution] = useState('2000,00')
+  const [contribution, setContribution] = useState(
+    initialPreset?.contribution ?? '2000,00',
+  )
+  const [isDemoPreset, setIsDemoPreset] = useState(
+    initialPreset?.source === 'demo',
+  )
   const [result, setResult] = useState<ContributionSimulationResponse | null>(
     null,
   )
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const nextClassNumber = useRef(5)
+  const nextClassNumber = useRef(
+    Math.max(5, (initialPreset?.allocations.length ?? 4) + 1),
+  )
   const activeRequest = useRef<AbortController | null>(null)
   const classNameInputs = useRef(new Map<string, HTMLInputElement>())
   const pendingFocusClassId = useRef<string | null>(null)
 
-  useEffect(() => () => activeRequest.current?.abort(), [])
+  useEffect(
+    () => () => {
+      activeRequest.current?.abort()
+      activeRequest.current = null
+    },
+    [],
+  )
 
   useLayoutEffect(() => {
     const classId = pendingFocusClassId.current
@@ -309,6 +329,7 @@ export function ContributionSimulator() {
     invalidateSimulation()
     setAllocations(INITIAL_ALLOCATIONS.map((allocation) => ({ ...allocation })))
     setContribution('2000,00')
+    setIsDemoPreset(false)
   }
 
   function invalidateSimulation() {
@@ -386,6 +407,13 @@ export function ContributionSimulator() {
             Restaurar exemplo
           </button>
         </div>
+
+        {isDemoPreset ? (
+          <p className="preset-notice" role="note">
+            Cenário iniciado com valores sintéticos da visão geral, incluindo
+            caixa hipotético. Não é uma carteira salva.
+          </p>
+        ) : null}
 
         <div className="allocation-table-heading" aria-hidden="true">
           <span>Classe</span>
