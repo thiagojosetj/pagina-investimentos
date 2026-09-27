@@ -4,27 +4,45 @@
 
 ## Estado real
 
-O primeiro corte vertical está implementado, validado localmente e publicado como código no GitHub; o site ainda não tem URL pública verificada. Ele oferece uma interface React responsiva conectada a uma API Spring Boot que calcula a distribuição de um novo aporte por déficit monetário projetado.
+O primeiro corte vertical está implementado, validado e publicado no GitHub e no Render. A demonstração pública está em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com) e oferece uma interface React responsiva conectada a uma API Spring Boot que calcula a distribuição de um novo aporte por déficit monetário projetado.
 
-O primeiro push em `main` foi o commit `2dcdc84976f11c7ab98f6bcef26f4c24d8df98d6`, cuja CI terminou com sucesso nos jobs Backend e Frontend. Desde então `main` recebeu e publicou os incrementos seguintes: persistência de carteira e metas, visão geral demonstrativa e o endurecimento de rede da API. A CI aprovou os jobs Backend e Frontend nas execuções mais recentes de `main`, já com JPA, Flyway e Testcontainers no pipeline. O Dependabot está ativo e abriu suas primeiras pull requests de atualização.
+O primeiro push em `main` foi o commit `2dcdc84976f11c7ab98f6bcef26f4c24d8df98d6`, cuja CI terminou com sucesso nos jobs Backend e Frontend. Desde então `main` recebeu persistência de carteira e metas, visão geral demonstrativa e endurecimento de rede da API. A CI atual possui três jobs: Backend, Frontend e Public demo image. PostgreSQL real, JPA, Flyway e Testcontainers continuam obrigatórios no Backend. O Dependabot está ativo; atualizações de dependências são revisadas separadamente das funcionalidades.
 
 O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviço interno de carteiras/metas existem, mas ainda não há endpoint para essas operações por decisão de escopo.
 
 ## RELEASE-001 — demonstração pública no Render Free
 
-O autor aprovou uma primeira versão online com frontend e API Java no mesmo serviço gratuito, sem banco, login ou carteiras salvas. O `Dockerfile` incorpora o build Vite ao JAR; `render.yaml` fixa plano Free, branch `main`, healthcheck e deploy após a CI. O perfil `demo` desativa a persistência e as rotas de documentação da API. A interface avisa que somente valores fictícios devem ser usados e que as entradas são transmitidas à API para cálculo, sem salvar carteira.
+O autor aprovou uma primeira versão online com frontend e API Java no mesmo serviço gratuito, sem banco, login ou carteiras salvas. O `Dockerfile` incorpora o build Vite ao JAR. `render.yaml` declara plano Free, branch `main`, healthcheck e deploy após a CI, mas é apenas referência para o serviço criado manualmente: a opção efetiva deve ser conferida no painel. O perfil `demo` desativa a persistência e as rotas de documentação da API. A interface avisa que somente valores fictícios devem ser usados e que as entradas são transmitidas à API para cálculo, sem salvar carteira.
 
-**Estado:** código e configuração preparados localmente, mas ainda sem commits, push, CI da imagem, serviço Render ou URL pública verificada. O Docker local está indisponível; a imagem terá de ser construída e exercitada no job da CI após push aprovado. A criação do serviço exigirá acesso do autor ao Render/GitHub por OAuth. O procedimento está em [`render-deployment.md`](render-deployment.md). Não há dados pessoais nem banco no deploy planejado.
+**Estado:** publicação concluída e verificada. O serviço `pagina-investimentos-demo` está ativo no Render Free a partir do commit `270fa663bf1136992b8893f3ca18183163587e98` da `main`; continua sem banco, login, cotações externas ou dados persistidos. O procedimento de verificação e atualização está em [`render-deployment.md`](render-deployment.md).
 
-**Verificações locais desta preparação:** 52 testes backend sem PostgreSQL, `spotless:check` e build passaram; no frontend, 24 testes, format-check, lint, typecheck e build passaram. Um JAR montado com o `dist` do Vite em artefatos ignorados respondeu health `UP`, página e favicon HTTP 200 e API HTTP 200 com parcelas fictícias `40.00/60.00`. O Dockerfile e o limite de 512 MB serão testados pela CI, pois o Docker Engine local não está disponível. Os testes PostgreSQL completos também dependem desse runner nesta etapa.
+**Verificações reais:** a CI da `main` aprovou os jobs Backend, Frontend e Public demo image. O deploy terminou como `Live`; a página pública respondeu HTTP 200, `/actuator/health` respondeu `UP` e uma simulação com valores inteiramente fictícios retornou as parcelas `40.00` e `60.00`.
 
-`scripts/check.ps1` foi executado e interrompeu no preflight com a mensagem de Docker Engine indisponível, antes do Maven; não iniciou nem removeu serviços. As verificações independentes de Docker foram executadas separadamente, conforme acima.
+O Docker Desktop local permaneceu indisponível durante a preparação. A validação completa com PostgreSQL foi executada pela CI; o novo modo local `scripts/check.ps1 -SkipDocker` executa somente a cobertura que não depende de Docker, sem iniciar, parar ou remover serviços.
 
 ## DEV-001 — simulação local sem Docker
 
 Em 19 de setembro de 2026, o frontend respondeu em `127.0.0.1:5173`, mas a API em `127.0.0.1:8080` estava desligada porque o Docker Engine/PostgreSQL local não estava disponível. O proxy Vite devolvia HTTP 502 sem JSON e a interface exibia uma mensagem genérica. O frontend agora indica que a API está indisponível. O perfil opt-in `simulator` mantém o cálculo no backend sem iniciar DataSource, Flyway, JPA ou o serviço de carteiras persistidas; o modo completo permanece inalterado. Há configurações portáveis de IntelliJ para iniciar esse perfil sem Docker.
 
-O teste de contexto do perfil confirmou ausência de persistência, health `UP`, cálculo e validação. Uma requisição real com as cinco categorias sintéticas, enviada pelo proxy do Vite, retornou `currentTotal=60000.00`, `contribution=2000.00`, `projectedTotal=62000.00` e cinco parcelas que somam exatamente `2000.00`. `npm run check` aprovou 23 testes frontend, formatação, lint, typecheck e build. O Maven Wrapper aprovou 48 testes backend sem Docker, `spotless:check` e build. Esse modo é somente local e não salva carteira; os testes PostgreSQL deste incremento continuam pendentes da CI. A branch ainda não foi publicada.
+O teste de contexto do perfil confirmou ausência de persistência, health `UP`, cálculo e validação. Uma requisição real com as cinco categorias sintéticas, enviada pelo proxy Vite, retornou `currentTotal=60000.00`, `contribution=2000.00`, `projectedTotal=62000.00` e cinco parcelas que somam exatamente `2000.00`. `npm run check` aprovou format-check, lint, typecheck, testes e build. O Maven Wrapper aprovou a cobertura sem Docker, `spotless:check` e build. Esse modo é somente local e não salva carteira; a cobertura PostgreSQL permanece obrigatória na CI e no modo completo.
+
+## DEV-002 — validação local sem Docker
+
+`./scripts/check.ps1 -SkipDocker` ignora o preflight do Docker e executa Maven com o perfil `without-docker`, que exclui somente as duas classes marcadas com a tag `postgres` por dependerem de Testcontainers. O frontend continua totalmente validado. Em 21 de setembro de 2026, esse fluxo aprovou 52 testes backend, build e Spotless, além de 24 testes frontend, format-check, lint, typecheck e build. Ele é uma validação parcial intencional: migrations, mapeamentos e integração PostgreSQL continuam cobertos pela CI e pela execução normal com Docker.
+
+## WEB-003 — refinamento visual acessível
+
+Em 22 de setembro de 2026, a navegação ganhou um indicador deslizante que preserva os painéis já montados; a composição do cenário se revela por segmentos; filtros de categoria anunciam a quantidade visível; e os cartões elevam-se discretamente em dispositivos com mouse. O tema alterna com ícones sobrepostos e transição breve.
+
+O resultado do simulador agora expõe `aria-busy` e uma mensagem de estado enquanto calcula; ao responder, revela resumo, comparação e linhas da distribuição em etapas curtas. Não há contagem animada de moeda, alteração do cálculo, dado persistido ou nova dependência.
+
+As animações ficam restritas à preferência `no-preference`; com a preferência do sistema para reduzir movimento, transições e animações não essenciais são reduzidas. `scripts/check.ps1 -SkipDocker` aprovou 52 testes backend sem PostgreSQL/Testcontainers e 24 testes frontend, com format-check, lint, typecheck e build.
+
+## WEB-004 — acabamento dos controles monetários
+
+Em 24 de setembro de 2026, o anel de foco dos controles compostos passou a envolver o campo inteiro, inclusive os prefixos `R$` e sufixos `%`. Ao confirmar um valor monetário com Enter ou ao sair do campo, uma entrada inteira recebe automaticamente os centavos exibidos, por exemplo `4800` para `4800,00`; uma única casa decimal é completada sem arredondamento implícito.
+
+O Enter encerra a edição sem disparar a simulação. Valores inválidos ou com mais de duas casas decimais continuam visíveis para a validação da API, preservando o backend como fonte de verdade para regras financeiras. No frontend, 25 testes Vitest, format-check, lint, typecheck e build passaram.
 
 ## Entregue
 
@@ -35,19 +53,19 @@ O teste de contexto do perfil confirmou ausência de persistência, health `UP`,
 - Endpoint de status, OpenAPI e Swagger UI.
 - Interface com exemplo sintético, classes editáveis, comparação visual e estados de erro/loading/resultado.
 - Visão geral demonstrativa com Ações, FIIs, ETFs, Renda fixa e Caixa, filtro por categoria e navegação para o simulador.
-- Modos claro e escuro, com preferência visual persistida somente no navegador.
+- Modos claro e escuro, microinterações de navegação, barras e resultados, com preferência visual persistida somente no navegador e redução de movimento respeitada.
 - PostgreSQL 18 isolado em Docker Compose e integrado à inicialização da API.
 - Flyway como proprietário do schema e V1 limitada a usuário, identidade externa, carteira e classes de alocação.
 - Hibernate impedido de gerar DDL e configurado para validar os mapeamentos JPA em PostgreSQL real descartável via Testcontainers.
 - Configurações portáveis do IntelliJ e workflow de CI.
 - Documentação de produto, decisões, roadmap e desenvolvimento local.
-- Repositório público clonável com primeira CI validada.
+- Repositório público clonável com CI e demonstração pública no Render verificadas.
 
 ## WEB-002 — cenário demonstrativo no simulador
 
 Implementado e validado localmente: a ação explícita “Simular esta demonstração” preenche o simulador com as cinco categorias e metas sintéticas da visão geral, inclusive Caixa apenas como hipótese, e um aporte inicial editável de R$ 2.000,00. A pessoa revisa ou altera os campos antes de enviar o cálculo ao backend; a transferência por si só não faz requisição. Navegar normalmente entre as abas preserva o rascunho, enquanto acionar a transferência novamente substitui as entradas e limpa o resultado anterior. Isso não representa carteira salva, login, cotação externa nem saldo de caixa persistido.
 
-No frontend, `npm run check` passou em 19 de setembro de 2026: format-check, lint, typecheck, 22 testes e build. Na validação local, a CI do incremento ainda não havia sido executada; o backend não mudou. A CI da `main` após o PR #7 passou com 65 testes backend (20 com PostgreSQL/Testcontainers) e 18 testes frontend.
+No frontend, `npm run check` passou em 19 de setembro de 2026: format-check, lint, typecheck, 22 testes e build. A CI da `main` após o PR #8 também aprovou Backend, Frontend e Public demo image; o backend não mudou neste incremento.
 
 ## Entregue no INC-008
 
@@ -120,8 +138,16 @@ A API preserva chamadas sem a opção e o campo `suggestedContribution`, acresce
 
 **Integração real:** a API local respondeu health `UP`, página HTTP 200 e compra/venda do exemplo de R$ 500,00. O navegador Edge headless confirmou os modos padrão/com vendas e aporte zero, em 320 e 1280 px, claro/escuro, sem overflow horizontal ou erros JavaScript nas quatro combinações. O foco envolve o controle monetário inteiro e o aporte inteiro foi completado com centavos. Evidências sintéticas ficaram em `backend/target`, ignorado pelo Git; isso não substitui teste em celular físico.
 
-**Publicação:** a demonstração no Render continua no commit `270fa663`; esta funcionalidade ainda não foi enviada ao remoto.
+**Publicação:** os resultados locais não comprovam atualização do Render; confirmar CI e deploy de cada publicação. A última versão pública inicialmente registrada foi `270fa663`.
+
+## WEB-005 e HARD-002 — acessibilidade, cancelamento e demonstração defensiva
+
+Em 27 de setembro de 2026, o simulador ganhou região de anúncio persistente, mensagem textual sobre validade das metas, soma exata em unidades inteiras, cancelamento explícito e timeout de 120 segundos. A validação visual não bloqueia a API nem substitui suas regras. Cancelar abandona a espera no cliente, sem prometer interromper trabalho já recebido pelo servidor.
+
+O perfil `demo` aplica headers de segurança antes do filtro de corpo, também em 413. Arquivos Vite com hash têm cache imutável; HTML revalida. Compressão e limites conservadores do Tomcat reduzem custo sem substituir rate limiting. A imagem contém defaults de bind/porta/memória; Swagger local continua disponível. Decisões nas ADRs 015–017 e prioridades em [`REVIEW_FOLLOW_UP.md`](REVIEW_FOLLOW_UP.md).
+
+**Validação local:** backend `-Pwithout-docker verify` com 68 testes, zero falhas/erros, Spotless e build. Frontend completo com 41 testes e format-check, lint, typecheck e build. HTTP real do JAR demonstrativo confirmou página 200/no-cache e JavaScript com cache imutável/gzip. PostgreSQL e smoke da imagem dependem da CI; nenhum Docker local foi iniciado.
 
 ## Próximo incremento recomendado
 
-Após a validação dos IDs estáveis, garantir snapshot consistente de carteira/metas, alinhar o limite dos nomes (80 na persistência e 60 no simulador) e concluir o threat model do login Google antes de expor carteiras em um contrato HTTP autenticado.
+Garantir snapshot consistente de carteira/metas e alinhar nomes de 80 versus 60 caracteres (INC-008B); depois concluir o threat model do login Google (INC-010A). Só então entregar a primeira tela e API autenticadas de carteira/metas. Cadastro de ativos, rentabilidade, proventos e provedores permanecem incrementos posteriores, não funcionalidades prontas.

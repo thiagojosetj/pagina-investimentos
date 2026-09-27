@@ -169,15 +169,15 @@ Alternativas descartadas neste momento: atualização direta, que pode violar os
 
 ## ADR-013 — Demonstração pública sem persistência no Render Free
 
-**Status:** aprovada pelo autor em 19 de setembro de 2026; configuração local preparada, publicação ainda não verificada.
+**Status:** aprovada pelo autor em 19 de setembro de 2026; publicada e verificada em 21 de setembro de 2026.
 
 O primeiro endereço público será uma demonstração educacional, não um ambiente de carteira pessoal. Um único serviço Docker no Render Free constrói React/Vite, incorpora o resultado ao JAR Spring Boot e serve interface e API na mesma origem HTTPS. O perfil `demo` desliga DataSource, Flyway, JPA e o serviço interno de carteiras; não há banco, login, cotações externas ou dados persistidos. A API continua calculando aportes em Java. Somente o tema visual é guardado pelo navegador.
 
 Alternativas: separar frontend estático e API simplificaria a entrega dos arquivos web, mas exigiria dois serviços, CORS e mais configuração; usar PostgreSQL gratuito para esta vitrine criaria retenção ilusória, pois o banco gratuito expira. O serviço único reduz pontos de falha para este recorte. Não substitui a arquitetura futura de dados reais: autenticação, privacidade, banco durável, backups e custos exigirão decisão separada.
 
-`render.yaml` fixa explicitamente `plan: free`, região Virginia, `main` como fonte, healthcheck e deploy automático somente após os checks da CI. A imagem executa como usuário sem privilégios e limita o heap da JVM no serviço. O aviso na interface pede somente valores fictícios; entradas digitadas transitam à API para cálculo, sem serem salvas. Swagger e o endpoint de informação ficam desativados no perfil público. O limite de 65.536 bytes para JSON permanece, mas não substitui proteção contra abuso de muitas requisições.
+`render.yaml` declara `plan: free`, região Virginia, `main` como fonte, healthcheck e deploy após os checks da CI. É referência para um Blueprint: o serviço existente foi criado manualmente e sua configuração efetiva de Auto-Deploy deve ser conferida no painel; editar o YAML não a altera automaticamente. A imagem executa como usuário sem privilégios e limita o heap da JVM. O aviso na interface pede somente valores fictícios; entradas digitadas transitam à API para cálculo, sem serem salvas. Swagger e o endpoint de informação ficam desativados no perfil público. O limite de 65.536 bytes para JSON permanece, mas não substitui proteção contra abuso de muitas requisições.
 
-Limitações do plano: 0,1 CPU e 512 MB de RAM; o serviço dorme após 15 minutos sem acesso e pode levar cerca de um minuto para acordar. O sistema de arquivos é efêmero, e a disponibilidade não tem SLA. O serviço não deve receber carteira real nem ser tratado como produção financeira. A publicação só será declarada concluída após CI, deploy e teste HTTP reais. Procedimento em [`render-deployment.md`](render-deployment.md).
+Limitações do plano: 0,1 CPU e 512 MB de RAM; o serviço dorme após 15 minutos sem acesso e pode levar cerca de um minuto para acordar. O sistema de arquivos é efêmero, e a disponibilidade não tem SLA. O serviço não deve receber carteira real nem ser tratado como produção financeira. A publicação foi verificada em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com), a partir do commit `270fa663bf1136992b8893f3ca18183163587e98`: CI aprovada, página HTTP 200, health `UP` e resposta sintética `40.00/60.00`. Procedimento em [`render-deployment.md`](render-deployment.md).
 
 **Fontes oficiais consultadas em 19 de setembro de 2026:** [Render Free](https://render.com/docs/free), [planos de computação](https://render.com/docs/compute-plans), [Blueprint YAML](https://render.com/docs/blueprint-spec), [deploy após CI](https://render.com/docs/deploys) e [Docker no Render](https://render.com/docs/docker).
 
@@ -251,3 +251,27 @@ Manter a ADR-003 como comportamento padrão e oferecer uma opção explícita pa
 O contrato evolui de forma aditiva: `includeSales` omitido ou nulo significa `false`; a resposta acrescenta `includeSales`, `suggestedPurchase` e `suggestedSale`. `suggestedContribution` continua sendo somente a divisão do dinheiro novo, preservando consumidores existentes. A modalidade usa o identificador `TARGET_CLASS_REBALANCING_WITH_SIMULATED_SALES_V1`; a padrão mantém `PROPORTIONAL_MONETARY_DEFICIT_V1`.
 
 Não foram adicionados ativos, ordens, persistência, impostos ou custos. A tela distingue compras e vendas simuladas e explica as limitações. A alternativa de distribuir vendas por ativo foi adiada, pois exigiria quantidade, lote, liquidez e regras próprias. Detalhes e exemplo em [`class-rebalancing.md`](class-rebalancing.md).
+
+## ADR-015 — Verificação parcial explícita sem Docker
+
+**Status:** implementada em 27 de setembro de 2026.
+
+O perfil Maven `without-docker` exclui somente a tag `postgres` das duas classes dependentes de Testcontainers. O script `check.ps1 -SkipDocker` e a configuração portátil do IntelliJ usam esse perfil sem abrir Docker Desktop. O comando padrão e a CI continuam executando PostgreSQL real. Não reutilizar relatórios antigos como evidência da execução atual; validação parcial não autoriza afirmar que migrations e persistência passaram.
+
+## ADR-016 — Limite do corpo JSON antes do MVC
+
+**Status:** implementada; comportamento anterior preservado.
+
+Limitar a 65.536 bytes o corpo real de comandos JSON síncronos, inclusive sem `Content-Length`, lendo no máximo limite mais um byte e devolvendo 413 antes da conversão MVC. Não confiar apenas no tamanho declarado. Essa proteção não cobre upload assíncrono, clientes lentos ou taxa de requisições. Os cabeçalhos públicos são aplicados antes desse filtro para também proteger sua resposta 413.
+
+## ADR-017 — Demonstração pública com limites e cache específicos
+
+**Status:** implementada em 27 de setembro de 2026; verificação da imagem pelo job Public demo image.
+
+Somente o perfil `demo` aplica CSP, bloqueio de frames, `nosniff`, política sem Referer e isolamento de opener. CSP permite estilos inline necessários aos gráficos, mas não scripts inline. Swagger e o servidor Vite local não recebem essa política. `/assets/**` recebe cache público imutável por um ano para arquivos gerados com hash; HTML e demais recursos devem revalidar. Compressão começa em 1.024 bytes. Tomcat limita threads a 25, conexões a 200, fila a 50 e espera de conexão a dez segundos; isso não é rate limiting nem uma garantia contra ataques.
+
+A imagem define bind `0.0.0.0`, porta padrão `10000` e heap máximo de 50% com Serial GC; o profile permanece selecionado externamente. O bind local da aplicação continua `127.0.0.1`. A CI inicia a imagem sem sobrescrever esses defaults e verifica saúde, simulação, headers, cache, compressão e rotas de documentação desabilitadas. Cancelamento de CI automático se restringe a PRs para não interromper verificações de `main`.
+
+O cliente espera até 120 segundos e oferece cancelamento explícito. Trinta segundos seriam insuficientes para inicialização observada do Render. A validação visual das metas usa inteiros em unidades de 0,0001 ponto percentual; a API continua sendo a autoridade e entradas inválidas seguem para sua validação. Região de estado permanece montada para anúncios assistivos. Limiter por IP foi adiado até definir confiança no proxy, expiração e limite de armazenamento; não confiar livremente em `X-Forwarded-For`.
+
+Fontes oficiais consultadas em 27 de setembro de 2026: [Render Free](https://render.com/docs/free), [deploy após CI](https://render.com/docs/deploys) e [Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy).

@@ -14,13 +14,13 @@ Simulador de aportes com o exemplo sintético da própria interface. O aporte de
 ## O que funciona hoje
 
 - **Simulador de aportes de ponta a ponta:** interface React com classes, valores atuais, metas e aporte editáveis, conectada a uma API Spring Boot.
-- **Distribuição proporcional aos déficits** sobre o patrimônio projetado, sem sugerir vendas.
-- **Visão geral demonstrativa** com dados sintéticos, filtro por categoria e modos claro e escuro.
+- **Distribuição proporcional aos déficits** sobre o patrimônio projetado, sem vendas por padrão; opção explícita de compras e vendas simuladas para equalizar classes.
+- **Visão geral demonstrativa** com dados sintéticos, filtro por categoria, modos claro e escuro e microinterações que respeitam a preferência por menos movimento.
 - **Transferência demonstrativa para o simulador:** o botão “Simular esta demonstração” preenche as cinco classes sintéticas, inclusive a hipótese de caixa, sem enviar a requisição até a pessoa confirmar a simulação. Não carrega uma carteira salva.
 - **API documentada** com OpenAPI e Swagger UI, com erros no formato `application/problem+json`.
 - **Persistência de carteiras e metas** com PostgreSQL e Flyway, coberta por testes de integração, ainda sem endpoint público.
 
-A publicação no Render Free está **em preparação**, ainda sem URL verificada. Ela será uma demonstração sem banco ou contas: a visão geral é sintética e o simulador apenas calcula entradas fictícias, sem salvar uma carteira.
+A demonstração pública está disponível em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com). Ela roda no Render Free sem banco ou contas: a visão geral é sintética e o simulador apenas calcula entradas fictícias, sem salvar uma carteira.
 
 ## Destaques técnicos
 
@@ -31,7 +31,7 @@ A publicação no Render Free está **em preparação**, ainda sem URL verificad
 - **Atualização de metas protegida contra concorrência** pela versão da carteira (compare-and-set).
 - **Testes em várias camadas:** domínio, API, integração com PostgreSQL real via Testcontainers e fluxo da interface com Vitest e Testing Library.
 - **Configuração defensiva:** API ligada a `127.0.0.1` por padrão, limite de tamanho do corpo das requisições (HTTP 413) e respostas de erro sem stack trace.
-- **CI no GitHub Actions** com jobs separados para backend e frontend, actions fixadas por SHA e permissões mínimas, além de Dependabot para Maven, npm e Actions.
+- **CI no GitHub Actions** com jobs Backend, Frontend e Public demo image, actions fixadas por SHA e permissões mínimas, além de Dependabot para Maven, npm e Actions.
 
 ## Ainda não implementado
 
@@ -53,7 +53,7 @@ O repositório mantém frontend e backend em módulos separados. Na demonstraç�
 
 ## Demonstração online
 
-O [procedimento do Render Free](docs/render-deployment.md) descreve a criação do serviço, a verificação da URL e como atualizar a versão online. O endereço será incluído aqui somente depois de um deploy real e testado. O perfil público `demo` não conecta ao PostgreSQL, não permite salvar carteiras e desativa Swagger; o ambiente local completo permanece disponível para desenvolvimento.
+A demonstração foi publicada em 21 de setembro de 2026 a partir do commit `270fa663bf1136992b8893f3ca18183163587e98`. A página pública retornou HTTP 200, `/actuator/health` retornou `UP` e uma simulação sintética confirmou as parcelas `40.00` e `60.00`. O [guia do Render Free](docs/render-deployment.md) explica as verificações e como atualizar a versão online. O perfil público `demo` não conecta ao PostgreSQL, não permite salvar carteiras e desativa Swagger; o ambiente local completo permanece disponível para desenvolvimento.
 
 O serviço gratuito pode dormir após 15 minutos sem acessos e levar aproximadamente um minuto para voltar. Use apenas valores fictícios: o formulário envia entradas à API para o cálculo, mas não as armazena como carteira. Uma versão com contas e dados reais exige outra revisão de segurança e hospedagem.
 
@@ -132,6 +132,8 @@ cd frontend && npm run check
 
 O `verify` do Maven compila, executa os testes (inclusive os de integração com PostgreSQL via Testcontainers, que exigem o Docker ativo) e confere a formatação Java com Spotless; `./mvnw spotless:apply` corrige a formatação. `npm run check` executa format-check, lint, typecheck, testes e build.
 
+Sem Docker, use `.\scripts\check.ps1 -SkipDocker`. Esse modo valida backend sem a tag `postgres` e todo o frontend; não substitui os testes PostgreSQL da CI. No IntelliJ, use **Backend - Verify without Docker**.
+
 ## Contrato do simulador
 
 Exemplo resumido:
@@ -176,9 +178,11 @@ Content-Type: application/json
 
 Decimais no JSON usam ponto e são enviados como strings. A interface aceita ponto ou vírgula e normaliza apenas o formato; nenhum cálculo financeiro crítico é feito no navegador.
 
-Na versão local em desenvolvimento, a opção **Incluir vendas para equalizar classes** permite simular compras e vendas monetárias entre classes. Ela começa desmarcada. Com a carteira de exemplo e aporte de R$ 500,00, simula R$ 600,00 de vendas e R$ 1.100,00 de compras para chegar às metas sobre R$ 10.500,00. Aporte zero também é permitido.
+A opção **Incluir vendas para equalizar classes** permite simular compras e vendas monetárias entre classes. Ela começa desmarcada. Com a carteira de exemplo e aporte de R$ 500,00, simula R$ 600,00 de vendas e R$ 1.100,00 de compras para chegar às metas sobre R$ 10.500,00. Aporte zero também é permitido.
 
-Na API, envie `"includeSales": true` para essa modalidade; omitir o campo mantém o comportamento anterior. O resultado fornece `suggestedPurchase` e `suggestedSale`; `suggestedContribution` continua representando apenas a divisão do aporte externo. A regra e seus limites estão em [`docs/class-rebalancing.md`](docs/class-rebalancing.md). A simulação ignora impostos, taxas, liquidez e quantidades de ativos e não executa ordens. Essa adição ainda não foi publicada no Render.
+Na API, envie `"includeSales": true` para essa modalidade; omitir o campo mantém o comportamento anterior. O resultado fornece `suggestedPurchase` e `suggestedSale`; `suggestedContribution` continua representando apenas a divisão do aporte externo. A regra e seus limites estão em [`docs/class-rebalancing.md`](docs/class-rebalancing.md). A simulação ignora impostos, taxas, liquidez e quantidades de ativos e não executa ordens. A versão efetivamente online depende do último deploy concluído no Render.
+
+O formulário indica em texto se as metas fecham exatamente 100%, com até quatro casas decimais, e permite cancelar uma simulação pendente. O cálculo aceita até 120 segundos de espera para acomodar a inicialização do serviço gratuito. Cancelar interrompe a espera no navegador, sem garantir a interrupção de um cálculo que o servidor já recebeu.
 
 ## Documentação do projeto
 
@@ -188,6 +192,8 @@ Na API, envie `"includeSales": true` para essa modalidade; omitir o campo manté
 - [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — estado detalhado e próximo passo.
 - [`docs/local-development.md`](docs/local-development.md) — ambiente local detalhado.
 - [`docs/render-deployment.md`](docs/render-deployment.md) — demonstração pública e atualização da versão online.
+- [`docs/class-rebalancing.md`](docs/class-rebalancing.md) — regra e limites das vendas simuladas.
+- [`docs/REVIEW_FOLLOW_UP.md`](docs/REVIEW_FOLLOW_UP.md) — correções priorizadas e melhorias adiadas.
 
 ## Dados e licença
 
