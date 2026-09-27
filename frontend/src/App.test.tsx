@@ -1,4 +1,10 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -30,12 +36,92 @@ describe('App', () => {
       screen.getByText(/primeiro módulo de uma plataforma de carteira/i),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(/carteiras salvas, ativos e movimentações ainda não/i),
+      screen.getByText(
+        /carteiras salvas, cadastro de ativos e movimentações ainda não/i,
+      ),
     ).toBeInTheDocument()
     expect(screen.getByText(/use apenas valores fictícios/i)).toHaveTextContent(
       'as entradas são enviadas à API para o cálculo',
     )
     await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
+  })
+
+  it('opens the asset explorer without API calls and exposes only the active page', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    expect(
+      within(screen.getByRole('navigation', { name: 'Navegação principal' }))
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Visão geral', 'Ativos', 'Simulador'])
+    expect(screen.getByRole('button', { name: 'Visão geral' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+
+    expect(screen.getByRole('button', { name: 'Ativos' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      screen.getByRole('button', { name: 'Visão geral' }),
+    ).not.toHaveAttribute('aria-current')
+    expect(
+      screen.getByRole('button', { name: 'Simulador' }),
+    ).not.toHaveAttribute('aria-current')
+    expect(
+      screen.getByRole('heading', {
+        name: 'Explore os ativos da demonstração.',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', {
+        name: 'Sua carteira, organizada em um só lugar.',
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('Quanto você quer aportar?'),
+    ).not.toBeVisible()
+    expect(fetchMock).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
+  })
+
+  it('preserves asset filters across views without replacing the simulator draft', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Simulador' }))
+    const contribution = screen.getByLabelText('Quanto você quer aportar?')
+    await user.clear(contribution)
+    await user.type(contribution, '1234,00')
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    await user.click(screen.getByRole('button', { name: 'FIIs' }))
+    await user.type(screen.getByLabelText('Buscar ativos'), 'SYN-FII')
+
+    await user.click(screen.getByRole('button', { name: 'Visão geral' }))
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+
+    expect(screen.getByLabelText('Buscar ativos')).toHaveValue('SYN-FII')
+    expect(screen.getByRole('button', { name: 'FIIs' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Simulador' }))
+    expect(screen.getByLabelText('Quanto você quer aportar?')).toHaveValue(
+      '1234,00',
+    )
+    expect(screen.getAllByRole('group')).toHaveLength(4)
+    expect(screen.getByLabelText('Valor atual de Ações')).toHaveValue('4800,00')
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    expect(screen.getByLabelText('Buscar ativos')).toHaveValue('SYN-FII')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('preserves the simulator draft and result when switching views', async () => {
@@ -124,6 +210,8 @@ describe('App', () => {
       }),
     ).toBeInTheDocument()
 
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    await user.type(screen.getByLabelText('Buscar ativos'), 'SYN-FII')
     await user.click(screen.getByRole('button', { name: 'Visão geral' }))
     await user.click(screen.getByRole('button', { name: 'Simulador' }))
 

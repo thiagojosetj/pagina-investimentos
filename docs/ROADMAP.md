@@ -16,9 +16,10 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 | SIM-001 / média | Equalizar classes com vendas hipotéticas opcionais; depende INC-002/003/004 e ADR-014 | Padrão sem vendas, conservação do dinheiro, aporte zero e contrato compatível; testes de domínio, API e interface | Implementado; detalhes abaixo e em `class-rebalancing.md` |
 | WEB-005 / média | Melhorar anúncios assistivos e controle da espera; depende SIM-001 | Região de estado persistente, metas exatas em texto, cancelamento e timeout de 120s; testes de componente e API cliente | Concluído; CI do PR #10 com 41 testes frontend, lint, typecheck e build |
 | WEB-006 / baixa | Apresentar vendas opcionais como switch deslizante; depende SIM-001 | Off claro/esquerda, on verde/direita; clique, Tab/Espaço, foco, temas e movimento reduzido sem mudar cálculo | Implementado localmente; 42 testes frontend e build aprovados, fluxo real com API e inspeção em 320/1280 px; publicação pendente |
+| WEB-007 / média | Abrir uma aba dedicada à consulta dos ativos sintéticos; depende da visão geral demonstrativa | Busca, filtros, ordenação, detalhes acessíveis, estado vazio e três opções de navegação; sem cadastro, API externa ou cálculo financeiro novo | Implementado localmente; 60 testes frontend e 78 backend sem PostgreSQL, builds e inspeção em 320–1280 px aprovados; publicação pendente |
 | HARD-002 / alta | Proteger e reduzir custo da demonstração; depende RELEASE-001 | Headers inclusive 413, CSP só demo, cache/gzip, limites Tomcat e defaults na imagem; testes Java e smoke da CI | Concluído; CI do PR #10 com 88 testes backend (20 PostgreSQL) e smoke da imagem aprovados |
 | DEV-001 / alta | Permitir testar o simulador sem o Docker local; depende da API pura existente | Perfil opt-in sem banco, POST real com cinco classes pelo proxy Vite, erro 502 claro; testes de contexto/HTTP e frontend | Concluído; CI de `main` aprovou a cobertura PostgreSQL e a imagem pública |
-| DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído; última execução local com 78 testes backend e 41 frontend; modo completo/CI continuam obrigatórios |
+| DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído; última execução local com 78 testes backend e 60 frontend; modo completo/CI continuam obrigatórios |
 | INC-008A / alta | Preservar IDs das classes; depende INC-008 | Renomeação, reordenação, criação e remoção sem perder a identidade das classes mantidas; ownership e concorrência | Implementado e validado no PR #7 |
 | INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Uma consulta escalar; teste concorrente e snapshot com contexto JPA antigo; nomes novos até 60, históricos preservados | Implementado localmente; testes sem banco passaram, regressões PostgreSQL ainda pendentes |
 | INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposta em `AUTH_SECURITY_PLAN.md`; aguardando aprovação antes de implementar login |
@@ -48,6 +49,15 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 - **Definition of Done:** fluxo integrado verificado com API real e exemplo sintético, regra documentada, commits revisáveis e três jobs da CI aprovados. Ordens e seleção de ativos permanecem fora desse incremento.
 
 ## Fase 0 — Fundação e primeira fatia
+
+### WEB-007 — Exploração demonstrativa de ativos
+
+- **Objetivo:** oferecer uma consulta mais detalhada por ativo, além da visão geral e do simulador.
+- **Prioridade:** média; fatia de interface independente de autenticação.
+- **Dependências:** fixture sintética e navegação existentes; cadastro conectado continua dependente de INC-011/012/013.
+- **Critérios de aceite:** sete ativos em quatro categorias, caixa fora da lista, busca insensível a acentos/maiúsculas, combinação com categoria e ordem alfabética, detalhes com fonte/data e participação do cenário completo, filtros preservados na navegação e nenhum rascunho financeiro substituído sem ação explícita.
+- **Verificações:** Vitest de busca/filtros/detalhes/navegação, formatação, lint, typecheck, build e inspeção claro/escuro em 320 px e desktop. Nenhum indicador financeiro calculado ou dado salvo no navegador.
+- **Definition of Done:** consultas funcionam com os exemplos existentes, estados sem resultado e foco são úteis, limitações ficam visíveis e regressões do simulador permanecem aprovadas. CI e deploy serão verificados após aprovação de publicação.
 
 ### INC-001 — Estrutura e documentação inicial
 

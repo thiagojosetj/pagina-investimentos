@@ -47,7 +47,10 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 - Visão geral sem persistência, com valores sintéticos por categoria e item.
 - Total do cenário sintético separado entre posições e uma hipótese visual de caixa.
 - Filtro por Ações, FIIs, ETFs, Renda fixa e Caixa.
-- Navegação entre a visão geral e o simulador.
+- Navegação entre a visão geral, a exploração de ativos demonstrativos e o simulador, preservando os rascunhos enquanto a página permanece aberta.
+- Aba Ativos com busca por código/nome/tipo/categoria, filtros e ordenação alfabética, usando os mesmos sete ativos sintéticos da visão geral. A hipótese de caixa não entra na lista de ativos.
+- Detalhes de cada exemplo com valor e participação fixos, fonte sintética e data de referência. A participação é a fração do cenário completo de R$ 60.000,00, inclusive a hipótese visual de caixa; filtros não mudam esse denominador.
+- Não há cadastro, edição ou consulta externa nessa aba. Quantidade, preço de compra, rentabilidade e proventos não são inventados para preencher a demonstração.
 - Ação explícita “Simular esta demonstração” que pré-preenche o simulador com as cinco categorias sintéticas, inclusive Caixa como hipótese visual. O rascunho pode ser editado antes do envio à API; navegar normalmente entre as abas não substitui entradas manuais, enquanto repetir a ação demonstrativa reinicia o rascunho e limpa o resultado anterior.
 - Modos claro e escuro com preferência local e respeito à configuração inicial do sistema.
 

@@ -16,11 +16,14 @@ Simulador de aportes com o exemplo sintético da própria interface. O aporte de
 - **Simulador de aportes de ponta a ponta:** interface React com classes, valores atuais, metas e aporte editáveis, conectada a uma API Spring Boot.
 - **Distribuição proporcional aos déficits** sobre o patrimônio projetado, sem vendas por padrão; opção explícita de compras e vendas simuladas para equalizar classes.
 - **Visão geral demonstrativa** com dados sintéticos, filtro por categoria, modos claro e escuro e microinterações que respeitam a preferência por menos movimento.
+- **Exploração de ativos demonstrativos:** aba com busca, filtros por categoria, ordenação alfabética e painel de detalhes dos sete ativos fictícios. Valores e participação vêm da mesma fixture; não são cotações ou posições do usuário.
 - **Transferência demonstrativa para o simulador:** o botão “Simular esta demonstração” preenche as cinco classes sintéticas, inclusive a hipótese de caixa, sem enviar a requisição até a pessoa confirmar a simulação. Não carrega uma carteira salva.
 - **API documentada** com OpenAPI e Swagger UI, com erros no formato `application/problem+json`.
 - **Persistência de carteiras e metas** com PostgreSQL e Flyway, coberta por testes de integração, ainda sem endpoint público.
 
 A demonstração pública está disponível em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com). Ela roda no Render Free sem banco ou contas: a visão geral é sintética e o simulador apenas calcula entradas fictícias, sem salvar uma carteira.
+
+A aba Ativos foi implementada localmente; sua disponibilidade online depende de push aprovado, CI e deploy concluídos. Não há promessa de atualização automática da versão publicada.
 
 ## Destaques técnicos
 
@@ -37,7 +40,7 @@ A demonstração pública está disponível em [pagina-investimentos-demo.onrend
 ## Ainda não implementado
 
 - Contas, autenticação (planejada com login Google) e endpoints para salvar ou consultar carteiras.
-- Ativos, movimentações, cotações, rentabilidade e proventos.
+- Cadastro e persistência de ativos, movimentações, cotações, rentabilidade e proventos; a aba Ativos atual só consulta exemplos fixos.
 - Dashboard conectado: a visão geral atual usa uma fixture sintética.
 - Preenchimento do simulador a partir de posições reais persistidas; a transferência demonstrativa usa exclusivamente valores fixos e fictícios.
 

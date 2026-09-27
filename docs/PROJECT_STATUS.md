@@ -117,7 +117,7 @@ Os números desta seção são históricos; as verificações mais recentes de I
 
 - A fundação do schema e a camada JPA interna existem, mas ainda não há endpoint de carteira nem autenticação.
 - A política de exclusão de classes já referenciadas por ativos precisa ser definida antes de criar essas referências. O INC-008B substitui as duas consultas de leitura por snapshot escalar; sua execução PostgreSQL está pendente.
-- Valores atuais são informados manualmente por classe; não existem ativos ou movimentações.
+- Valores atuais são informados manualmente por classe; não há cadastro ou persistência de ativos e movimentações. A consulta demonstrativa usa apenas exemplos fixos.
 - Nenhum dado de mercado ou provedor externo.
 - Apenas BRL.
 - A interface usa conversão numérica somente para formatação/gráficos; contratos financeiros continuam sendo strings e o backend é a fonte de verdade.
@@ -175,3 +175,15 @@ Uma execução intermediária falhou ao compilar o teste da HQL por uso de um m�
 Implementado localmente em 27/09/2026: “Incluir vendas para equalizar classes” usa um switch com indicador branco à esquerda e trilho claro quando desligado; ao ativar, desliza para a direita e o trilho fica verde. O input nativo permanece acessível com `role="switch"`, rótulo e descrição, clique/toque e Tab/Espaço. O foco envolve o trilho; movimento reduzido e cores de alto contraste são respeitados. A regra financeira, o estado inicial desligado, a invalidação de resultado e o contrato da API não mudaram.
 
 `npm run check` passou: format-check, lint, typecheck, 42 testes frontend e build. Uma regressão cobre clique no rótulo e teclado sem envio acidental. Edge headless verificou 320/1280 px, claro/escuro, deslocamento e cores, ausência de overflow, foco e movimento reduzido; isso não substitui teste em aparelho físico. O fluxo com API real pelo Vite retornou HTTP 200 nos modos desligado/ligado (`includeSales=false/true`), usando o exemplo sintético. Evidências visuais temporárias em `backend/target`, ignorado pelo Git. Nenhum arquivo backend mudou neste ajuste; PostgreSQL não foi executado novamente. Ainda sem push, CI ou deploy deste incremento.
+
+## WEB-007 — nova aba Ativos
+
+Implementada localmente em 27/09/2026: navegação com Visão geral, Ativos e Simulador, indicador deslizante para três opções e ícones originais. A nova página consulta os sete ativos e quatro categorias da fixture existente; busca por nome/código/tipo/categoria ignora acentos, maiúsculas e espaços, pode combinar filtro e ordem alfabética, e oferece estado vazio e limpeza dos filtros.
+
+O painel inline mostra fonte/data, valor e participação predefinidos, sem inferir quantidade, cotação, preço de compra, rentabilidade ou proventos. A hipótese de caixa não entra na lista, mas permanece explicitamente no denominador do cenário completo. Abrir detalhes leva foco ao título; fechar devolve ao item; limpar filtros leva foco à busca. Um filtro que esconde o ativo limpa a seleção sem fazê-la reaparecer automaticamente. Navegar preserva buscas e o rascunho/resultado do simulador somente enquanto a página está aberta.
+
+`./scripts/check.ps1 -SkipDocker` terminou com exit 0: 78 testes backend sem PostgreSQL e 60 frontend, formatação, lint, typecheck e builds aprovados. Foram acrescentadas 18 regressões de apresentação, consulta e navegação. Edge headless verificou 320, 390, 768 e 1280 px, claro/escuro, alinhamento do indicador, busca sem acentos, filtro, seleção e estados entre abas; zero overflow/cortes, erros JavaScript ou chamadas à API nessa consulta. Screenshots de 320/1280 px foram inspecionadas; evidências temporárias em `backend/target`, ignorado. Isso não substitui teste em aparelhos físicos.
+
+Depois do ajuste de foco ao limpar filtros, `npm run check` passou novamente com os mesmos 60 testes e build. Um smoke adicional confirmou Enter para abrir, foco/restauração/limpeza, movimento reduzido e simulação real HTTP 200 pelo Vite, com resultado preservado ao passar pela aba Ativos.
+
+Uma falha intermediária de importação/typecheck foi corrigida renomeando o helper para `assetCatalog.ts`, sem colisão de caixa com `AssetExplorer.tsx` no Windows. O Vite deste projeto foi reiniciado após resolver uma referência antiga em cache; API e demais processos foram preservados. Nenhum backend, schema, dependência, autenticação, provedor ou configuração de deploy mudou. PostgreSQL continua pendente para o INC-008B; este incremento ainda não teve push, CI ou deploy.
