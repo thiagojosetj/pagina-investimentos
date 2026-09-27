@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DEMO_PORTFOLIO } from './demoPortfolio'
 import './PortfolioOverview.css'
 
@@ -18,6 +18,16 @@ export function PortfolioOverview({
   onUseDemoPortfolio,
 }: PortfolioOverviewProps) {
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [isCompositionRevealed, setIsCompositionRevealed] = useState(false)
+
+  useEffect(() => {
+    const animationFrame = window.requestAnimationFrame(() => {
+      setIsCompositionRevealed(true)
+    })
+
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [])
+
   const visibleItems = useMemo(
     () =>
       selectedCategory === 'all'
@@ -77,15 +87,18 @@ export function PortfolioOverview({
 
           <div
             className="overview-allocation-strip"
+            data-revealed={isCompositionRevealed}
             role="img"
             aria-label="Composição sintética da carteira por categoria"
           >
-            {DEMO_PORTFOLIO.categories.map((category) => (
+            {DEMO_PORTFOLIO.categories.map((category, index) => (
               <span
+                className="overview-allocation-segment"
                 key={category.id}
                 style={{
                   backgroundColor: category.color,
                   width: `${category.currentPercentage}%`,
+                  animationDelay: `${index * 55}ms`,
                 }}
                 title={`${category.name}: ${category.currentPercentage}%`}
               />
@@ -181,10 +194,15 @@ export function PortfolioOverview({
               </button>
             ))}
           </div>
+          <p className="filter-status" role="status">
+            Mostrando {visibleItems.length}{' '}
+            {visibleItems.length === 1 ? 'item' : 'itens'}.
+          </p>
 
           <div
             aria-labelledby="holdings-title"
             className="holdings-table"
+            key={selectedCategory}
             role="table"
           >
             <div className="holdings-table-header" role="row">

@@ -187,6 +187,18 @@
   border: 0;
 }
 
+.input-with-prefix:focus-within,
+.input-with-suffix:focus-within {
+  border-color: var(--teal);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.input-with-prefix input:focus-visible,
+.input-with-suffix input:focus-visible {
+  outline: 0;
+}
+
 .remove-button {
   width: 28px;
   height: 28px;
@@ -566,6 +578,108 @@
   color: var(--muted);
   font-size: 0.68rem;
   line-height: 1.45;
+}
+.simulator,
+.simulator-form,
+.simulator-result {
+  transition:
+    border-color var(--motion-base) var(--motion-ease),
+    background-color var(--motion-base) var(--motion-ease);
+}
+
+.submit-button {
+  transition:
+    background-color var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.submit-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+}
+
+.loading-status {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-align: center;
+}
+.result-portfolio-strip .portfolio-strip-segment,
+.result-progress-current {
+  transform-origin: left center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .result-stage {
+    animation: result-stage-enter var(--motion-slow)
+      var(--motion-ease-emphasized) both;
+  }
+
+  .result-stage-totals {
+    animation-delay: 70ms;
+  }
+
+  .result-stage-comparison {
+    animation-delay: 140ms;
+  }
+
+  .result-stage-allocations {
+    animation-delay: 210ms;
+  }
+
+  .result-allocation-row {
+    animation: result-stage-enter var(--motion-slow)
+      var(--motion-ease-emphasized) both;
+  }
+
+  .result-stage-disclaimer {
+    animation-delay: 420ms;
+  }
+
+  @keyframes result-stage-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .result-portfolio-strip .portfolio-strip-segment,
+  .result-progress-current {
+    animation: result-bar-reveal var(--motion-slow)
+      var(--motion-ease-emphasized) both;
+  }
+
+  .submit-spinner {
+    animation: submit-spinner-turn 800ms linear infinite;
+  }
+
+  @keyframes result-bar-reveal {
+    from {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    to {
+      opacity: 0.78;
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes submit-spinner-turn {
+    to {
+      transform: rotate(1turn);
+    }
+  }
 }
 
 @media (max-width: 1080px) {

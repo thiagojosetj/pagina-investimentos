@@ -181,6 +181,33 @@ describe('ContributionSimulator', () => {
     )
   })
 
+  it('completes cents when a monetary input is confirmed', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ContributionSimulator />)
+
+    const currentAmount = screen.getByLabelText('Valor atual de Ações')
+    const targetPercentage = screen.getByLabelText('Meta percentual de Ações')
+
+    expect(currentAmount.parentElement).toHaveClass('input-with-prefix')
+    expect(targetPercentage.parentElement).toHaveClass('input-with-suffix')
+
+    await user.clear(currentAmount)
+    await user.type(currentAmount, '4800')
+    await user.keyboard('{Enter}')
+
+    expect(currentAmount).toHaveValue('4800,00')
+
+    const contribution = screen.getByLabelText('Quanto você quer aportar?')
+    await user.clear(contribution)
+    await user.type(contribution, '2500')
+    await user.tab()
+
+    expect(contribution).toHaveValue('2500,00')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('ignores a pending response after the user changes an input', async () => {
     const user = userEvent.setup()
     let resolveRequest!: (response: Response) => void
@@ -193,6 +220,13 @@ describe('ContributionSimulator', () => {
 
     await user.click(
       screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    expect(screen.getByRole('button', { name: 'Calculando…' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Calculando a simulação. Aguarde.',
     )
     const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
 

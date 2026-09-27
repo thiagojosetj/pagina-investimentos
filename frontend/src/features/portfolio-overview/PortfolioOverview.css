@@ -353,6 +353,101 @@
   line-height: 1.5;
 }
 
+.overview-totals,
+.overview-panel,
+.synthetic-source {
+  transition:
+    background-color var(--motion-base) var(--motion-ease),
+    border-color var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease),
+    transform var(--motion-base) var(--motion-ease-emphasized);
+}
+
+.overview-allocation-segment {
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .overview-allocation-strip[data-revealed='false']
+    .overview-allocation-segment {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .overview-allocation-strip[data-revealed='true']
+    .overview-allocation-segment {
+    animation: overview-allocation-reveal var(--motion-slow)
+      var(--motion-ease-emphasized) both;
+  }
+
+  @keyframes overview-allocation-reveal {
+    from {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    to {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+  }
+}
+.category-filters button {
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.category-filters button.active {
+  box-shadow: 0 3px 10px
+    color-mix(in srgb, var(--emphasis-surface) 20%, transparent);
+}
+
+.filter-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (hover: hover) and (pointer: fine) {
+  .overview-panel:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow);
+    transform: translateY(calc(var(--motion-lift) * -1));
+  }
+
+  .category-filters button:not(.active):hover {
+    border-color: var(--teal);
+    background: var(--teal-soft);
+    transform: translateY(calc(var(--motion-lift) * -1));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .holdings-table .holding-row {
+    animation: holding-row-enter var(--motion-base)
+      var(--motion-ease-emphasized) both;
+  }
+
+  @keyframes holding-row-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
 @media (max-width: 1120px) {
   .overview-grid {
     grid-template-columns: 1fr;

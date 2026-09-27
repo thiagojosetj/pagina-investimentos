@@ -1,4 +1,10 @@
 :root {
+  --motion-fast: 140ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-lift: 2px;
   --paper: #f4f6f1;
   --surface: #ffffff;
   --surface-alt: #f8faf7;
@@ -82,6 +88,15 @@ html {
   html {
     scroll-behavior: auto;
   }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 body {
@@ -91,6 +106,9 @@ body {
   background:
     radial-gradient(circle at 88% 7%, var(--page-glow), transparent 25rem),
     var(--paper);
+  transition:
+    background-color var(--motion-slow) var(--motion-ease),
+    color var(--motion-base) var(--motion-ease);
 }
 
 button,

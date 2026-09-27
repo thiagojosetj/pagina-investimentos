@@ -17,6 +17,7 @@
   justify-content: space-between;
   gap: 24px;
   border-bottom: 1px solid var(--border);
+  transition: border-color var(--motion-base) var(--motion-ease);
 }
 
 .brand {
@@ -25,6 +26,7 @@
   gap: 11px;
   color: var(--ink);
   text-decoration: none;
+  transition: color var(--motion-base) var(--motion-ease);
 }
 
 .brand-mark {
@@ -35,6 +37,10 @@
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
+  transform-origin: center;
+  transition:
+    stroke var(--motion-base) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
 }
 
 .brand span {
@@ -51,19 +57,55 @@
 .brand small {
   color: var(--muted);
   font-size: 0.72rem;
+  transition: color var(--motion-base) var(--motion-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .brand:hover .brand-mark {
+    stroke: var(--teal-dark);
+    transform: translateY(calc(var(--motion-lift) * -1));
+  }
 }
 
 .app-nav {
   margin-left: auto;
+  position: relative;
+  isolation: isolate;
   padding: 4px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface-translucent);
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(108px, 1fr));
   gap: 3px;
+  transition:
+    border-color var(--motion-base) var(--motion-ease),
+    background-color var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease);
+}
+
+.nav-indicator {
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  width: calc(50% - 5.5px);
+  border-radius: 999px;
+  background: var(--emphasis-surface);
+  box-shadow: 0 3px 10px
+    color-mix(in srgb, var(--emphasis-surface) 22%, transparent);
+  pointer-events: none;
+  transform: translateX(0);
+  transition:
+    transform var(--motion-slow) var(--motion-ease-emphasized),
+    background-color var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease);
+}
+
+.app-nav[data-active-view='simulator'] .nav-indicator {
+  transform: translateX(calc(100% + 3px));
 }
 
 .app-nav button {
+  position: relative;
+  z-index: 1;
   padding: 7px 13px;
   border: 0;
   border-radius: 999px;
@@ -71,11 +113,12 @@
   background: transparent;
   font-size: 0.76rem;
   font-weight: 750;
+  transition: color var(--motion-base) var(--motion-ease);
 }
 
 .app-nav button.active {
   color: var(--emphasis-text);
-  background: var(--emphasis-surface);
+  background: transparent;
 }
 
 .header-tools {
@@ -96,14 +139,36 @@
   gap: 7px;
   font-size: 0.72rem;
   font-weight: 700;
+  transition:
+    border-color var(--motion-base) var(--motion-ease),
+    color var(--motion-base) var(--motion-ease),
+    background-color var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
 }
 
-.theme-toggle:hover {
-  border-color: var(--teal);
-  color: var(--teal-dark);
+@media (hover: hover) and (pointer: fine) {
+  .theme-toggle:hover {
+    border-color: var(--teal);
+    color: var(--teal-dark);
+    box-shadow: 0 7px 18px color-mix(in srgb, var(--teal) 12%, transparent);
+    transform: translateY(calc(var(--motion-lift) * -1));
+  }
 }
 
-.theme-toggle svg {
+.theme-icon {
+  position: relative;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+}
+
+.theme-icon svg {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--motion-base) var(--motion-ease),
+    transform var(--motion-base) var(--motion-ease-emphasized);
   width: 15px;
   height: 15px;
   fill: none;
@@ -113,6 +178,20 @@
   stroke-linejoin: round;
 }
 
+.theme-icon-sun {
+  opacity: 0;
+  transform: rotate(-60deg) scale(0.68);
+}
+
+.theme-icon-moon {
+  opacity: 0;
+  transform: rotate(60deg) scale(0.68);
+}
+.theme-icon[data-next-theme='light'] .theme-icon-sun,
+.theme-icon[data-next-theme='dark'] .theme-icon-moon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -126,6 +205,10 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  transition:
+    border-color var(--motion-base) var(--motion-ease),
+    color var(--motion-base) var(--motion-ease),
+    background-color var(--motion-base) var(--motion-ease);
 }
 
 .status-badge::before {
@@ -135,6 +218,9 @@
   border-radius: 50%;
   background: var(--green);
   box-shadow: 0 0 0 3px var(--green-soft);
+  transition:
+    background-color var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease);
 }
 
 .intro {
@@ -199,6 +285,24 @@ footer {
 footer p {
   margin: 0;
 }
+@media (prefers-reduced-motion: no-preference) {
+  .app-view:not([hidden]) {
+    animation: app-view-enter var(--motion-base) var(--motion-ease-emphasized)
+      both;
+  }
+
+  @keyframes app-view-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
 
 @media (max-width: 900px) {
   .app-shell {
@@ -247,7 +351,7 @@ footer p {
     justify-content: center;
   }
 
-  .theme-toggle span {
+  .theme-toggle > span:last-child {
     display: none;
   }
 

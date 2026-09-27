@@ -67,6 +67,17 @@ function normalizeDecimal(value: string): string {
   return trimmed
 }
 
+function completeMoneyValue(value: string): string {
+  const normalized = normalizeDecimal(value)
+
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) {
+    return value
+  }
+
+  const [integerPart, decimalPart = ''] = normalized.split('.')
+  return `${integerPart},${decimalPart.padEnd(2, '0')}`
+}
+
 function parseForDisplay(value: string): number {
   const parsed = Number(normalizeDecimal(value))
   return Number.isFinite(parsed) ? parsed : 0
@@ -100,13 +111,19 @@ function PortfolioStrip({
   label: string
 }) {
   return (
-    <div className="portfolio-strip" role="img" aria-label={label}>
+    <div
+      className="portfolio-strip result-portfolio-strip"
+      role="img"
+      aria-label={label}
+    >
       {allocations.map((allocation, index) => (
         <span
+          className="portfolio-strip-segment"
           key={allocation.classId}
           style={{
             backgroundColor: colorForIndex(index),
             width: barWidth(allocation[percentageKey]),
+            animationDelay: `${180 + index * 50}ms`,
           }}
           title={`${allocation.name}: ${formatPercentage(allocation[percentageKey])}`}
         />
@@ -143,8 +160,8 @@ function SimulationResult({
   result: ContributionSimulationResponse
 }) {
   return (
-    <div className="result-content" aria-live="polite">
-      <div className="result-heading">
+    <div aria-atomic="true" className="result-content" aria-live="polite">
+      <div className="result-heading result-stage result-stage-heading">
         <div>
           <p className="eyebrow">Resultado da simulação</p>
           <h2>Distribuição do novo aporte</h2>
@@ -152,7 +169,7 @@ function SimulationResult({
         <span className="method-label">Déficit proporcional</span>
       </div>
 
-      <dl className="totals-grid">
+      <dl className="totals-grid result-stage result-stage-totals">
         <div>
           <dt>Patrimônio atual</dt>
           <dd>{formatCurrency(result.currentTotal)}</dd>
@@ -167,7 +184,7 @@ function SimulationResult({
         </div>
       </dl>
 
-      <div className="portfolio-comparison">
+      <div className="portfolio-comparison result-stage result-stage-comparison">
         <div>
           <span>Agora</span>
           <PortfolioStrip
@@ -186,9 +203,13 @@ function SimulationResult({
         </div>
       </div>
 
-      <div className="allocation-results">
+      <div className="allocation-results result-stage result-stage-allocations">
         {result.allocations.map((allocation, index) => (
-          <article className="allocation-result" key={allocation.classId}>
+          <article
+            className="allocation-result result-allocation-row"
+            key={allocation.classId}
+            style={{ animationDelay: `${260 + index * 55}ms` }}
+          >
             <div className="allocation-result-title">
               <span
                 className="color-key"
@@ -208,10 +229,11 @@ function SimulationResult({
             </div>
             <div className="progress-track" aria-hidden="true">
               <span
-                className="progress-current"
+                className="progress-current result-progress-current"
                 style={{
                   backgroundColor: colorForIndex(index),
                   width: barWidth(allocation.projectedPercentage),
+                  animationDelay: `${300 + index * 55}ms`,
                 }}
               />
               <i style={{ left: barWidth(allocation.targetPercentage) }} />
@@ -224,7 +246,9 @@ function SimulationResult({
         ))}
       </div>
 
-      <p className="result-disclaimer">{result.disclaimer}</p>
+      <p className="result-disclaimer result-stage result-stage-disclaimer">
+        {result.disclaimer}
+      </p>
     </div>
   )
 }
@@ -248,6 +272,7 @@ export function ContributionSimulator({
   const [result, setResult] = useState<ContributionSimulationResponse | null>(
     null,
   )
+  const [resultVersion, setResultVersion] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const nextClassNumber = useRef(
@@ -299,6 +324,14 @@ export function ContributionSimulator({
     )
   }
 
+  function commitAllocationMoney(index: number, value: string) {
+    const completedValue = completeMoneyValue(value)
+
+    if (completedValue !== value) {
+      updateAllocation(index, 'currentAmount', completedValue)
+    }
+  }
+
   function addAllocation() {
     invalidateSimulation()
     const number = nextClassNumber.current
@@ -340,6 +373,19 @@ export function ContributionSimulator({
     setError(null)
   }
 
+  function updateContribution(value: string) {
+    invalidateSimulation()
+    setContribution(value)
+  }
+
+  function commitContribution(value: string) {
+    const completedValue = completeMoneyValue(value)
+
+    if (completedValue !== value) {
+      updateContribution(completedValue)
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     activeRequest.current?.abort()
@@ -366,6 +412,7 @@ export function ContributionSimulator({
       )
       if (activeRequest.current === requestController) {
         setResult(simulation)
+        setResultVersion((currentVersion) => currentVersion + 1)
       }
     } catch (caughtError) {
       if (
@@ -393,7 +440,11 @@ export function ContributionSimulator({
       id="simulador"
       aria-labelledby="simulator-title"
     >
-      <form className="simulator-form" onSubmit={handleSubmit}>
+      <form
+        aria-busy={isLoading}
+        className="simulator-form"
+        onSubmit={handleSubmit}
+      >
         <div className="panel-heading">
           <div>
             <p className="section-index">01 / Configure</p>
@@ -458,6 +509,9 @@ export function ContributionSimulator({
                   <input
                     aria-label={`Valor atual de ${allocation.name}`}
                     inputMode="decimal"
+                    onBlur={(event) =>
+                      commitAllocationMoney(index, event.currentTarget.value)
+                    }
                     onChange={(event) =>
                       updateAllocation(
                         index,
@@ -465,6 +519,12 @@ export function ContributionSimulator({
                         event.target.value,
                       )
                     }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      }
+                    }}
                     required
                     type="text"
                     value={allocation.currentAmount}
@@ -535,9 +595,13 @@ export function ContributionSimulator({
             <input
               id="contribution"
               inputMode="decimal"
-              onChange={(event) => {
-                invalidateSimulation()
-                setContribution(event.target.value)
+              onBlur={(event) => commitContribution(event.currentTarget.value)}
+              onChange={(event) => updateContribution(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  event.currentTarget.blur()
+                }
               }}
               required
               type="text"
@@ -552,14 +616,36 @@ export function ContributionSimulator({
           </p>
         ) : null}
 
-        <button className="submit-button" disabled={isLoading} type="submit">
+        <button
+          aria-busy={isLoading}
+          className="submit-button"
+          disabled={isLoading}
+          type="submit"
+        >
           <span>{isLoading ? 'Calculando…' : 'Simular distribuição'}</span>
-          <span aria-hidden="true">→</span>
+          {isLoading ? (
+            <span aria-hidden="true" className="submit-spinner" />
+          ) : (
+            <span aria-hidden="true">→</span>
+          )}
         </button>
+        {isLoading ? (
+          <p className="loading-status" role="status">
+            Calculando a simulação. Aguarde.
+          </p>
+        ) : null}
       </form>
 
-      <aside className="simulator-result" aria-label="Resultado da simulação">
-        {result ? <SimulationResult result={result} /> : <EmptyResult />}
+      <aside
+        aria-busy={isLoading}
+        className="simulator-result"
+        aria-label="Resultado da simulação"
+      >
+        {result ? (
+          <SimulationResult key={resultVersion} result={result} />
+        ) : (
+          <EmptyResult />
+        )}
       </aside>
     </section>
   )

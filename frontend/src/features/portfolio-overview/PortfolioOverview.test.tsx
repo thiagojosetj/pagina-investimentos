@@ -48,6 +48,7 @@ describe('PortfolioOverview', () => {
     expect(
       screen.queryByText('Empresa Horizonte — exemplo'),
     ).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Mostrando 2 itens.')
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
