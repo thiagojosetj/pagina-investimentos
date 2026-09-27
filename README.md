@@ -176,6 +176,10 @@ Content-Type: application/json
 
 Decimais no JSON usam ponto e são enviados como strings. A interface aceita ponto ou vírgula e normaliza apenas o formato; nenhum cálculo financeiro crítico é feito no navegador.
 
+Na versão local em desenvolvimento, a opção **Incluir vendas para equalizar classes** permite simular compras e vendas monetárias entre classes. Ela começa desmarcada. Com a carteira de exemplo e aporte de R$ 500,00, simula R$ 600,00 de vendas e R$ 1.100,00 de compras para chegar às metas sobre R$ 10.500,00. Aporte zero também é permitido.
+
+Na API, envie `"includeSales": true` para essa modalidade; omitir o campo mantém o comportamento anterior. O resultado fornece `suggestedPurchase` e `suggestedSale`; `suggestedContribution` continua representando apenas a divisão do aporte externo. A regra e seus limites estão em [`docs/class-rebalancing.md`](docs/class-rebalancing.md). A simulação ignora impostos, taxas, liquidez e quantidades de ativos e não executa ordens. Essa adição ainda não foi publicada no Render.
+
 ## Documentação do projeto
 
 - [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md) — escopo e modelo proposto.

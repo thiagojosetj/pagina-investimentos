@@ -32,6 +32,16 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 
 ## Fase 0 — Fundação e primeira fatia
 
+### SIM-001 — Equalização opcional com vendas simuladas
+
+- **Status:** implementado localmente em 27/09/2026; publicação pendente.
+- **Prioridade:** média.
+- **Objetivo:** oferecer “Incluir vendas para equalizar classes” mantendo novos aportes como padrão.
+- **Dependências:** INC-002, INC-003, INC-004 e ADR-014.
+- **Critérios de aceite:** opção desmarcada inicialmente; compras/vendas hipotéticas por classe; compras menos vendas igual ao aporte; projeção igual às metas monetárias; aporte zero; contrato anterior compatível; troca de modo invalida resultado pendente.
+- **Verificações:** domínio em centavos, empates e permutação, carteira vazia, metas zero, valores grandes, API e interface; format-check, lint, typecheck e build.
+- **Definition of Done:** fluxo integrado verificado com API real e exemplo sintético, regra documentada e commits locais revisáveis. Ordens e seleção de ativos permanecem fora desse incremento.
+
 ### INC-001 — Estrutura e documentação inicial
 
 - **Status:** concluído.

@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Atualizado em:** 19 de setembro de 2026
+**Atualizado em:** 27 de setembro de 2026
 
 ## Estado real
 
@@ -107,6 +107,20 @@ Os números desta seção são históricos; as verificações mais recentes de I
 - A visão geral usa fixture fixa e não representa um dashboard conectado; posições persistidas, rentabilidade e proventos ainda não existem.
 - O simulador ainda não consegue carregar uma carteira salva; esse fluxo depende de persistência, autenticação e posições derivadas.
 - A demonstração pública gratuita não persiste entradas, pode dormir após inatividade e ainda não tem limite por taxa de requisições. Não deve ser usada para dados financeiros reais.
+
+## SIM-001 — equalização opcional com vendas simuladas
+
+Implementação local em 27 de setembro de 2026: a opção “Incluir vendas para equalizar classes” começa desmarcada e permite simular compras e vendas monetárias para atingir as metas por classe sobre o patrimônio após o aporte. O modo padrão mantém a distribuição proporcional de dinheiro novo. Não há ordem, seleção de ativo, nova persistência ou provedor.
+
+A API preserva chamadas sem a opção e o campo `suggestedContribution`, acrescentando compras e vendas explícitas. Aporte zero permite transferências hipotéticas; metas monetárias usam centavos inteiros e desempate estável por identificador. Regra e limites em [`class-rebalancing.md`](class-rebalancing.md), decisão na ADR-014.
+
+**Validação backend:** `./mvnw.cmd --no-transfer-progress -Pwithout-docker verify` aprovou 62 testes, Spotless e build. PostgreSQL/Testcontainers foram excluídos explicitamente; o Docker Engine local não estava disponível e nenhum recurso Docker foi iniciado ou removido.
+
+**Validação frontend:** format-check, lint, typecheck e build aprovados; a suíte final executou 29 testes com `node node_modules/vitest/vitest.mjs run --pool=forks --maxWorkers=1 --testTimeout=30000 --hookTimeout=30000`. Execuções locais anteriores apresentaram falhas intermitentes de inicialização dos workers e timeout de cinco segundos em testes existentes. A execução com um processo por vez e prazo maior passou; não houve alteração de dependência, configuração de teste versionada ou configuração global.
+
+**Integração real:** a API local respondeu health `UP`, página HTTP 200 e compra/venda do exemplo de R$ 500,00. O navegador Edge headless confirmou os modos padrão/com vendas e aporte zero, em 320 e 1280 px, claro/escuro, sem overflow horizontal ou erros JavaScript nas quatro combinações. O foco envolve o controle monetário inteiro e o aporte inteiro foi completado com centavos. Evidências sintéticas ficaram em `backend/target`, ignorado pelo Git; isso não substitui teste em celular físico.
+
+**Publicação:** a demonstração no Render continua no commit `270fa663`; esta funcionalidade ainda não foi enviada ao remoto.
 
 ## Próximo incremento recomendado
 

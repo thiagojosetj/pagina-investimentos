@@ -241,3 +241,13 @@ Consulta realizada em 2 de setembro de 2026:
 - [Configurações compartilháveis do IntelliJ IDEA](https://www.jetbrains.com/help/idea/run-debug-configuration.html)
 
 Nenhuma fonte de dados financeiros foi integrada. A pesquisa preliminar acima não constitui aprovação de provedor.
+
+## ADR-014 — Equalização opcional por classe com vendas simuladas
+
+**Status:** aprovada pelo autor em 27 de setembro de 2026 e implementada localmente.
+
+Manter a ADR-003 como comportamento padrão e oferecer uma opção explícita para simular vendas entre classes. Calcular a meta monetária sobre patrimônio atual mais aporte, usando os mesmos centavos inteiros, maiores restos e desempate por `classId`. Uma classe acima da meta fornece a diferença como venda hipotética; uma classe abaixo recebe a diferença como compra. Compras menos vendas conservam exatamente o aporte externo.
+
+O contrato evolui de forma aditiva: `includeSales` omitido ou nulo significa `false`; a resposta acrescenta `includeSales`, `suggestedPurchase` e `suggestedSale`. `suggestedContribution` continua sendo somente a divisão do dinheiro novo, preservando consumidores existentes. A modalidade usa o identificador `TARGET_CLASS_REBALANCING_WITH_SIMULATED_SALES_V1`; a padrão mantém `PROPORTIONAL_MONETARY_DEFICIT_V1`.
+
+Não foram adicionados ativos, ordens, persistência, impostos ou custos. A tela distingue compras e vendas simuladas e explica as limitações. A alternativa de distribuir vendas por ativo foi adiada, pois exigiria quantidade, lote, liquidez e regras próprias. Detalhes e exemplo em [`class-rebalancing.md`](class-rebalancing.md).
