@@ -11,7 +11,7 @@ import java.util.Set;
 public final class AllocationTargetSet {
 
   private static final int MAX_TARGETS = 20;
-  private static final int MAX_NAME_LENGTH = 80;
+  private static final int MAX_NAME_LENGTH = 60;
   private static final BigDecimal MAX_PERCENTAGE = new BigDecimal("100.0000");
   private static final BigDecimal REQUIRED_TOTAL = new BigDecimal("100.0000");
 
@@ -70,7 +70,7 @@ public final class AllocationTargetSet {
 
     String normalized = candidate.strip();
     if (normalized.isEmpty() || normalized.length() > MAX_NAME_LENGTH) {
-      throw invalid(field, "length", "O nome da classe deve ter entre 1 e 80 caracteres.");
+      throw invalid(field, "length", "O nome da classe deve ter entre 1 e 60 caracteres.");
     }
     return normalized;
   }

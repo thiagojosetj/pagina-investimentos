@@ -1,7 +1,7 @@
 package io.github.thiagojosetj.portfolio.management.persistence;
 
 import java.time.Instant;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,12 +16,17 @@ public interface PortfolioJpaRepository extends Repository<PortfolioJpaEntity, U
 
   @Query(
       """
-      select p
+      select new io.github.thiagojosetj.portfolio.management.persistence.OwnedPortfolioSnapshotRow(
+        p.id, p.ownerUserId, p.name, p.baseCurrency, p.version, p.createdAt, p.updatedAt,
+        a.id, a.name, a.displayOrder, a.targetPercentage, a.createdAt, a.updatedAt
+      )
       from PortfolioJpaEntity p
+      left join AllocationClassJpaEntity a on a.portfolioId = p.id
       where p.id = :portfolioId
         and p.ownerUserId = :ownerUserId
+      order by a.displayOrder
       """)
-  Optional<PortfolioJpaEntity> findOwnedById(
+  List<OwnedPortfolioSnapshotRow> findOwnedSnapshotRows(
       @Param("ownerUserId") UUID ownerUserId, @Param("portfolioId") UUID portfolioId);
 
   boolean existsByIdAndOwnerUserId(UUID portfolioId, UUID ownerUserId);

@@ -27,6 +27,37 @@ class AllocationTargetReplacementTest {
   }
 
   @Test
+  void acceptsSixtyCharacterReplacementNamesAfterStrippingWhitespaceWithoutTruncating() {
+    UUID existingId = UUID.randomUUID();
+    String name = "A".repeat(60);
+
+    AllocationTargetReplacement replacement =
+        AllocationTargetReplacement.from(
+            List.of(
+                new AllocationTargetUpdate(
+                    existingId, "\t " + name + " \n", new BigDecimal("100"))));
+
+    assertThat(replacement.targets())
+        .containsExactly(new AllocationTargetUpdate(existingId, name, new BigDecimal("100.0000")));
+  }
+
+  @Test
+  void rejectsSixtyOneCharacterReplacementNamesWithoutChangingTheOriginalUpdate() {
+    AllocationTargetUpdate update =
+        new AllocationTargetUpdate(UUID.randomUUID(), "A".repeat(61), new BigDecimal("100"));
+
+    assertThatThrownBy(() -> AllocationTargetReplacement.from(List.of(update)))
+        .isInstanceOfSatisfying(
+            PortfolioValidationException.class,
+            exception -> {
+              assertThat(exception.field()).isEqualTo("allocationTargets[0].name");
+              assertThat(exception.code()).isEqualTo("length");
+              assertThat(exception.getMessage()).contains("1 e 60");
+            });
+    assertThat(update.name()).isEqualTo("A".repeat(61));
+  }
+
+  @Test
   void rejectsRepeatedExistingIdAtTheSecondOccurrence() {
     UUID duplicatedId = UUID.randomUUID();
 

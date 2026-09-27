@@ -11,6 +11,9 @@ import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetDefini
 import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetUpdate;
 import io.github.thiagojosetj.portfolio.management.domain.PortfolioValidationException;
 import io.github.thiagojosetj.portfolio.management.persistence.AllocationClassJpaRepository;
+import io.github.thiagojosetj.portfolio.management.persistence.PortfolioJpaEntity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
@@ -19,6 +22,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -27,6 +31,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
@@ -36,6 +43,10 @@ class PortfolioManagementServiceIntegrationTest {
   @Autowired PortfolioManagementService service;
 
   @Autowired JdbcTemplate jdbcTemplate;
+
+  @Autowired PlatformTransactionManager transactionManager;
+
+  @PersistenceContext EntityManager entityManager;
 
   @MockitoSpyBean AllocationClassJpaRepository allocationClassRepository;
 
@@ -466,6 +477,124 @@ class PortfolioManagementServiceIntegrationTest {
     } else {
       assertThat(stored.allocationTargets().get(1).id())
           .isEqualTo(created.allocationTargets().get(1).id());
+    }
+  }
+
+  @Test
+  void readsTheAggregateWithExactlyOneStatementAndNoManagedEntities() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
+    PortfolioView created = createBalancedPortfolio(ownerUserId);
+    var statistics =
+        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+    boolean previouslyEnabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      statistics.clear();
+
+      PortfolioView loaded = service.findPortfolio(ownerUserId, created.id());
+
+      assertThat(loaded).isEqualTo(created);
+      assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+      assertThat(statistics.getEntityLoadCount()).isZero();
+    } finally {
+      statistics.setStatisticsEnabled(previouslyEnabled);
+    }
+  }
+
+  @Test
+  void preservesAnExistingPortfolioWithoutClassesInTheLeftJoin() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
+    PortfolioView before = createBalancedPortfolio(ownerUserId);
+    jdbcTemplate.update("DELETE FROM allocation_class WHERE portfolio_id = ?", before.id());
+
+    PortfolioView loaded = service.findPortfolio(ownerUserId, before.id());
+
+    assertThat(loaded.id()).isEqualTo(before.id());
+    assertThat(loaded.version()).isEqualTo(before.version());
+    assertThat(loaded.allocationTargets()).isEmpty();
+  }
+
+  @Test
+  void preservesLegacyLongNamesUntilAnExplicitValidRename() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
+    PortfolioView created = createBalancedPortfolio(ownerUserId);
+    UUID firstId = created.allocationTargets().getFirst().id();
+    String legacyName = "L".repeat(61);
+    jdbcTemplate.update("UPDATE allocation_class SET name = ? WHERE id = ?", legacyName, firstId);
+    PortfolioView legacy = service.findPortfolio(ownerUserId, created.id());
+    assertThat(legacy.allocationTargets().getFirst().name()).isEqualTo(legacyName);
+
+    assertThatThrownBy(
+            () ->
+                service.replaceAllocationTargets(
+                    new ReplaceAllocationTargetsCommand(
+                        ownerUserId,
+                        legacy.id(),
+                        legacy.version(),
+                        List.of(
+                            update(firstId, legacyName, "60"),
+                            update(legacy.allocationTargets().get(1).id(), "Renda fixa", "40")))))
+        .isInstanceOfSatisfying(
+            PortfolioValidationException.class,
+            exception -> assertThat(exception.code()).isEqualTo("length"));
+    assertThat(service.findPortfolio(ownerUserId, legacy.id())).isEqualTo(legacy);
+
+    PortfolioView renamed =
+        service.replaceAllocationTargets(
+            new ReplaceAllocationTargetsCommand(
+                ownerUserId,
+                legacy.id(),
+                legacy.version(),
+                List.of(
+                    update(firstId, "N".repeat(60), "60"),
+                    update(legacy.allocationTargets().get(1).id(), "Renda fixa", "40"))));
+    assertThat(renamed.allocationTargets().getFirst().id()).isEqualTo(firstId);
+    assertThat(renamed.allocationTargets().getFirst().name()).isEqualTo("N".repeat(60));
+  }
+
+  @Test
+  void readsAConsistentNewSnapshotDespiteACachedOldHeader() {
+    UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
+    PortfolioView before = createBalancedPortfolio(ownerUserId);
+    var reader = new TransactionTemplate(transactionManager);
+    reader.setReadOnly(true);
+    reader.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+
+    // End the reader transaction before waiting for executor shutdown, also on writer timeout.
+    try (var executor = Executors.newSingleThreadExecutor()) {
+      try {
+        reader.executeWithoutResult(
+            status -> {
+              PortfolioJpaEntity cached = entityManager.find(PortfolioJpaEntity.class, before.id());
+              assertThat(cached.getVersion()).isEqualTo(before.version());
+              try {
+                var writer =
+                    executor.submit(
+                        () ->
+                            service.replaceAllocationTargets(
+                                new ReplaceAllocationTargetsCommand(
+                                    ownerUserId,
+                                    before.id(),
+                                    before.version(),
+                                    List.of(newTarget("FIIs", "35"), newTarget("ETFs", "65")))));
+                PortfolioView committed = writer.get(10, TimeUnit.SECONDS);
+
+                PortfolioView loaded = service.findPortfolio(ownerUserId, before.id());
+
+                assertThat(cached.getVersion()).isEqualTo(before.version());
+                assertThat(loaded).isEqualTo(committed);
+                assertThat(loaded.version()).isEqualTo(before.version() + 1);
+                assertThat(loaded.allocationTargets())
+                    .extracting(PortfolioView.AllocationTargetView::name)
+                    .containsExactly("FIIs", "ETFs");
+              } catch (Exception exception) {
+                throw new IllegalStateException(
+                    "Falha no teste de leitura concorrente.", exception);
+              }
+            });
+      } finally {
+        executor.shutdownNow();
+      }
     }
   }
 
