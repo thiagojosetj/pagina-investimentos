@@ -157,7 +157,7 @@ O serviço valida nomes, soma e IDs repetidos antes de gravar. Após reivindicar
 
 Os índices únicos existentes verificam nome e ordem imediatamente. Para permitir trocas simultâneas sem apagar as linhas preservadas, o serviço exclui somente classes omitidas, move temporariamente as mantidas para nomes e ordens livres, descarrega essas alterações no banco e então grava os valores finais e as novas classes. Os nomes temporários evitam os nomes antigos e finais, inclusive os informados para classes novas. Nenhum valor temporário deve sobreviver ao commit; uma falha provoca rollback de toda a substituição. Não há nova migration nem endpoint de carteira neste incremento.
 
-Alternativas descartadas neste momento: atualização direta, que pode violar os índices únicos durante swaps; exclusão e recriação, que destrói a identidade; alteração do schema apenas para facilitar a troca, que ampliaria o incremento. A futura exclusão de uma classe já referenciada por ativos exigirá regra própria. Leitura consistente de carteira e metas e o limite de nomes 80 versus 60 caracteres permanecem pendentes.
+Alternativas descartadas neste momento: atualização direta, que pode violar os índices únicos durante swaps; exclusão e recriação, que destrói a identidade; alteração do schema apenas para facilitar a troca, que ampliaria o incremento. A futura exclusão de uma classe já referenciada por ativos exigirá regra própria. Leitura consistente e compatibilidade dos nomes são tratadas pela ADR-018.
 
 ## Decisões pendentes
 
@@ -275,3 +275,23 @@ A imagem define bind `0.0.0.0`, porta padrão `10000` e heap máximo de 50% com 
 O cliente espera até 120 segundos e oferece cancelamento explícito. Trinta segundos seriam insuficientes para inicialização observada do Render. A validação visual das metas usa inteiros em unidades de 0,0001 ponto percentual; a API continua sendo a autoridade e entradas inválidas seguem para sua validação. Região de estado permanece montada para anúncios assistivos. Limiter por IP foi adiado até definir confiança no proxy, expiração e limite de armazenamento; não confiar livremente em `X-Forwarded-For`.
 
 Fontes oficiais consultadas em 27 de setembro de 2026: [Render Free](https://render.com/docs/free), [deploy após CI](https://render.com/docs/deploys) e [Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy).
+
+## ADR-018 — Snapshot escalar de carteira e compatibilidade dos nomes
+
+**Status:** implementada localmente no INC-008B em 27 de setembro de 2026; execução PostgreSQL ainda pendente.
+
+Substituir a leitura de cabeçalho e classes em duas consultas por uma projeção escalar imutável, com `LEFT JOIN`, filtro por carteira/proprietário e ordenação pela ordem da classe. PostgreSQL `READ COMMITTED` usa um snapshot por instrução; duas consultas podem observar commits diferentes. Projetar valores, não entidades, evita também combinar um cabeçalho antigo mantido no contexto JPA com metas novas.
+
+O repositório retorna uma linha por classe. Carteira existente sem classes retorna uma linha com campos da classe nulos; ausência de linhas significa não encontrada ou não pertencente ao usuário. O serviço mantém `PortfolioView` e lista imutável. Criação/substituição continuam usando os flushes existentes e o CAS; não foram acrescentados relacionamentos JPA, bloqueios ou isolamento global. Os índices atuais de carteira e `(portfolio_id, display_order)` atendem o acesso; não há índice/migration novo nem alegação de benchmark.
+
+Alternativas: `REPEATABLE READ` protege consultas sucessivas numa transação própria, mas exige tratar participação em transação externa e muda o alcance do snapshot; locks de leitura ampliariam contenção; associação com fetch join acrescentaria mapeamento desnecessário. A consulta com projeção é suficiente para este agregado limitado a vinte metas. O join de entidades sem associação usa HQL suportado pelo Hibernate já adotado, sem promessa de portabilidade entre todos os provedores JPA.
+
+Novas definições/substituições usam limite de 60 unidades UTF-16, consistente com a API atual. `VARCHAR(80)` e migration V1 permanecem intactos; dados antigos não são truncados ou removidos. Um nome histórico maior que 60 exige renomeação explícita ao editar. Ampliar silenciosamente o contrato público ou reduzir a coluna com possível perda de dados foi rejeitado.
+
+Testes sem banco validam mapeamento, lista imutável, ownership dos parâmetros, carteira sem classes, limites dos nomes e construção da HQL com os mapeamentos reais. Testes PostgreSQL acrescentados verificam uma instrução/zero entidades carregadas, carteira sem classes, nome histórico/renomeação e edição concorrente enquanto o leitor mantém um cabeçalho antigo no contexto. Compilar esses testes não significa executá-los; a CI completa permanece necessária.
+
+Fontes oficiais consultadas em 27 de setembro de 2026: [PostgreSQL 18: isolamento](https://www.postgresql.org/docs/18/transaction-iso.html) e [Hibernate: joins e projeções](https://docs.hibernate.org/orm/7.1/querylanguage/html_single/).
+
+## INC-010A — Proposta de autenticação, sem configuração ativa
+
+O detalhamento da ADR-009 está em [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md). Fluxo OIDC, cookies, expiração, CSRF, contrato e operação privada são propostas para aprovação. Nenhum login, endpoint privado, dependência de segurança, credencial ou novo provedor de hospedagem foi adicionado. Autenticação somente após ratificar esses detalhes e seu ambiente.

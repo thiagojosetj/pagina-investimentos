@@ -29,6 +29,7 @@ A demonstração pública está disponível em [pagina-investimentos-demo.onrend
 - **Organização por funcionalidade**, com camadas `api`, `application`, `domain` e `persistence`, DTOs e mappers explícitos.
 - **Schema versionado.** O Flyway é o dono do schema e o Hibernate apenas valida os mapeamentos (`ddl-auto=validate`).
 - **Atualização de metas protegida contra concorrência** pela versão da carteira (compare-and-set).
+- **Leitura coerente de carteira e metas** em uma consulta escalar, sem misturar a versão com metas de outra edição; regressões PostgreSQL acompanham o serviço interno.
 - **Testes em várias camadas:** domínio, API, integração com PostgreSQL real via Testcontainers e fluxo da interface com Vitest e Testing Library.
 - **Configuração defensiva:** API ligada a `127.0.0.1` por padrão, limite de tamanho do corpo das requisições (HTTP 413) e respostas de erro sem stack trace.
 - **CI no GitHub Actions** com jobs Backend, Frontend e Public demo image, actions fixadas por SHA e permissões mínimas, além de Dependabot para Maven, npm e Actions.
@@ -194,6 +195,7 @@ O formulário indica em texto se as metas fecham exatamente 100%, com até quatr
 - [`docs/render-deployment.md`](docs/render-deployment.md) — demonstração pública e atualização da versão online.
 - [`docs/class-rebalancing.md`](docs/class-rebalancing.md) — regra e limites das vendas simuladas.
 - [`docs/REVIEW_FOLLOW_UP.md`](docs/REVIEW_FOLLOW_UP.md) — correções priorizadas e melhorias adiadas.
+- [`docs/AUTH_SECURITY_PLAN.md`](docs/AUTH_SECURITY_PLAN.md) — proposta de login, sessão e isolamento, ainda sem autenticação implementada.
 
 ## Dados e licença
 

@@ -17,10 +17,10 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 | WEB-005 / média | Melhorar anúncios assistivos e controle da espera; depende SIM-001 | Região de estado persistente, metas exatas em texto, cancelamento e timeout de 120s; testes de componente e API cliente | Concluído; CI do PR #10 com 41 testes frontend, lint, typecheck e build |
 | HARD-002 / alta | Proteger e reduzir custo da demonstração; depende RELEASE-001 | Headers inclusive 413, CSP só demo, cache/gzip, limites Tomcat e defaults na imagem; testes Java e smoke da CI | Concluído; CI do PR #10 com 88 testes backend (20 PostgreSQL) e smoke da imagem aprovados |
 | DEV-001 / alta | Permitir testar o simulador sem o Docker local; depende da API pura existente | Perfil opt-in sem banco, POST real com cinco classes pelo proxy Vite, erro 502 claro; testes de contexto/HTTP e frontend | Concluído; CI de `main` aprovou a cobertura PostgreSQL e a imagem pública |
-| DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído; última execução local com 68 testes backend e 41 frontend; modo completo/CI continuam obrigatórios |
+| DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído; última execução local com 78 testes backend e 41 frontend; modo completo/CI continuam obrigatórios |
 | INC-008A / alta | Preservar IDs das classes; depende INC-008 | Renomeação, reordenação, criação e remoção sem perder a identidade das classes mantidas; ownership e concorrência | Implementado e validado no PR #7 |
-| INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Teste concorrente deve impedir versão antiga combinada com metas novas; alinhar nomes de 80 caracteres na persistência versus 60 no simulador sem truncamento | Proposto: estratégia e compatibilidade revisadas antes do endpoint |
-| INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposto: documento e contratos aprovados antes de INC-011 |
+| INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Uma consulta escalar; teste concorrente e snapshot com contexto JPA antigo; nomes novos até 60, históricos preservados | Implementado localmente; testes sem banco passaram, regressões PostgreSQL ainda pendentes |
+| INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposta em `AUTH_SECURITY_PLAN.md`; aguardando aprovação antes de implementar login |
 | RELEASE-001 / alta | Publicar uma demonstração sem banco no Render Free; depende do perfil `demo`, empacotamento único e CI | Site e API na mesma origem HTTPS, health `UP`, simulação real, sem carteiras salvas; CI da imagem e teste do URL | Concluído em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com): commit `270fa663`, HTTP 200, health `UP` e resposta sintética `40.00/60.00` |
 | RELEASE-002 / futura | Planejar hospedagem de contas e carteiras persistidas; depende de autenticação e revisão de privacidade | Custos, banco durável, backups/restauração, segurança e observabilidade revisados com fontes oficiais | Proposta separada; a vitrine gratuita não guarda dados |
 | PWA-001 / futura | Validar instalação online-first; depende aprovação específica e ambiente HTTPS | Manifest, ícones e instalação nos dispositivos escolhidos; sem cache privado ou promessa offline | Proposto: prova real e limitações documentadas |
@@ -135,6 +135,8 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 
 ### INC-009 — Persistência na interface
 
+Antes de INC-009, o INC-008B valida snapshot e nomes; o INC-010A precisa ser aprovado para iniciar a autenticação. A proposta e as tarefas pequenas de login estão em [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md).
+
 - **Status:** proposto.
 - **Objetivo:** carregar e editar as metas da carteira no fluxo existente.
 - **Dependências:** INC-008 e INC-011.
@@ -146,7 +148,7 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 
 ### INC-010 — Decidir autenticação e ameaças básicas
 
-- **Status:** Google OpenID Connect e sessão backend aprovados; threat model e configuração ainda pendentes.
+- **Status:** direção Google OpenID Connect e sessão backend aprovados; threat model proposto em `AUTH_SECURITY_PLAN.md`, detalhes/configuração ainda sujeitos à aprovação.
 - **Objetivo:** detalhar Google OpenID Connect, criação da conta interna e sessão por cookie sem expor secrets ao frontend.
 - **Dependências:** INC-007.
 - **Critérios de aceite:** redirects permitidos, vínculo por `provider + subject`, CSRF, cookies, expiração, rate limit, logout e ownership documentados.

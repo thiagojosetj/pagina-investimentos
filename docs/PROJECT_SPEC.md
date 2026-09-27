@@ -157,6 +157,10 @@ A soma de metas e o limite de uma a vinte classes são invariantes entre várias
 
 Na substituição interna de metas, cada classe existente é identificada por seu UUID. Renomear, reordenar ou alterar a meta mantém o ID e a criação; um item sem ID cria uma classe, e a ausência de um ID anteriormente presente remove essa classe. O serviço rejeita IDs que não pertençam à carteira e mantém a operação integralmente transacional. Antes de vincular ativos às classes, a política de exclusão de classes referenciadas deverá ser definida.
 
+A leitura interna obtém carteira e classes em uma única consulta escalar ordenada, sempre filtrada pelo proprietário. Cabeçalho, versão e metas pertencem ao mesmo snapshot da instrução SQL; a projeção não reaproveita entidades antigas no contexto JPA. Isso não bloqueia uma edição posterior e não substitui o compare-and-set ao gravar.
+
+Novos nomes de classes e alterações aceitam até 60 unidades UTF-16 após remover espaços externos, como no contrato atual do simulador. O schema existente continua com `VARCHAR(80)` para preservar registros históricos: nomes maiores ainda são lidos integralmente, mas devem ser renomeados explicitamente antes de um novo envio de metas. Não há truncamento, migration destrutiva nem mudança no contrato público.
+
 Relacionamentos:
 
 ```text

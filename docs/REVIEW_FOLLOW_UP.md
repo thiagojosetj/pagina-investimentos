@@ -15,9 +15,9 @@ Revisão técnica do incremento de vendas simuladas e da demonstração pública
 
 ## Próximos três incrementos
 
-1. **INC-008B:** leitura consistente de carteira/metas e compatibilidade dos limites dos nomes. Teste concorrente, ownership e regressões PostgreSQL antes de publicar o contrato de carteira.
-2. **INC-010A:** threat model e desenho final do login Google, sessão, CSRF, logout e isolamento. Sem dados reais nem endpoint anônimo de carteira.
-3. **Primeira fatia autenticada:** criar e consultar carteira com suas metas, com DTOs, erros uniformes e uma tela integrada. Cadastro de ativos e movimentações vem depois, sobre essa base.
+1. **INC-008B:** implementação local de leitura consistente e nomes concluída; falta executar as regressões PostgreSQL e validar a CI antes da publicação.
+2. **INC-010A:** revisar/aprovar [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md) e seu ambiente antes de implementar sessão, CSRF e identidade. Sem dados reais ou endpoint anônimo de carteira.
+3. **Primeira fatia autenticada:** após as duas etapas, criar/consultar carteira e metas com DTOs, erros uniformes e tela integrada. Cadastro de ativos e movimentações vem depois, sobre essa base.
 
 ## Adiadas e motivo
 
