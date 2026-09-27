@@ -317,6 +317,45 @@
   text-align: right;
 }
 
+.sales-option {
+  margin-top: 18px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-alt);
+}
+
+.sales-option label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--ink);
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sales-option input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--teal);
+}
+
+.sales-option p,
+.sales-result-explanation {
+  margin: 8px 0 0;
+  color: var(--muted-strong);
+  font-size: 0.73rem;
+  line-height: 1.5;
+}
+
+.sales-option p {
+  margin-left: 28px;
+}
+
 .error-message {
   margin: 14px 0 0;
   padding: 11px 13px;
@@ -543,6 +582,21 @@
   color: var(--teal-dark);
   font-family: var(--font-display);
   font-size: 1rem;
+}
+
+.simulated-movement {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.simulated-movement > span {
+  color: var(--muted-strong);
+  font-size: 0.68rem;
+}
+
+.allocation-result-title .simulated-sale {
+  color: var(--red);
 }
 
 .progress-track {
@@ -823,8 +877,14 @@
     grid-template-columns: 9px minmax(0, 1fr);
   }
 
-  .allocation-result-title > strong {
+  .allocation-result-title > strong,
+  .simulated-movement {
     grid-column: 2;
     overflow-wrap: anywhere;
+  }
+
+  .simulated-movement {
+    justify-items: start;
+    text-align: left;
   }
 }

@@ -132,20 +132,28 @@ function PortfolioStrip({
   )
 }
 
-function EmptyResult() {
+function EmptyResult({ includeSales }: { includeSales: boolean }) {
   return (
     <div className="empty-result">
       <span className="empty-result-number">01</span>
       <div>
         <p className="eyebrow">Como o cálculo funciona</p>
-        <h2>O aporte é simulado a partir dos déficits da carteira.</h2>
+        <h2>
+          {includeSales
+            ? 'Compras e vendas simuladas aproximam as classes das suas metas.'
+            : 'O aporte é simulado a partir dos déficits da carteira.'}
+        </h2>
         <p>
-          O cálculo compara cada valor atual com a meta monetária projetada após
-          o aporte. Classes acima da meta recebem zero; o restante é dividido
-          proporcionalmente entre os déficits.
+          {includeSales
+            ? 'O cálculo compara os valores atuais com as metas após o aporte. Os excessos viram vendas hipotéticas, cujo valor é reutilizado nas compras das classes abaixo da meta.'
+            : 'O cálculo compara cada valor atual com a meta monetária projetada após o aporte. Classes acima da meta recebem zero; o restante é dividido proporcionalmente entre os déficits.'}
         </p>
         <ul>
-          <li>Nenhuma venda é simulada</li>
+          <li>
+            {includeSales
+              ? 'Valores hipotéticos por classe, sem executar ordens'
+              : 'Nenhuma venda é simulada'}
+          </li>
           <li>Precisão monetária em centavos</li>
           <li>Resultado determinístico e testável</li>
         </ul>
@@ -164,9 +172,15 @@ function SimulationResult({
       <div className="result-heading result-stage result-stage-heading">
         <div>
           <p className="eyebrow">Resultado da simulação</p>
-          <h2>Distribuição do novo aporte</h2>
+          <h2>
+            {result.includeSales
+              ? 'Equalização por classe'
+              : 'Distribuição do novo aporte'}
+          </h2>
         </div>
-        <span className="method-label">Déficit proporcional</span>
+        <span className="method-label">
+          {result.includeSales ? 'Vendas incluídas' : 'Déficit proporcional'}
+        </span>
       </div>
 
       <dl className="totals-grid result-stage result-stage-totals">
@@ -175,7 +189,7 @@ function SimulationResult({
           <dd>{formatCurrency(result.currentTotal)}</dd>
         </div>
         <div className="highlight-total">
-          <dt>Novo aporte</dt>
+          <dt>{result.includeSales ? 'Dinheiro novo' : 'Novo aporte'}</dt>
           <dd>+ {formatCurrency(result.contribution)}</dd>
         </div>
         <div>
@@ -183,6 +197,13 @@ function SimulationResult({
           <dd>{formatCurrency(result.projectedTotal)}</dd>
         </div>
       </dl>
+
+      {result.includeSales ? (
+        <p className="sales-result-explanation">
+          As compras simuladas usam o dinheiro novo e os valores das vendas
+          simuladas. As vendas apenas redistribuem o patrimônio entre classes.
+        </p>
+      ) : null}
 
       <div className="portfolio-comparison result-stage result-stage-comparison">
         <div>
@@ -194,7 +215,9 @@ function SimulationResult({
           />
         </div>
         <div>
-          <span>Após o aporte</span>
+          <span>
+            {result.includeSales ? 'Após equalizar' : 'Após o aporte'}
+          </span>
           <PortfolioStrip
             allocations={result.allocations}
             percentageKey="projectedPercentage"
@@ -223,9 +246,31 @@ function SimulationResult({
                   de {formatPercentage(allocation.targetPercentage)}
                 </p>
               </div>
-              <strong>
-                {formatCurrency(allocation.suggestedContribution)}
-              </strong>
+              {result.includeSales ? (
+                <div className="simulated-movement">
+                  {allocation.suggestedPurchase !== '0.00' ? (
+                    <>
+                      <span>Compra simulada</span>
+                      <strong>
+                        {formatCurrency(allocation.suggestedPurchase)}
+                      </strong>
+                    </>
+                  ) : allocation.suggestedSale !== '0.00' ? (
+                    <>
+                      <span>Venda simulada</span>
+                      <strong className="simulated-sale">
+                        {formatCurrency(allocation.suggestedSale)}
+                      </strong>
+                    </>
+                  ) : (
+                    <span>Sem movimentação</span>
+                  )}
+                </div>
+              ) : (
+                <strong>
+                  {formatCurrency(allocation.suggestedContribution)}
+                </strong>
+              )}
             </div>
             <div className="progress-track" aria-hidden="true">
               <span
@@ -269,6 +314,7 @@ export function ContributionSimulator({
   const [isDemoPreset, setIsDemoPreset] = useState(
     initialPreset?.source === 'demo',
   )
+  const [includeSales, setIncludeSales] = useState(false)
   const [result, setResult] = useState<ContributionSimulationResponse | null>(
     null,
   )
@@ -362,6 +408,7 @@ export function ContributionSimulator({
     invalidateSimulation()
     setAllocations(INITIAL_ALLOCATIONS.map((allocation) => ({ ...allocation })))
     setContribution('2000,00')
+    setIncludeSales(false)
     setIsDemoPreset(false)
   }
 
@@ -397,6 +444,7 @@ export function ContributionSimulator({
     const request: ContributionSimulationRequest = {
       currency: 'BRL',
       contribution: normalizeDecimal(contribution),
+      includeSales,
       allocations: allocations.map((allocation) => ({
         classId: allocation.classId,
         name: allocation.name.trim(),
@@ -587,8 +635,9 @@ export function ContributionSimulator({
         <div className="contribution-field">
           <label htmlFor="contribution">Quanto você quer aportar?</label>
           <p>
-            Na simulação, o valor é distribuído somente entre as classes abaixo
-            da meta projetada.
+            {includeSales
+              ? 'Dinheiro novo para somar à carteira. Use R$ 0,00 para simular apenas a redistribuição entre classes.'
+              : 'Na simulação, o valor é distribuído somente entre as classes abaixo da meta projetada.'}
           </p>
           <span className="contribution-input">
             <b aria-hidden="true">R$</b>
@@ -608,6 +657,26 @@ export function ContributionSimulator({
               value={contribution}
             />
           </span>
+        </div>
+
+        <div className="sales-option">
+          <label>
+            <input
+              aria-describedby="sales-mode-description"
+              checked={includeSales}
+              onChange={(event) => {
+                invalidateSimulation()
+                setIncludeSales(event.target.checked)
+              }}
+              type="checkbox"
+            />
+            <span>Incluir vendas para equalizar classes</span>
+          </label>
+          <p id="sales-mode-description">
+            {includeSales
+              ? 'Simulação educacional por classe, sem executar ordens. Não considera impostos, taxas, liquidez ou quantidades de ativos.'
+              : 'Somente novos aportes. Nenhuma venda será simulada.'}
+          </p>
         </div>
 
         {error ? (
@@ -644,7 +713,7 @@ export function ContributionSimulator({
         {result ? (
           <SimulationResult key={resultVersion} result={result} />
         ) : (
-          <EmptyResult />
+          <EmptyResult includeSales={includeSales} />
         )}
       </aside>
     </section>
