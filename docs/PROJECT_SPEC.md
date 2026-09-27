@@ -38,7 +38,8 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 
 - Simulação sem persistência com classes editáveis, valores atuais, metas e valor de aporte.
 - Comparação visual da alocação atual e projetada.
-- Estratégia proporcional ao déficit monetário e sem vendas.
+- Estratégia proporcional ao déficit monetário, sem vendas por padrão.
+- Opção explícita de equalização por classe com compras e vendas simuladas, sem execução de ordens.
 - API versionada, validação, erros uniformes, OpenAPI e testes automatizados.
 
 ### Incremento demonstrativo subsequente
@@ -68,14 +69,14 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 - Importação CSV/Excel e exportação.
 - Proventos, eventos corporativos complexos e apuração fiscal.
 - Resultado realizado com equivalência a regras contábeis ou fiscais oficiais.
-- Watchlist, benchmarks, histórico de rentabilidade e rebalanceamento por venda.
+- Watchlist, benchmarks, histórico de rentabilidade e execução de rebalanceamento por venda em ativos específicos.
 - Seleção de ativos, análise de perfil, previsão de preço ou recomendação.
 - Múltiplas moedas, consolidação cambial e cotações em tempo real.
 - Aplicativo móvel, microserviços, filas, cache distribuído e Kubernetes.
 
 Esses itens permanecem como candidatos pós-MVP; não são funcionalidades prometidas.
 
-A intenção de lançar para web e celular foi reforçada em 13 de setembro de 2026. Isso não altera automaticamente o MVP: melhorias de responsividade pertencem à interface atual; PWA e aplicativo nativo continuam propostas sujeitas à aprovação. Uma demonstração pública sem dados persistidos foi aprovada para o Render Free (ADR-013), mas sua publicação ainda depende de validação real. A comparação e os requisitos de segurança/operação estão em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
+A intenção de lançar para web e celular foi reforçada em 13 de setembro de 2026. Isso não altera automaticamente o MVP: melhorias de responsividade pertencem à interface atual; PWA e aplicativo nativo continuam propostas sujeitas à aprovação. A demonstração pública sem dados persistidos foi publicada e validada em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com) (ADR-013). Ela não constitui lançamento para carteiras reais. A comparação e os requisitos de segurança/operação estão em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
 
 ## 5. Regra do simulador de aportes
 
@@ -83,6 +84,7 @@ A intenção de lançar para web e celular foi reforçada em 13 de setembro de 2
 
 - moeda `BRL`;
 - valor do novo aporte em escala monetária de duas casas;
+- opção booleana `includeSales`, desativada por padrão;
 - de 1 a 20 classes com identificador, nome, valor atual e percentual-alvo;
 - metas entre `0.0000%` e `100.0000%`, cuja soma deve ser exatamente `100.0000%`.
 
@@ -112,7 +114,7 @@ Dᵢ = max(Mᵢ - Cᵢ, 0)
 Sᵢ = apportion(A, Dᵢ)
 ```
 
-`Mᵢ` é a meta monetária projetada, `Dᵢ` é o déficit monetário e `Sᵢ` é o aporte sugerido. Classes sem déficit recebem zero. Não são propostas vendas.
+`Mᵢ` é a meta monetária projetada, `Dᵢ` é o déficit monetário e `Sᵢ` é o aporte sugerido. Classes sem déficit recebem zero. No modo padrão, não são simuladas vendas.
 
 `apportion` usa quotas inteiras pelo método dos maiores restos:
 
@@ -131,6 +133,12 @@ Com patrimônio atual de R$ 10.000,00, metas `40/25/15/20` e posições `48/18/1
 - aporte de R$ 500,00: Ações R$ 0,00; FIIs R$ 375,00; ETFs R$ 79,55; Renda fixa R$ 45,45.
 
 O segundo caso não corrige todos os desvios; distribui todo o valor proporcionalmente aos déficits calculados sobre o total projetado.
+
+### Modalidade opcional com vendas simuladas
+
+Com `includeSales = true`, a compra simulada da classe é `max(Mᵢ - Cᵢ, 0)` e a venda simulada é `max(Cᵢ - Mᵢ, 0)`. A projeção passa a ser exatamente `Mᵢ` em centavos. Compras menos vendas somam o aporte externo, inclusive quando ele é zero. `suggestedContribution` preserva a distribuição do aporte externo; `suggestedPurchase` e `suggestedSale` informam as movimentações hipotéticas completas.
+
+Essa opção foi aprovada pelo autor e não inclui impostos, taxas, liquidez ou quantidades de ativos. Fórmula, exemplo, compatibilidade e limites estão em [`class-rebalancing.md`](class-rebalancing.md).
 
 ## 6. Modelo de dados inicial e evolução proposta
 

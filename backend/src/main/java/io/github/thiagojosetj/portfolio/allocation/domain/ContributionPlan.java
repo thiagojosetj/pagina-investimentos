@@ -7,6 +7,7 @@ public record ContributionPlan(
     BigInteger currentTotalInCents,
     BigInteger contributionInCents,
     BigInteger projectedTotalInCents,
+    boolean includeSales,
     List<AllocationSuggestion> suggestions) {
 
   public ContributionPlan {

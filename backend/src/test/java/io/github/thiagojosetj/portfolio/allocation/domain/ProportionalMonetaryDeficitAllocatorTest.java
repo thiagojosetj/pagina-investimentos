@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class ProportionalMonetaryDeficitAllocatorTest {
@@ -124,6 +127,168 @@ class ProportionalMonetaryDeficitAllocatorTest {
     assertThatThrownBy(() -> allocator.allocate(invalid, cents("100.00")))
         .isInstanceOf(SimulationValidationException.class)
         .hasMessage("O valor atual não pode estar ausente.");
+  }
+
+  @Test
+  void shouldKeepSalesDisabledAndPurchaseEqualToExternalContributionByDefault() {
+    var result = allocator.allocate(examplePortfolio(), cents("500.00"));
+
+    assertThat(result.includeSales()).isFalse();
+    assertThat(result.suggestions())
+        .allSatisfy(
+            item -> {
+              assertThat(item.suggestedSaleInCents()).isZero();
+              assertThat(item.suggestedPurchaseInCents())
+                  .isEqualTo(item.suggestedContributionInCents());
+            });
+  }
+
+  @Test
+  void shouldUseSalesAndExternalContributionToReachTargetsExactly() {
+    var result = allocator.allocate(examplePortfolio(), cents("500.00"), true);
+
+    assertThat(result.includeSales()).isTrue();
+    assertThat(suggestionFor(result, "stocks").suggestedSaleInCents()).isEqualTo(cents("600.00"));
+    assertThat(suggestionFor(result, "real-estate-funds").suggestedPurchaseInCents())
+        .isEqualTo(cents("825.00"));
+    assertThat(suggestionFor(result, "real-estate-funds").suggestedContributionInCents())
+        .isEqualTo(cents("375.00"));
+    assertThat(suggestionFor(result, "etfs").suggestedPurchaseInCents()).isEqualTo(cents("175.00"));
+    assertThat(suggestionFor(result, "fixed-income").suggestedPurchaseInCents())
+        .isEqualTo(cents("100.00"));
+    assertSalesInvariants(result);
+  }
+
+  @Test
+  void shouldRebalanceWithZeroExternalContribution() {
+    var result = allocator.allocate(examplePortfolio(), BigInteger.ZERO, true);
+
+    assertThat(totalSuggested(result)).isZero();
+    assertThat(suggestionFor(result, "stocks").suggestedSaleInCents()).isEqualTo(cents("800.00"));
+    assertThat(suggestionFor(result, "real-estate-funds").suggestedPurchaseInCents())
+        .isEqualTo(cents("700.00"));
+    assertThat(suggestionFor(result, "etfs").suggestedPurchaseInCents()).isEqualTo(cents("100.00"));
+    assertSalesInvariants(result);
+  }
+
+  @Test
+  void shouldRequireNoSalesWhenTheContributionCoversEveryDeficit() {
+    var result = allocator.allocate(examplePortfolio(), cents("10000.00"), true);
+
+    assertThat(result.suggestions())
+        .allSatisfy(item -> assertThat(item.suggestedSaleInCents()).isZero());
+    assertSalesInvariants(result);
+  }
+
+  @Test
+  void shouldHandleEmptyPositionsAndZeroPatrimonyWithSalesEnabled() {
+    var emptyPortfolio =
+        List.of(
+            allocation("stocks", "Ações", "0.00", "40.0000"),
+            allocation("funds", "FIIs", "0.00", "60.0000"));
+
+    for (var contribution : List.of(BigInteger.ZERO, cents("100.00"))) {
+      var result = allocator.allocate(emptyPortfolio, contribution, true);
+      assertThat(result.suggestions())
+          .allSatisfy(item -> assertThat(item.suggestedSaleInCents()).isZero());
+      assertSalesInvariants(result);
+    }
+  }
+
+  @Test
+  void shouldSimulateSellingTheEntireClassWhenItsTargetIsZero() {
+    var result =
+        allocator.allocate(
+            List.of(
+                allocation("stocks", "Ações", "100.00", "0.0000"),
+                allocation("funds", "FIIs", "0.00", "100.0000")),
+            BigInteger.ZERO,
+            true);
+
+    assertThat(suggestionFor(result, "stocks").suggestedSaleInCents()).isEqualTo(cents("100.00"));
+    assertThat(suggestionFor(result, "stocks").projectedAmountInCents()).isZero();
+    assertSalesInvariants(result);
+  }
+
+  @Test
+  void shouldResolveSalesTargetCentTiesByClassIdRegardlessOfInputOrder() {
+    var first = allocation("z-class", "Classe Z", "0.01", "50.0000");
+    var second = allocation("a-class", "Classe A", "0.00", "50.0000");
+    var result = allocator.allocate(List.of(first, second), BigInteger.ZERO, true);
+    var reordered = allocator.allocate(List.of(second, first), BigInteger.ZERO, true);
+
+    assertThat(suggestionFor(result, "z-class").suggestedSaleInCents()).isEqualTo(BigInteger.ONE);
+    assertThat(suggestionFor(result, "a-class").suggestedPurchaseInCents())
+        .isEqualTo(BigInteger.ONE);
+    assertThat(suggestionsByClassId(result)).isEqualTo(suggestionsByClassId(reordered));
+    assertSalesInvariants(result);
+  }
+
+  @Test
+  void shouldPreserveSalesMoneyInvariantsForLargeAndResidualValues() {
+    for (var contribution :
+        List.of(
+            BigInteger.ZERO, BigInteger.ONE, BigInteger.valueOf(17), cents("999999999999999.99"))) {
+      var result = allocator.allocate(examplePortfolio(), contribution, true);
+      assertSalesInvariants(result);
+    }
+
+    var hugePortfolio =
+        List.of(
+            allocation("stocks", "Ações", "999999999999999.99", "33.3333"),
+            allocation("funds", "FIIs", "999999999999999.99", "66.6667"));
+    assertSalesInvariants(allocator.allocate(hugePortfolio, cents("999999999999999.99"), true));
+  }
+
+  private void assertSalesInvariants(ContributionPlan result) {
+    var totalPurchase =
+        result.suggestions().stream()
+            .map(AllocationSuggestion::suggestedPurchaseInCents)
+            .reduce(BigInteger.ZERO, BigInteger::add);
+    var totalSale =
+        result.suggestions().stream()
+            .map(AllocationSuggestion::suggestedSaleInCents)
+            .reduce(BigInteger.ZERO, BigInteger::add);
+    var totalProjected =
+        result.suggestions().stream()
+            .map(AllocationSuggestion::projectedAmountInCents)
+            .reduce(BigInteger.ZERO, BigInteger::add);
+
+    assertThat(totalSuggested(result)).isEqualTo(result.contributionInCents());
+    assertThat(totalPurchase.subtract(totalSale)).isEqualTo(result.contributionInCents());
+    assertThat(totalProjected).isEqualTo(result.projectedTotalInCents());
+    assertThat(result.projectedTotalInCents())
+        .isEqualTo(result.currentTotalInCents().add(result.contributionInCents()));
+    assertThat(result.suggestions())
+        .allSatisfy(
+            item -> {
+              assertThat(item.suggestedPurchaseInCents()).isNotNegative();
+              assertThat(item.suggestedSaleInCents()).isNotNegative();
+              assertThat(item.suggestedSaleInCents())
+                  .isLessThanOrEqualTo(item.currentAmountInCents());
+              assertThat(item.suggestedContributionInCents())
+                  .isBetween(BigInteger.ZERO, item.suggestedPurchaseInCents());
+              assertThat(item.suggestedPurchaseInCents().multiply(item.suggestedSaleInCents()))
+                  .isZero();
+              assertThat(item.projectedAmountInCents()).isEqualTo(item.targetAmountInCents());
+              assertThat(item.projectedAmountInCents())
+                  .isEqualTo(
+                      item.currentAmountInCents()
+                          .add(item.suggestedPurchaseInCents())
+                          .subtract(item.suggestedSaleInCents()));
+            });
+  }
+
+  private AllocationSuggestion suggestionFor(ContributionPlan result, String classId) {
+    return result.suggestions().stream()
+        .filter(item -> item.classId().equals(classId))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private Map<String, AllocationSuggestion> suggestionsByClassId(ContributionPlan result) {
+    return result.suggestions().stream()
+        .collect(Collectors.toMap(AllocationSuggestion::classId, Function.identity()));
   }
 
   private List<AllocationClass> examplePortfolio() {

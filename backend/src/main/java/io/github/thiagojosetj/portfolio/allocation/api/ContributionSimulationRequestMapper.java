@@ -32,7 +32,8 @@ public class ContributionSimulationRequestMapper {
               parsePercentage(item.targetPercentage(), path + ".targetPercentage")));
     }
 
-    return new MappedSimulation(List.copyOf(allocations), contribution);
+    return new MappedSimulation(
+        List.copyOf(allocations), contribution, Boolean.TRUE.equals(request.includeSales()));
   }
 
   private BigInteger parseMoney(String value, String field) {
@@ -65,5 +66,6 @@ public class ContributionSimulationRequestMapper {
     return new SimulationValidationException(field, code, message);
   }
 
-  record MappedSimulation(List<AllocationClass> allocations, BigInteger contributionInCents) {}
+  record MappedSimulation(
+      List<AllocationClass> allocations, BigInteger contributionInCents, boolean includeSales) {}
 }

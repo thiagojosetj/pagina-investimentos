@@ -10,4 +10,6 @@ public record AllocationSuggestion(
     BigInteger targetAmountInCents,
     BigInteger monetaryDeficitInCents,
     BigInteger suggestedContributionInCents,
+    BigInteger suggestedPurchaseInCents,
+    BigInteger suggestedSaleInCents,
     BigInteger projectedAmountInCents) {}

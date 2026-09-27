@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -104,9 +104,6 @@ jobs:
           container_id=$(docker run --detach \
             --memory 512m \
             --env SPRING_PROFILES_ACTIVE=demo \
-            --env SERVER_ADDRESS=0.0.0.0 \
-            --env PORT=10000 \
-            --env JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=50.0 -XX:+UseSerialGC' \
             --publish 127.0.0.1:10000:10000 portfolio-demo:ci)
           trap 'docker rm --force "$container_id" >/dev/null 2>&1 || true' EXIT
 
@@ -123,16 +120,48 @@ jobs:
             exit 1
           fi
 
-          page=$(curl --fail --silent http://127.0.0.1:10000/)
+          page=$(curl --fail --silent --dump-header /tmp/demo-page-headers http://127.0.0.1:10000/)
+          grep -qi '^X-Content-Type-Options: nosniff' /tmp/demo-page-headers
+          grep -qi '^X-Frame-Options: DENY' /tmp/demo-page-headers
+          grep -qi '^Referrer-Policy: no-referrer' /tmp/demo-page-headers
+          grep -qi '^Cross-Origin-Opener-Policy: same-origin' /tmp/demo-page-headers
+          grep -qi "^Content-Security-Policy: default-src 'self';" /tmp/demo-page-headers
+          grep -qi '^Cache-Control: no-cache' /tmp/demo-page-headers
+          # O HTML nunca recebe o cache imutavel dos assets versionados.
+          if grep -qi '^Cache-Control:.*\(immutable\|max-age=[1-9]\)' /tmp/demo-page-headers; then
+            exit 1
+          fi
           grep -q 'Planejador de Carteira' <<< "$page"
           script_path=$(grep -oE 'src="/assets/[^"]+\.js"' <<< "$page" | head -n 1 | cut -d '"' -f 2)
           test -n "$script_path"
-          curl --fail --silent --output /dev/null "http://127.0.0.1:10000$script_path"
+          curl --fail --silent --output /dev/null --dump-header /tmp/demo-asset-headers \
+            "http://127.0.0.1:10000$script_path"
+          grep -qi '^Cache-Control:.*max-age=31536000.*immutable' /tmp/demo-asset-headers
+          curl --fail --silent --header 'Accept-Encoding: gzip' --output /dev/null \
+            --dump-header /tmp/demo-gzip-headers "http://127.0.0.1:10000$script_path"
+          grep -qi '^Content-Encoding: gzip' /tmp/demo-gzip-headers
           curl --fail --silent http://127.0.0.1:10000/favicon.svg | grep -q '<svg'
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:10000/v3/api-docs)" = 404
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:10000/swagger-ui/index.html)" = 404
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:10000/actuator/info)" = 404
           response=$(curl --fail --silent --show-error \
             --header 'Content-Type: application/json' \
             --data '{"currency":"BRL","contribution":"100.00","allocations":[{"classId":"stocks","name":"Ações","currentAmount":"60.00","targetPercentage":"50.0000"},{"classId":"funds","name":"Fundos","currentAmount":"40.00","targetPercentage":"50.0000"}]}' \
             http://127.0.0.1:10000/api/v1/allocation-simulations/contributions)
           grep -q '"suggestedContribution":"40.00"' <<< "$response"
+          sales_response=$(curl --fail --silent --show-error \
+            --header 'Content-Type: application/json' \
+            --data '{"currency":"BRL","contribution":"0.00","includeSales":true,"allocations":[{"classId":"stocks","name":"Ações","currentAmount":"60.00","targetPercentage":"50.0000"},{"classId":"funds","name":"Fundos","currentAmount":"40.00","targetPercentage":"50.0000"}]}' \
+            http://127.0.0.1:10000/api/v1/allocation-simulations/contributions)
+          grep -q '"includeSales":true' <<< "$sales_response"
+          grep -q '"suggestedSale":"10.00"' <<< "$sales_response"
+          grep -q '"suggestedPurchase":"10.00"' <<< "$sales_response"
+          oversized_status=$(head -c 65537 /dev/zero | tr '\0' ' ' | curl --silent --show-error \
+            --header 'Content-Type: application/json' --data-binary @- \
+            --dump-header /tmp/demo-oversized-headers --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:10000/api/v1/allocation-simulations/contributions)
+          test "$oversized_status" = 413
+          grep -qi '^Content-Security-Policy:' /tmp/demo-oversized-headers

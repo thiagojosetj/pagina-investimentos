@@ -1,3 +1,4 @@
+# Servicos criados manualmente exigem atualizar estas opcoes no painel do Render.
 services:
   - type: web
     name: pagina-investimentos-demo

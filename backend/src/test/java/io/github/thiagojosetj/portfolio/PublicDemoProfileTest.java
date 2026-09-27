@@ -3,6 +3,7 @@ package io.github.thiagojosetj.portfolio;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -35,9 +36,19 @@ class PublicDemoProfileTest {
     assertThat(context.getBeanNamesForType(EntityManagerFactory.class)).isEmpty();
     assertThat(context.getBeanNamesForType(PortfolioManagementService.class)).isEmpty();
 
-    mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
+    mockMvc
+        .perform(get("/actuator/health"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+        .andExpect(header().string("X-Frame-Options", "DENY"))
+        .andExpect(header().string("Referrer-Policy", "no-referrer"))
+        .andExpect(header().string("Cross-Origin-Opener-Policy", "same-origin"))
+        .andExpect(header().exists("Content-Security-Policy"));
     mockMvc.perform(get("/actuator/info")).andExpect(status().isNotFound());
-    mockMvc.perform(get("/v3/api-docs")).andExpect(status().isNotFound());
+    mockMvc
+        .perform(get("/v3/api-docs"))
+        .andExpect(status().isNotFound())
+        .andExpect(header().exists("Content-Security-Policy"));
     mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isNotFound());
   }
 
@@ -81,6 +92,7 @@ class PublicDemoProfileTest {
                     }
                     """))
         .andExpect(status().isUnprocessableContent())
+        .andExpect(header().exists("Content-Security-Policy"))
         .andExpect(jsonPath("$.code").value("INVALID_TARGET_SUM"));
   }
 
@@ -91,6 +103,21 @@ class PublicDemoProfileTest {
             post("/api/v1/allocation-simulations/contributions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(" ".repeat(65_537)))
-        .andExpect(status().isPayloadTooLarge());
+        .andExpect(status().isPayloadTooLarge())
+        .andExpect(header().exists("Content-Security-Policy"))
+        .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+  }
+
+  @Test
+  void cachesHashedAssetsButRevalidatesHtml() throws Exception {
+    mockMvc
+        .perform(get("/assets/cache-test-a9b8c7.js"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "max-age=31536000, public, immutable"))
+        .andExpect(header().exists("Content-Security-Policy"));
+    mockMvc
+        .perform(get("/index.html"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-cache"));
   }
 }

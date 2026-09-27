@@ -42,12 +42,58 @@ class ContributionSimulationControllerTest {
                 .content(validRequest()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.method").value("PROPORTIONAL_MONETARY_DEFICIT_V1"))
+        .andExpect(jsonPath("$.includeSales").value(false))
         .andExpect(jsonPath("$.currentTotal").value("10000.00"))
         .andExpect(jsonPath("$.contribution").value("500.00"))
         .andExpect(jsonPath("$.allocations[0].suggestedContribution").value("0.00"))
+        .andExpect(jsonPath("$.allocations[0].suggestedSale").value("0.00"))
+        .andExpect(jsonPath("$.allocations[1].suggestedPurchase").value("375.00"))
         .andExpect(jsonPath("$.allocations[1].suggestedContribution").value("375.00"))
         .andExpect(jsonPath("$.allocations[2].suggestedContribution").value("79.55"))
         .andExpect(jsonPath("$.allocations[3].suggestedContribution").value("45.45"));
+  }
+
+  @Test
+  void shouldIncludeHypotheticalSalesOnlyWhenExplicitlyEnabled() throws Exception {
+    var request =
+        validRequest()
+            .replace("\"currency\": \"BRL\",", "\"currency\": \"BRL\", \"includeSales\": true,");
+
+    mockMvc
+        .perform(
+            post("/api/v1/allocation-simulations/contributions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.method").value("TARGET_CLASS_REBALANCING_WITH_SIMULATED_SALES_V1"))
+        .andExpect(jsonPath("$.includeSales").value(true))
+        .andExpect(jsonPath("$.projectedTotal").value("10500.00"))
+        .andExpect(jsonPath("$.allocations[0].suggestedSale").value("600.00"))
+        .andExpect(jsonPath("$.allocations[0].suggestedPurchase").value("0.00"))
+        .andExpect(jsonPath("$.allocations[0].projectedAmount").value("4200.00"))
+        .andExpect(jsonPath("$.allocations[1].suggestedContribution").value("375.00"))
+        .andExpect(jsonPath("$.allocations[1].suggestedPurchase").value("825.00"))
+        .andExpect(jsonPath("$.allocations[1].suggestedSale").value("0.00"))
+        .andExpect(jsonPath("$.allocations[1].projectedAmount").value("2625.00"));
+  }
+
+  @Test
+  void shouldReturnSalesRebalancingWithNoNewContribution() throws Exception {
+    var request =
+        validRequest()
+            .replace("\"currency\": \"BRL\",", "\"currency\": \"BRL\", \"includeSales\": true,")
+            .replace("\"500.00\"", "\"0.00\"");
+
+    mockMvc
+        .perform(
+            post("/api/v1/allocation-simulations/contributions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.contribution").value("0.00"))
+        .andExpect(jsonPath("$.allocations[0].suggestedSale").value("800.00"))
+        .andExpect(jsonPath("$.allocations[1].suggestedContribution").value("0.00"))
+        .andExpect(jsonPath("$.allocations[1].suggestedPurchase").value("700.00"));
   }
 
   @Test

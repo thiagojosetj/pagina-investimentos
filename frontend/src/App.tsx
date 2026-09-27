@@ -41,15 +41,18 @@ function BrandMark() {
 }
 
 function ThemeIcon({ theme }: { theme: ColorTheme }) {
-  return theme === 'light' ? (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z" />
-    </svg>
-  ) : (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="3.5" />
-      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-    </svg>
+  const nextTheme = theme === 'light' ? 'dark' : 'light'
+
+  return (
+    <span aria-hidden="true" className="theme-icon" data-next-theme={nextTheme}>
+      <svg className="theme-icon-moon" viewBox="0 0 24 24">
+        <path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z" />
+      </svg>
+      <svg className="theme-icon-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3.5" />
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+      </svg>
+    </span>
   )
 }
 
@@ -117,7 +120,12 @@ function App() {
             <small>de Carteira</small>
           </span>
         </a>
-        <nav className="app-nav" aria-label="Navegação principal">
+        <nav
+          aria-label="Navegação principal"
+          className="app-nav"
+          data-active-view={activeView}
+        >
+          <span aria-hidden="true" className="nav-indicator" />
           <button
             aria-current={activeView === 'overview' ? 'page' : undefined}
             className={activeView === 'overview' ? 'active' : undefined}
@@ -156,13 +164,13 @@ function App() {
       </header>
 
       <main id="top" ref={mainRef} tabIndex={-1}>
-        <div hidden={activeView !== 'overview'}>
+        <div className="app-view" hidden={activeView !== 'overview'}>
           <PortfolioOverview
             onOpenSimulator={() => openView('simulator')}
             onUseDemoPortfolio={useDemoPortfolio}
           />
         </div>
-        <div hidden={activeView !== 'simulator'}>
+        <div className="app-view" hidden={activeView !== 'simulator'}>
           <section className="intro" aria-labelledby="page-title">
             <div>
               <p className="eyebrow">Simulador de aportes</p>

@@ -25,9 +25,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * lido direto pelo conversor de mensagem do Spring, então sem este filtro a lista de alocações é
  * materializada inteira em memória antes de a validação {@code @Size(max = 20)} rejeitá-la.
  *
- * <p>A ordem é a mais alta possível para que o filtro rode antes de qualquer outro da cadeia,
- * inclusive do {@code OrderedFormContentFilter}, que consome o corpo de requisições {@code
- * form-urlencoded} em PUT, PATCH e DELETE.
+ * <p>A ordem mantém o filtro após os cabeçalhos de segurança e antes do {@code
+ * OrderedFormContentFilter}, que consome o corpo de requisições {@code form-urlencoded} em PUT,
+ * PATCH e DELETE.
  *
  * <p>A pré-leitura consome no máximo o limite mais um byte. Formulários, multipart e métodos de
  * leitura não são consumidos: sua interpretação pertence ao container. Novos endpoints de upload,
@@ -35,7 +35,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * um futuro deploy público.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
   private static final Set<String> JSON_BODY_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");

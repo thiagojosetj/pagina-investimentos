@@ -28,7 +28,11 @@ public class ContributionSimulationController {
   ContributionSimulationResponse simulate(
       @Valid @RequestBody ContributionSimulationRequest request) {
     var mappedRequest = requestMapper.map(request);
-    var plan = service.simulate(mappedRequest.allocations(), mappedRequest.contributionInCents());
+    var plan =
+        service.simulate(
+            mappedRequest.allocations(),
+            mappedRequest.contributionInCents(),
+            mappedRequest.includeSales());
     return responseMapper.map(plan);
   }
 }

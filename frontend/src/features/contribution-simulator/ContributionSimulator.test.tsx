@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ContributionSimulator } from './ContributionSimulator'
@@ -11,6 +11,7 @@ const successfulResponse: ContributionSimulationResponse = {
   currentTotal: '10000.00',
   contribution: '2000.00',
   projectedTotal: '12000.00',
+  includeSales: false,
   allocations: [
     {
       classId: 'stocks',
@@ -21,6 +22,8 @@ const successfulResponse: ContributionSimulationResponse = {
       targetAmount: '4800.00',
       monetaryDeficit: '0.00',
       suggestedContribution: '0.00',
+      suggestedPurchase: '0.00',
+      suggestedSale: '0.00',
       projectedAmount: '4800.00',
       projectedPercentage: '40.0000',
     },
@@ -33,6 +36,8 @@ const successfulResponse: ContributionSimulationResponse = {
       targetAmount: '3000.00',
       monetaryDeficit: '1200.00',
       suggestedContribution: '1200.00',
+      suggestedPurchase: '1200.00',
+      suggestedSale: '0.00',
       projectedAmount: '3000.00',
       projectedPercentage: '25.0000',
     },
@@ -45,6 +50,8 @@ const successfulResponse: ContributionSimulationResponse = {
       targetAmount: '1800.00',
       monetaryDeficit: '400.00',
       suggestedContribution: '400.00',
+      suggestedPurchase: '400.00',
+      suggestedSale: '0.00',
       projectedAmount: '1800.00',
       projectedPercentage: '15.0000',
     },
@@ -57,6 +64,8 @@ const successfulResponse: ContributionSimulationResponse = {
       targetAmount: '2400.00',
       monetaryDeficit: '400.00',
       suggestedContribution: '400.00',
+      suggestedPurchase: '400.00',
+      suggestedSale: '0.00',
       projectedAmount: '2400.00',
       projectedPercentage: '20.0000',
     },
@@ -65,16 +74,278 @@ const successfulResponse: ContributionSimulationResponse = {
     'Simulação educacional baseada exclusivamente nas metas informadas.',
 }
 
+const salesResponse: ContributionSimulationResponse = {
+  ...successfulResponse,
+  method: 'TARGET_CLASS_REBALANCING_WITH_SIMULATED_SALES_V1',
+  contribution: '500.00',
+  projectedTotal: '10500.00',
+  includeSales: true,
+  allocations: [
+    {
+      ...successfulResponse.allocations[0],
+      targetAmount: '4200.00',
+      suggestedContribution: '0.00',
+      suggestedPurchase: '0.00',
+      suggestedSale: '600.00',
+      projectedAmount: '4200.00',
+      projectedPercentage: '40.0000',
+    },
+    {
+      ...successfulResponse.allocations[1],
+      targetAmount: '2625.00',
+      monetaryDeficit: '825.00',
+      suggestedContribution: '375.00',
+      suggestedPurchase: '825.00',
+      suggestedSale: '0.00',
+      projectedAmount: '2625.00',
+      projectedPercentage: '25.0000',
+    },
+    {
+      ...successfulResponse.allocations[2],
+      targetAmount: '1575.00',
+      monetaryDeficit: '175.00',
+      suggestedContribution: '79.55',
+      suggestedPurchase: '175.00',
+      suggestedSale: '0.00',
+      projectedAmount: '1575.00',
+      projectedPercentage: '15.0000',
+    },
+    {
+      ...successfulResponse.allocations[3],
+      targetAmount: '2100.00',
+      monetaryDeficit: '100.00',
+      suggestedContribution: '45.45',
+      suggestedPurchase: '100.00',
+      suggestedSale: '0.00',
+      projectedAmount: '2100.00',
+      projectedPercentage: '20.0000',
+    },
+  ],
+}
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
 })
 
 describe('ContributionSimulator', () => {
+  it('keeps one announcement mounted from idle through loading and completion', async () => {
+    const user = userEvent.setup()
+    let resolveRequest!: (response: Response) => void
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveRequest = resolve
+          }),
+      ),
+    )
+    render(<ContributionSimulator />)
+    const announcement = screen.getByRole('status')
+    expect(announcement).toBeEmptyDOMElement()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    expect(screen.getByRole('status')).toBe(announcement)
+    expect(announcement).toHaveTextContent('Calculando a simulação. Aguarde.')
+    await act(async () => {
+      resolveRequest(
+        new Response(JSON.stringify(successfulResponse), { status: 200 }),
+      )
+    })
+
+    expect(screen.getByRole('status')).toBe(announcement)
+    expect(announcement).toHaveTextContent(
+      'Simulação concluída. Total projetado: R$ 12.000,00.',
+    )
+    expect(
+      screen
+        .getByText('Distribuição do novo aporte')
+        .closest('.result-content'),
+    ).not.toHaveAttribute('aria-live')
+  })
+
+  it('cancels a pending simulation without displaying an error or late result', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockImplementation(
+      (_url: string, options: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          options.signal?.addEventListener(
+            'abort',
+            () => reject(new DOMException('Cancelled', 'AbortError')),
+            { once: true },
+          )
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ContributionSimulator />)
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    expect(
+      screen.getByText(/O serviço gratuito pode levar/),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancelar simulação' }))
+
+    expect((fetchMock.mock.calls[0][1] as RequestInit).signal?.aborted).toBe(
+      true,
+    )
+    expect(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    ).toBeEnabled()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Distribuição do novo aporte'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('validates fractional targets with exact four-decimal units', () => {
+    render(
+      <ContributionSimulator
+        initialPreset={{
+          source: 'demo',
+          contribution: '0,00',
+          allocations: [
+            {
+              classId: 'a',
+              name: 'Classe A',
+              currentAmount: '0,00',
+              targetPercentage: '33,3333',
+            },
+            {
+              classId: 'b',
+              name: 'Classe B',
+              currentAmount: '0,00',
+              targetPercentage: '33,3333',
+            },
+            {
+              classId: 'c',
+              name: 'Classe C',
+              currentAmount: '0,00',
+              targetPercentage: '33,3334',
+            },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText(/Soma das metas:/)).toHaveTextContent('100,00%')
+    expect(
+      screen.getByText('Metas válidas: somam exatamente 100%.'),
+    ).toBeInTheDocument()
+  })
+
+  it('marks excessive precision invalid and submits the unchanged precision to the API', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          detail: 'Use uma meta entre 0 e 100 com até quatro casas decimais.',
+        }),
+        { status: 422 },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(
+      <ContributionSimulator
+        initialPreset={{
+          source: 'demo',
+          contribution: '0,00',
+          allocations: [
+            {
+              classId: 'a',
+              name: 'Classe A',
+              currentAmount: '0,00',
+              targetPercentage: '33,33333',
+            },
+            {
+              classId: 'b',
+              name: 'Classe B',
+              currentAmount: '0,00',
+              targetPercentage: '33,33333',
+            },
+            {
+              classId: 'c',
+              name: 'Classe C',
+              currentAmount: '0,00',
+              targetPercentage: '33,33334',
+            },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText(/Soma das metas:/)).toHaveTextContent(
+      'valor inválido',
+    )
+    expect(screen.getByText(/Meta inválida: use valores/)).toBeInTheDocument()
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    const submitted = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    expect(submitted.allocations[0].targetPercentage).toBe('33.33333')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'até quatro casas decimais',
+    )
+  })
+
+  it.each(['-1', '100.0001', '01', '1e2'])(
+    'marks unsupported target syntax %s invalid',
+    (target) => {
+      render(
+        <ContributionSimulator
+          initialPreset={{
+            source: 'demo',
+            contribution: '0,00',
+            allocations: [
+              {
+                classId: 'a',
+                name: 'Classe A',
+                currentAmount: '0,00',
+                targetPercentage: target,
+              },
+            ],
+          }}
+        />,
+      )
+      expect(screen.getByText(/Meta inválida: use valores/)).toBeInTheDocument()
+    },
+  )
+
+  it('explains a validly formatted sum that is not exactly 100 percent', () => {
+    render(
+      <ContributionSimulator
+        initialPreset={{
+          source: 'demo',
+          contribution: '0,00',
+          allocations: [
+            {
+              classId: 'a',
+              name: 'Classe A',
+              currentAmount: '0,00',
+              targetPercentage: '99,9999',
+            },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText(/Soma das metas:/)).toHaveTextContent('99,9999%')
+    expect(
+      screen.getByText('Metas inválidas: a soma deve ser exatamente 100%.'),
+    ).toBeInTheDocument()
+  })
+
   it('starts with the fictitious example and explains the calculation', () => {
     render(<ContributionSimulator />)
 
     expect(screen.getByLabelText('Valor atual de Ações')).toHaveValue('4800,00')
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Incluir vendas para equalizar classes',
+      }),
+    ).not.toBeChecked()
+    expect(screen.getByText(/Somente novos aportes/)).toBeInTheDocument()
     expect(screen.getByText(/Soma das metas:/)).toHaveTextContent('100,00%')
     expect(
       screen.getByText(
@@ -94,12 +365,18 @@ describe('ContributionSimulator', () => {
     expect(screen.getAllByRole('group')).toHaveLength(5)
     expect(screen.getByLabelText('Valor atual de Caixa')).toHaveValue('3000,00')
     expect(screen.getByRole('note')).toHaveTextContent('caixa hipotético')
+    const salesOption = screen.getByRole('checkbox', {
+      name: 'Incluir vendas para equalizar classes',
+    })
+    expect(salesOption).not.toBeChecked()
+    await user.click(salesOption)
 
     await user.click(screen.getByRole('button', { name: 'Restaurar exemplo' }))
 
     expect(screen.getAllByRole('group')).toHaveLength(4)
     expect(screen.getByLabelText('Valor atual de Ações')).toHaveValue('4800,00')
     expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    expect(salesOption).not.toBeChecked()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -179,6 +456,216 @@ describe('ContributionSimulator', () => {
         body: expect.stringContaining('"contribution":"2000.00"'),
       }),
     )
+    const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
+    expect(JSON.parse(requestOptions.body as string)).toMatchObject({
+      includeSales: false,
+    })
+  })
+
+  it('includes simulated purchases and sales only when selected', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(salesResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ContributionSimulator />)
+
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Incluir vendas para equalizar classes',
+      }),
+    )
+    const contribution = screen.getByLabelText('Quanto você quer aportar?')
+    await user.clear(contribution)
+    await user.type(contribution, '500')
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+
+    expect(
+      await screen.findByText('Equalização por classe'),
+    ).toBeInTheDocument()
+    const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
+    expect(JSON.parse(requestOptions.body as string)).toMatchObject({
+      includeSales: true,
+      contribution: '500.00',
+    })
+    const stocks = screen
+      .getByRole('heading', { name: 'Ações' })
+      .closest('article')!
+    expect(within(stocks).getByText('Venda simulada')).toBeInTheDocument()
+    expect(within(stocks).getByText('R$ 600,00')).toBeInTheDocument()
+    const funds = screen
+      .getByRole('heading', { name: 'FIIs' })
+      .closest('article')!
+    expect(within(funds).getByText('Compra simulada')).toBeInTheDocument()
+    expect(within(funds).getByText('R$ 825,00')).toBeInTheDocument()
+    expect(screen.queryByText('R$ 375,00')).not.toBeInTheDocument()
+    expect(screen.getByText('+ R$ 500,00')).toBeInTheDocument()
+    expect(
+      screen.getByText(/As vendas apenas redistribuem/),
+    ).toBeInTheDocument()
+  })
+
+  it('clears a calculated result when changing the sales option', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(successfulResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+    render(<ContributionSimulator />)
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    expect(
+      await screen.findByText('Distribuição do novo aporte'),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Incluir vendas para equalizar classes',
+      }),
+    )
+
+    expect(
+      screen.queryByText('Distribuição do novo aporte'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Compras e vendas simuladas aproximam as classes das suas metas.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('cancels and ignores a pending calculation when changing the sales option', async () => {
+    const user = userEvent.setup()
+    let resolveRequest!: (response: Response) => void
+    const pendingRequest = new Promise<Response>((resolve) => {
+      resolveRequest = resolve
+    })
+    const fetchMock = vi.fn().mockReturnValue(pendingRequest)
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ContributionSimulator />)
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
+
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Incluir vendas para equalizar classes',
+      }),
+    )
+
+    expect(requestOptions.signal?.aborted).toBe(true)
+    expect(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    ).toBeEnabled()
+    await act(async () => {
+      resolveRequest(
+        new Response(JSON.stringify(successfulResponse), { status: 200 }),
+      )
+      await pendingRequest
+    })
+    expect(
+      screen.queryByText('Distribuição do novo aporte'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('accepts zero new cash and identifies classes without movement', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...successfulResponse,
+          method: 'TARGET_CLASS_REBALANCING_WITH_SIMULATED_SALES_V1',
+          includeSales: true,
+          currentTotal: '12000.00',
+          contribution: '0.00',
+          allocations: successfulResponse.allocations.map((allocation) => ({
+            ...allocation,
+            currentAmount: allocation.projectedAmount,
+            currentPercentage: allocation.projectedPercentage,
+            suggestedPurchase: '0.00',
+            suggestedSale: '0.00',
+            suggestedContribution: '0.00',
+          })),
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(
+      <ContributionSimulator
+        initialPreset={{
+          source: 'demo',
+          contribution: '0,00',
+          allocations: successfulResponse.allocations.map((allocation) => ({
+            classId: allocation.classId,
+            name: allocation.name,
+            currentAmount: allocation.projectedAmount.replace('.', ','),
+            targetPercentage: allocation.targetPercentage.replace('.', ','),
+          })),
+        }}
+      />,
+    )
+    const salesOption = screen.getByRole('checkbox', {
+      name: 'Incluir vendas para equalizar classes',
+    })
+    await user.click(salesOption)
+    expect(salesOption).toHaveAccessibleDescription(
+      /Não considera impostos, taxas, liquidez ou quantidades/,
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+
+    expect(
+      await screen.findByText('Equalização por classe'),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('Sem movimentação')).toHaveLength(4)
+    expect(screen.queryByText('Compra simulada')).not.toBeInTheDocument()
+    expect(screen.queryByText('Venda simulada')).not.toBeInTheDocument()
+    const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
+    expect(JSON.parse(requestOptions.body as string)).toMatchObject({
+      includeSales: true,
+      contribution: '0.00',
+    })
+  })
+
+  it('completes cents when a monetary input is confirmed', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ContributionSimulator />)
+
+    const currentAmount = screen.getByLabelText('Valor atual de Ações')
+    const targetPercentage = screen.getByLabelText('Meta percentual de Ações')
+
+    expect(currentAmount.parentElement).toHaveClass('input-with-prefix')
+    expect(targetPercentage.parentElement).toHaveClass('input-with-suffix')
+
+    await user.clear(currentAmount)
+    await user.type(currentAmount, '4800')
+    await user.keyboard('{Enter}')
+
+    expect(currentAmount).toHaveValue('4800,00')
+
+    const contribution = screen.getByLabelText('Quanto você quer aportar?')
+    await user.clear(contribution)
+    await user.type(contribution, '2500')
+    await user.tab()
+
+    expect(contribution).toHaveValue('2500,00')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('ignores a pending response after the user changes an input', async () => {
@@ -193,6 +680,13 @@ describe('ContributionSimulator', () => {
 
     await user.click(
       screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    expect(screen.getByRole('button', { name: 'Calculando…' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Calculando a simulação. Aguarde.',
     )
     const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
 

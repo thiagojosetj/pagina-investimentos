@@ -19,5 +19,8 @@ WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app --home-dir /app app
 COPY --from=backend-build --chown=app:app /workspace/backend/target/portfolio-api-0.1.0-SNAPSHOT.jar /app/app.jar
 USER app
+ENV SERVER_ADDRESS=0.0.0.0 \
+    PORT=10000 \
+    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=50.0 -XX:+UseSerialGC"
 EXPOSE 10000
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

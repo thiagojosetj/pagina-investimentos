@@ -29,7 +29,7 @@ Java e Node rodam diretamente no Windows para facilitar breakpoints e hot reload
 
 O Docker tem dois usos locais: manter o banco de desenvolvimento no volume do projeto e fornecer bancos temporários aos testes de integração. Testcontainers cria e remove apenas seus próprios containers de teste; não usa os dados do PostgreSQL do Compose. O Docker não busca cotações nem publica o site no GitHub. As verificações isoladas do frontend e o perfil opcional `simulator` do backend não dependem dele. Esse perfil só serve à demonstração do cálculo: não habilita carteiras ou metas persistidas e não substitui a validação com PostgreSQL.
 
-No Render, o Docker tem um terceiro papel: construir uma imagem com Vite e Java no mesmo serviço. O Render faz esse build a partir do `Dockerfile` no GitHub; o Docker Desktop da sua máquina pode continuar desligado. A CI também compila e testa a imagem em um runner separado. O perfil público `demo` é diferente do `simulator` local: ambos dispensam banco, mas o público também desativa Swagger e expõe somente o healthcheck. Instruções em [`render-deployment.md`](render-deployment.md).
+No Render, o Docker tem um terceiro papel: construir uma imagem com Vite e Java no mesmo serviço. O Render faz esse build a partir do `Dockerfile` no GitHub; o Docker Desktop da sua máquina pode continuar desligado. A CI também compila e testa a imagem em um runner separado. O perfil público `demo` é diferente do `simulator` local: ambos dispensam banco, mas o público também desativa Swagger e expõe somente o healthcheck. A demonstração publicada está em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com); instruções em [`render-deployment.md`](render-deployment.md).
 
 O projeto nunca precisa de `docker system prune`. `docker compose down -v` remove o volume e exige autorização explícita.
 
@@ -143,7 +143,8 @@ Configurações compartilhadas em `.run/`:
 - `Frontend`: executa `npm run dev`.
 - `Full stack`: inicia Backend e Frontend em paralelo.
 - `Simulator + Frontend`: inicia o backend no perfil `simulator` e o frontend em paralelo, sem Docker.
-- `Backend - Verify`: executa o goal Maven `verify` pelo wrapper.
+- `Backend - Verify`: executa o goal Maven `verify` pelo wrapper, incluindo a cobertura PostgreSQL/Testcontainers.
+- `Backend - Verify without Docker`: executa `verify` com o perfil Maven `without-docker`, excluindo apenas os testes marcados com `postgres`.
 - `Frontend - Checks`: executa `npm run check`.
 - `PostgreSQL`: executa o serviço `postgres` do `compose.yaml`.
 
@@ -159,7 +160,15 @@ Tudo, a partir da raiz:
 .\scripts\check.ps1
 ```
 
-O script valida a sintaxe do Compose e verifica se o Docker Engine responde antes de executar as verificações completas de backend e frontend. Se o daemon estiver indisponível, encerra com uma orientação; não abre o Docker Desktop, não tenta reiniciá-lo e não ignora os testes de integração.
+O script valida a sintaxe do Compose e verifica se o Docker Engine responde antes de executar as verificações completas de backend e frontend. Se o daemon estiver indisponível, encerra com uma orientação; não abre o Docker Desktop nem tenta reiniciá-lo.
+
+Sem Docker, para uma validação parcial:
+
+```powershell
+.\scripts\check.ps1 -SkipDocker
+```
+
+Esse modo não chama Docker nem Docker Compose. Ele executa o backend com o perfil Maven `without-docker`, que exclui somente os testes de PostgreSQL/Testcontainers marcados com `postgres`, e executa todas as verificações do frontend. Não substitui a validação completa: migrations, mapeamentos e integração PostgreSQL continuam obrigatórios no modo normal com Docker ou no job Backend da CI.
 
 Backend isolado:
 

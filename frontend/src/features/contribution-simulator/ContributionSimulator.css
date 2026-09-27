@@ -187,6 +187,18 @@
   border: 0;
 }
 
+.input-with-prefix:focus-within,
+.input-with-suffix:focus-within {
+  border-color: var(--teal);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.input-with-prefix input:focus-visible,
+.input-with-suffix input:focus-visible {
+  outline: 0;
+}
+
 .remove-button {
   width: 28px;
   height: 28px;
@@ -242,6 +254,35 @@
 
 .target-total.invalid {
   color: var(--red);
+}
+
+.target-total-description {
+  display: block;
+  max-width: 240px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.simulation-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.cancel-button {
+  display: block;
+  min-height: 44px;
+  margin: 8px auto 0;
+  padding: 8px 16px;
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .contribution-field {
@@ -303,6 +344,45 @@
   font-weight: 750;
   letter-spacing: -0.04em;
   text-align: right;
+}
+
+.sales-option {
+  margin-top: 18px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-alt);
+}
+
+.sales-option label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--ink);
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sales-option input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--teal);
+}
+
+.sales-option p,
+.sales-result-explanation {
+  margin: 8px 0 0;
+  color: var(--muted-strong);
+  font-size: 0.73rem;
+  line-height: 1.5;
+}
+
+.sales-option p {
+  margin-left: 28px;
 }
 
 .error-message {
@@ -533,6 +613,21 @@
   font-size: 1rem;
 }
 
+.simulated-movement {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.simulated-movement > span {
+  color: var(--muted-strong);
+  font-size: 0.68rem;
+}
+
+.allocation-result-title .simulated-sale {
+  color: var(--red);
+}
+
 .progress-track {
   position: relative;
   height: 5px;
@@ -566,6 +661,108 @@
   color: var(--muted);
   font-size: 0.68rem;
   line-height: 1.45;
+}
+.simulator,
+.simulator-form,
+.simulator-result {
+  transition:
+    border-color var(--motion-base) var(--motion-ease),
+    background-color var(--motion-base) var(--motion-ease);
+}
+
+.submit-button {
+  transition:
+    background-color var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.submit-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+}
+
+.loading-status {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-align: center;
+}
+.result-portfolio-strip .portfolio-strip-segment,
+.result-progress-current {
+  transform-origin: left center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .result-stage {
+    animation: result-stage-enter var(--motion-slow)
+      var(--motion-ease-emphasized) both;
+  }
+
+  .result-stage-totals {
+    animation-delay: 70ms;
+  }
+
+  .result-stage-comparison {
+    animation-delay: 140ms;
+  }
+
+  .result-stage-allocations {
+    animation-delay: 210ms;
+  }
+
+  .result-allocation-row {
+    animation: result-stage-enter var(--motion-slow)
+      var(--motion-ease-emphasized) both;
+  }
+
+  .result-stage-disclaimer {
+    animation-delay: 420ms;
+  }
+
+  @keyframes result-stage-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .result-portfolio-strip .portfolio-strip-segment,
+  .result-progress-current {
+    animation: result-bar-reveal var(--motion-slow)
+      var(--motion-ease-emphasized) both;
+  }
+
+  .submit-spinner {
+    animation: submit-spinner-turn 800ms linear infinite;
+  }
+
+  @keyframes result-bar-reveal {
+    from {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    to {
+      opacity: 0.78;
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes submit-spinner-turn {
+    to {
+      transform: rotate(1turn);
+    }
+  }
 }
 
 @media (max-width: 1080px) {
@@ -709,8 +906,14 @@
     grid-template-columns: 9px minmax(0, 1fr);
   }
 
-  .allocation-result-title > strong {
+  .allocation-result-title > strong,
+  .simulated-movement {
     grid-column: 2;
     overflow-wrap: anywhere;
+  }
+
+  .simulated-movement {
+    justify-items: start;
+    text-align: left;
   }
 }

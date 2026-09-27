@@ -67,9 +67,30 @@ function normalizeDecimal(value: string): string {
   return trimmed
 }
 
-function parseForDisplay(value: string): number {
-  const parsed = Number(normalizeDecimal(value))
-  return Number.isFinite(parsed) ? parsed : 0
+function completeMoneyValue(value: string): string {
+  const normalized = normalizeDecimal(value)
+
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) {
+    return value
+  }
+
+  const [integerPart, decimalPart = ''] = normalized.split('.')
+  return `${integerPart},${decimalPart.padEnd(2, '0')}`
+}
+
+function parseTargetUnits(value: string): bigint | null {
+  const normalized = normalizeDecimal(value)
+  if (!/^(?:(?:0|[1-9]\d?)(?:\.\d{1,4})?|100(?:\.0{1,4})?)$/.test(normalized)) {
+    return null
+  }
+  const [integerPart, decimalPart = ''] = normalized.split('.')
+  return BigInt(integerPart) * 10000n + BigInt(decimalPart.padEnd(4, '0'))
+}
+
+function formatTargetTotal(units: bigint): string {
+  const integerPart = units / 10000n
+  const decimalPart = (units % 10000n).toString().padStart(4, '0')
+  return `${integerPart.toLocaleString('pt-BR')},${decimalPart.replace(/0{1,2}$/, '')}%`
 }
 
 function formatCurrency(value: string): string {
@@ -100,13 +121,19 @@ function PortfolioStrip({
   label: string
 }) {
   return (
-    <div className="portfolio-strip" role="img" aria-label={label}>
+    <div
+      className="portfolio-strip result-portfolio-strip"
+      role="img"
+      aria-label={label}
+    >
       {allocations.map((allocation, index) => (
         <span
+          className="portfolio-strip-segment"
           key={allocation.classId}
           style={{
             backgroundColor: colorForIndex(index),
             width: barWidth(allocation[percentageKey]),
+            animationDelay: `${180 + index * 50}ms`,
           }}
           title={`${allocation.name}: ${formatPercentage(allocation[percentageKey])}`}
         />
@@ -115,20 +142,28 @@ function PortfolioStrip({
   )
 }
 
-function EmptyResult() {
+function EmptyResult({ includeSales }: { includeSales: boolean }) {
   return (
     <div className="empty-result">
       <span className="empty-result-number">01</span>
       <div>
         <p className="eyebrow">Como o cálculo funciona</p>
-        <h2>O aporte é simulado a partir dos déficits da carteira.</h2>
+        <h2>
+          {includeSales
+            ? 'Compras e vendas simuladas aproximam as classes das suas metas.'
+            : 'O aporte é simulado a partir dos déficits da carteira.'}
+        </h2>
         <p>
-          O cálculo compara cada valor atual com a meta monetária projetada após
-          o aporte. Classes acima da meta recebem zero; o restante é dividido
-          proporcionalmente entre os déficits.
+          {includeSales
+            ? 'O cálculo compara os valores atuais com as metas após o aporte. Os excessos viram vendas hipotéticas, cujo valor é reutilizado nas compras das classes abaixo da meta.'
+            : 'O cálculo compara cada valor atual com a meta monetária projetada após o aporte. Classes acima da meta recebem zero; o restante é dividido proporcionalmente entre os déficits.'}
         </p>
         <ul>
-          <li>Nenhuma venda é simulada</li>
+          <li>
+            {includeSales
+              ? 'Valores hipotéticos por classe, sem executar ordens'
+              : 'Nenhuma venda é simulada'}
+          </li>
           <li>Precisão monetária em centavos</li>
           <li>Resultado determinístico e testável</li>
         </ul>
@@ -143,22 +178,28 @@ function SimulationResult({
   result: ContributionSimulationResponse
 }) {
   return (
-    <div className="result-content" aria-live="polite">
-      <div className="result-heading">
+    <div className="result-content">
+      <div className="result-heading result-stage result-stage-heading">
         <div>
           <p className="eyebrow">Resultado da simulação</p>
-          <h2>Distribuição do novo aporte</h2>
+          <h2>
+            {result.includeSales
+              ? 'Equalização por classe'
+              : 'Distribuição do novo aporte'}
+          </h2>
         </div>
-        <span className="method-label">Déficit proporcional</span>
+        <span className="method-label">
+          {result.includeSales ? 'Vendas incluídas' : 'Déficit proporcional'}
+        </span>
       </div>
 
-      <dl className="totals-grid">
+      <dl className="totals-grid result-stage result-stage-totals">
         <div>
           <dt>Patrimônio atual</dt>
           <dd>{formatCurrency(result.currentTotal)}</dd>
         </div>
         <div className="highlight-total">
-          <dt>Novo aporte</dt>
+          <dt>{result.includeSales ? 'Dinheiro novo' : 'Novo aporte'}</dt>
           <dd>+ {formatCurrency(result.contribution)}</dd>
         </div>
         <div>
@@ -167,7 +208,14 @@ function SimulationResult({
         </div>
       </dl>
 
-      <div className="portfolio-comparison">
+      {result.includeSales ? (
+        <p className="sales-result-explanation">
+          As compras simuladas usam o dinheiro novo e os valores das vendas
+          simuladas. As vendas apenas redistribuem o patrimônio entre classes.
+        </p>
+      ) : null}
+
+      <div className="portfolio-comparison result-stage result-stage-comparison">
         <div>
           <span>Agora</span>
           <PortfolioStrip
@@ -177,7 +225,9 @@ function SimulationResult({
           />
         </div>
         <div>
-          <span>Após o aporte</span>
+          <span>
+            {result.includeSales ? 'Após equalizar' : 'Após o aporte'}
+          </span>
           <PortfolioStrip
             allocations={result.allocations}
             percentageKey="projectedPercentage"
@@ -186,9 +236,13 @@ function SimulationResult({
         </div>
       </div>
 
-      <div className="allocation-results">
+      <div className="allocation-results result-stage result-stage-allocations">
         {result.allocations.map((allocation, index) => (
-          <article className="allocation-result" key={allocation.classId}>
+          <article
+            className="allocation-result result-allocation-row"
+            key={allocation.classId}
+            style={{ animationDelay: `${260 + index * 55}ms` }}
+          >
             <div className="allocation-result-title">
               <span
                 className="color-key"
@@ -202,16 +256,39 @@ function SimulationResult({
                   de {formatPercentage(allocation.targetPercentage)}
                 </p>
               </div>
-              <strong>
-                {formatCurrency(allocation.suggestedContribution)}
-              </strong>
+              {result.includeSales ? (
+                <div className="simulated-movement">
+                  {allocation.suggestedPurchase !== '0.00' ? (
+                    <>
+                      <span>Compra simulada</span>
+                      <strong>
+                        {formatCurrency(allocation.suggestedPurchase)}
+                      </strong>
+                    </>
+                  ) : allocation.suggestedSale !== '0.00' ? (
+                    <>
+                      <span>Venda simulada</span>
+                      <strong className="simulated-sale">
+                        {formatCurrency(allocation.suggestedSale)}
+                      </strong>
+                    </>
+                  ) : (
+                    <span>Sem movimentação</span>
+                  )}
+                </div>
+              ) : (
+                <strong>
+                  {formatCurrency(allocation.suggestedContribution)}
+                </strong>
+              )}
             </div>
             <div className="progress-track" aria-hidden="true">
               <span
-                className="progress-current"
+                className="progress-current result-progress-current"
                 style={{
                   backgroundColor: colorForIndex(index),
                   width: barWidth(allocation.projectedPercentage),
+                  animationDelay: `${300 + index * 55}ms`,
                 }}
               />
               <i style={{ left: barWidth(allocation.targetPercentage) }} />
@@ -224,7 +301,9 @@ function SimulationResult({
         ))}
       </div>
 
-      <p className="result-disclaimer">{result.disclaimer}</p>
+      <p className="result-disclaimer result-stage result-stage-disclaimer">
+        {result.disclaimer}
+      </p>
     </div>
   )
 }
@@ -245,9 +324,11 @@ export function ContributionSimulator({
   const [isDemoPreset, setIsDemoPreset] = useState(
     initialPreset?.source === 'demo',
   )
+  const [includeSales, setIncludeSales] = useState(false)
   const [result, setResult] = useState<ContributionSimulationResponse | null>(
     null,
   )
+  const [resultVersion, setResultVersion] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const nextClassNumber = useRef(
@@ -273,16 +354,18 @@ export function ContributionSimulator({
     }
   }, [allocations])
 
-  const targetTotal = useMemo(
-    () =>
-      allocations.reduce(
-        (total, allocation) =>
-          total + parseForDisplay(allocation.targetPercentage),
-        0,
-      ),
-    [allocations],
-  )
-  const isTargetTotalValid = Math.abs(targetTotal - 100) < 0.00005
+  const targetSummary = useMemo(() => {
+    const units = allocations.map((allocation) =>
+      parseTargetUnits(allocation.targetPercentage),
+    )
+    const hasInvalidTarget = units.some((value) => value === null)
+    const total = units.reduce<bigint>((sum, value) => sum + (value ?? 0n), 0n)
+    return {
+      total,
+      hasInvalidTarget,
+      isValid: !hasInvalidTarget && total === 1000000n,
+    }
+  }, [allocations])
 
   function updateAllocation(
     index: number,
@@ -297,6 +380,14 @@ export function ContributionSimulator({
           : allocation,
       ),
     )
+  }
+
+  function commitAllocationMoney(index: number, value: string) {
+    const completedValue = completeMoneyValue(value)
+
+    if (completedValue !== value) {
+      updateAllocation(index, 'currentAmount', completedValue)
+    }
   }
 
   function addAllocation() {
@@ -329,6 +420,7 @@ export function ContributionSimulator({
     invalidateSimulation()
     setAllocations(INITIAL_ALLOCATIONS.map((allocation) => ({ ...allocation })))
     setContribution('2000,00')
+    setIncludeSales(false)
     setIsDemoPreset(false)
   }
 
@@ -338,6 +430,19 @@ export function ContributionSimulator({
     setIsLoading(false)
     setResult(null)
     setError(null)
+  }
+
+  function updateContribution(value: string) {
+    invalidateSimulation()
+    setContribution(value)
+  }
+
+  function commitContribution(value: string) {
+    const completedValue = completeMoneyValue(value)
+
+    if (completedValue !== value) {
+      updateContribution(completedValue)
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -351,6 +456,7 @@ export function ContributionSimulator({
     const request: ContributionSimulationRequest = {
       currency: 'BRL',
       contribution: normalizeDecimal(contribution),
+      includeSales,
       allocations: allocations.map((allocation) => ({
         classId: allocation.classId,
         name: allocation.name.trim(),
@@ -366,6 +472,7 @@ export function ContributionSimulator({
       )
       if (activeRequest.current === requestController) {
         setResult(simulation)
+        setResultVersion((currentVersion) => currentVersion + 1)
       }
     } catch (caughtError) {
       if (
@@ -393,7 +500,11 @@ export function ContributionSimulator({
       id="simulador"
       aria-labelledby="simulator-title"
     >
-      <form className="simulator-form" onSubmit={handleSubmit}>
+      <form
+        aria-busy={isLoading}
+        className="simulator-form"
+        onSubmit={handleSubmit}
+      >
         <div className="panel-heading">
           <div>
             <p className="section-index">01 / Configure</p>
@@ -458,6 +569,9 @@ export function ContributionSimulator({
                   <input
                     aria-label={`Valor atual de ${allocation.name}`}
                     inputMode="decimal"
+                    onBlur={(event) =>
+                      commitAllocationMoney(index, event.currentTarget.value)
+                    }
                     onChange={(event) =>
                       updateAllocation(
                         index,
@@ -465,6 +579,12 @@ export function ContributionSimulator({
                         event.target.value,
                       )
                     }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      }
+                    }}
                     required
                     type="text"
                     value={allocation.currentAmount}
@@ -516,28 +636,46 @@ export function ContributionSimulator({
           </button>
           <p
             className={
-              isTargetTotalValid ? 'target-total valid' : 'target-total invalid'
+              targetSummary.isValid
+                ? 'target-total valid'
+                : 'target-total invalid'
             }
           >
             Soma das metas:{' '}
-            <strong>{formatPercentage(targetTotal.toFixed(4))}</strong>
+            <strong>
+              {targetSummary.hasInvalidTarget
+                ? 'valor inválido'
+                : formatTargetTotal(targetSummary.total)}
+            </strong>
+            <span className="target-total-description">
+              {targetSummary.isValid
+                ? 'Metas válidas: somam exatamente 100%.'
+                : targetSummary.hasInvalidTarget
+                  ? 'Meta inválida: use valores entre 0 e 100 com até quatro casas decimais.'
+                  : 'Metas inválidas: a soma deve ser exatamente 100%.'}
+            </span>
           </p>
         </div>
 
         <div className="contribution-field">
           <label htmlFor="contribution">Quanto você quer aportar?</label>
           <p>
-            Na simulação, o valor é distribuído somente entre as classes abaixo
-            da meta projetada.
+            {includeSales
+              ? 'Dinheiro novo para somar à carteira. Use R$ 0,00 para simular apenas a redistribuição entre classes.'
+              : 'Na simulação, o valor é distribuído somente entre as classes abaixo da meta projetada.'}
           </p>
           <span className="contribution-input">
             <b aria-hidden="true">R$</b>
             <input
               id="contribution"
               inputMode="decimal"
-              onChange={(event) => {
-                invalidateSimulation()
-                setContribution(event.target.value)
+              onBlur={(event) => commitContribution(event.currentTarget.value)}
+              onChange={(event) => updateContribution(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  event.currentTarget.blur()
+                }
               }}
               required
               type="text"
@@ -546,20 +684,79 @@ export function ContributionSimulator({
           </span>
         </div>
 
+        <div className="sales-option">
+          <label>
+            <input
+              aria-describedby="sales-mode-description"
+              checked={includeSales}
+              onChange={(event) => {
+                invalidateSimulation()
+                setIncludeSales(event.target.checked)
+              }}
+              type="checkbox"
+            />
+            <span>Incluir vendas para equalizar classes</span>
+          </label>
+          <p id="sales-mode-description">
+            {includeSales
+              ? 'Simulação educacional por classe, sem executar ordens. Não considera impostos, taxas, liquidez ou quantidades de ativos.'
+              : 'Somente novos aportes. Nenhuma venda será simulada.'}
+          </p>
+        </div>
+
         {error ? (
           <p className="error-message" role="alert">
             {error}
           </p>
         ) : null}
 
-        <button className="submit-button" disabled={isLoading} type="submit">
+        <button
+          aria-busy={isLoading}
+          className="submit-button"
+          disabled={isLoading}
+          type="submit"
+        >
           <span>{isLoading ? 'Calculando…' : 'Simular distribuição'}</span>
-          <span aria-hidden="true">→</span>
+          {isLoading ? (
+            <span aria-hidden="true" className="submit-spinner" />
+          ) : (
+            <span aria-hidden="true">→</span>
+          )}
         </button>
+        {isLoading ? (
+          <>
+            <p className="loading-status">
+              O serviço gratuito pode levar até dois minutos para iniciar.
+            </p>
+            <button
+              className="cancel-button"
+              type="button"
+              onClick={invalidateSimulation}
+            >
+              Cancelar simulação
+            </button>
+          </>
+        ) : null}
       </form>
 
-      <aside className="simulator-result" aria-label="Resultado da simulação">
-        {result ? <SimulationResult result={result} /> : <EmptyResult />}
+      <p className="simulation-announcement" role="status" aria-atomic="true">
+        {isLoading
+          ? 'Calculando a simulação. Aguarde.'
+          : result
+            ? `Simulação concluída. Total projetado: ${formatCurrency(result.projectedTotal)}.`
+            : ''}
+      </p>
+
+      <aside
+        aria-busy={isLoading}
+        className="simulator-result"
+        aria-label="Resultado da simulação"
+      >
+        {result ? (
+          <SimulationResult key={resultVersion} result={result} />
+        ) : (
+          <EmptyResult includeSales={includeSales} />
+        )}
       </aside>
     </section>
   )

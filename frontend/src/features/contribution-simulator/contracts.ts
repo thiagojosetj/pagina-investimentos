@@ -8,6 +8,7 @@ export interface AllocationInput {
 export interface ContributionSimulationRequest {
   currency: 'BRL'
   contribution: string
+  includeSales: boolean
   allocations: AllocationInput[]
 }
 
@@ -26,6 +27,8 @@ export interface AllocationResult {
   targetAmount: string
   monetaryDeficit: string
   suggestedContribution: string
+  suggestedPurchase: string
+  suggestedSale: string
   projectedAmount: string
   projectedPercentage: string
 }
@@ -36,6 +39,7 @@ export interface ContributionSimulationResponse {
   currentTotal: string
   contribution: string
   projectedTotal: string
+  includeSales: boolean
   allocations: AllocationResult[]
   disclaimer: string
 }

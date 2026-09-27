@@ -4,6 +4,7 @@ import java.util.List;
 
 public record ContributionSimulationResponse(
     String method,
+    boolean includeSales,
     String currency,
     String currentTotal,
     String contribution,
@@ -24,6 +25,8 @@ public record ContributionSimulationResponse(
       String targetAmount,
       String monetaryDeficit,
       String suggestedContribution,
+      String suggestedPurchase,
+      String suggestedSale,
       String projectedAmount,
       String projectedPercentage) {}
 }

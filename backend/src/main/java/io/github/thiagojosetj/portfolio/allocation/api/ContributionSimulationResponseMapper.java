@@ -27,18 +27,27 @@ public class ContributionSimulationResponseMapper {
                         money(item.targetAmountInCents()),
                         money(item.monetaryDeficitInCents()),
                         money(item.suggestedContributionInCents()),
+                        money(item.suggestedPurchaseInCents()),
+                        money(item.suggestedSaleInCents()),
                         money(item.projectedAmountInCents()),
                         percentage(item.projectedAmountInCents(), plan.projectedTotalInCents())))
             .toList();
 
     return new ContributionSimulationResponse(
-        ProportionalMonetaryDeficitAllocator.METHOD,
+        plan.includeSales()
+            ? ProportionalMonetaryDeficitAllocator.SALES_METHOD
+            : ProportionalMonetaryDeficitAllocator.METHOD,
+        plan.includeSales(),
         "BRL",
         money(plan.currentTotalInCents()),
         money(plan.contributionInCents()),
         money(plan.projectedTotalInCents()),
         items,
-        DISCLAIMER);
+        plan.includeSales()
+            ? DISCLAIMER
+                + " Compras e vendas são hipotéticas por classe; não consideram impostos, taxas,"
+                + " liquidez ou quantidades de ativos."
+            : DISCLAIMER);
   }
 
   private String money(BigInteger cents) {
