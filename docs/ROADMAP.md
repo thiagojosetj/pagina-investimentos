@@ -14,10 +14,10 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 | WEB-003 / média | Refinar navegação, tema, alocação e resultado sem mudar regras financeiras; depende WEB-001 e WEB-002 | Rascunho preservado, loading acessível, barras e resultado com movimento breve, preferência por menos movimento respeitada; testes de componente e `npm run check` | Concluído localmente em 22/09: 52 testes backend sem Docker e 24 frontend; sem dependência visual nova |
 | WEB-004 / baixa | Corrigir o foco de controles compostos e completar centavos no frontend; depende WEB-001 | Contorno único para `R$`/`%`, Enter ou blur completam `,00`, nenhum envio prematuro; teste de componente e verificações frontend | Concluído localmente em 24/09: 25 testes frontend, format-check, lint, typecheck e build; sem mudança financeira ou de API |
 | SIM-001 / média | Equalizar classes com vendas hipotéticas opcionais; depende INC-002/003/004 e ADR-014 | Padrão sem vendas, conservação do dinheiro, aporte zero e contrato compatível; testes de domínio, API e interface | Implementado; detalhes abaixo e em `class-rebalancing.md` |
-| WEB-005 / média | Melhorar anúncios assistivos e controle da espera; depende SIM-001 | Região de estado persistente, metas exatas em texto, cancelamento e timeout de 120s; testes de componente e API cliente | Validado localmente; frontend completo com 41 testes, lint, typecheck e build |
-| HARD-002 / alta | Proteger e reduzir custo da demonstração; depende RELEASE-001 | Headers inclusive 413, CSP só demo, cache/gzip, limites Tomcat e defaults na imagem; testes Java e smoke da CI | Backend local com 68 testes sem PostgreSQL; imagem e PostgreSQL requerem CI |
+| WEB-005 / média | Melhorar anúncios assistivos e controle da espera; depende SIM-001 | Região de estado persistente, metas exatas em texto, cancelamento e timeout de 120s; testes de componente e API cliente | Concluído; CI do PR #10 com 41 testes frontend, lint, typecheck e build |
+| HARD-002 / alta | Proteger e reduzir custo da demonstração; depende RELEASE-001 | Headers inclusive 413, CSP só demo, cache/gzip, limites Tomcat e defaults na imagem; testes Java e smoke da CI | Concluído; CI do PR #10 com 88 testes backend (20 PostgreSQL) e smoke da imagem aprovados |
 | DEV-001 / alta | Permitir testar o simulador sem o Docker local; depende da API pura existente | Perfil opt-in sem banco, POST real com cinco classes pelo proxy Vite, erro 502 claro; testes de contexto/HTTP e frontend | Concluído; CI de `main` aprovou a cobertura PostgreSQL e a imagem pública |
-| DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído localmente com 52 testes backend e 24 frontend; modo completo/CI continuam obrigatórios |
+| DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído; última execução local com 68 testes backend e 41 frontend; modo completo/CI continuam obrigatórios |
 | INC-008A / alta | Preservar IDs das classes; depende INC-008 | Renomeação, reordenação, criação e remoção sem perder a identidade das classes mantidas; ownership e concorrência | Implementado e validado no PR #7 |
 | INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Teste concorrente deve impedir versão antiga combinada com metas novas; alinhar nomes de 80 caracteres na persistência versus 60 no simulador sem truncamento | Proposto: estratégia e compatibilidade revisadas antes do endpoint |
 | INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposto: documento e contratos aprovados antes de INC-011 |
@@ -38,13 +38,13 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 
 ### SIM-001 — Equalização opcional com vendas simuladas
 
-- **Status:** implementado localmente em 27/09/2026; publicação pendente.
+- **Status:** concluído e validado na CI do PR #10 em 27/09/2026; deploy no Render deve ser conferido separadamente.
 - **Prioridade:** média.
 - **Objetivo:** oferecer “Incluir vendas para equalizar classes” mantendo novos aportes como padrão.
 - **Dependências:** INC-002, INC-003, INC-004 e ADR-014.
 - **Critérios de aceite:** opção desmarcada inicialmente; compras/vendas hipotéticas por classe; compras menos vendas igual ao aporte; projeção igual às metas monetárias; aporte zero; contrato anterior compatível; troca de modo invalida resultado pendente.
 - **Verificações:** domínio em centavos, empates e permutação, carteira vazia, metas zero, valores grandes, API e interface; format-check, lint, typecheck e build.
-- **Definition of Done:** fluxo integrado verificado com API real e exemplo sintético, regra documentada e commits locais revisáveis. Ordens e seleção de ativos permanecem fora desse incremento.
+- **Definition of Done:** fluxo integrado verificado com API real e exemplo sintético, regra documentada, commits revisáveis e três jobs da CI aprovados. Ordens e seleção de ativos permanecem fora desse incremento.
 
 ## Fase 0 — Fundação e primeira fatia
 

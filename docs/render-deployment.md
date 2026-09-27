@@ -6,7 +6,7 @@ Esta é uma vitrine educacional sem banco, login ou carteira salva. O frontend R
 
 - **URL:** [https://pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com)
 - **Serviço:** `pagina-investimentos-demo`, um Web Service Docker no plano Free, sem banco, login ou carteira salva.
-- **Origem:** commit `270fa663bf1136992b8893f3ca18183163587e98` da `main`, publicado em 21 de setembro de 2026.
+- **Origem inicial:** commit `270fa663bf1136992b8893f3ca18183163587e98` da `main`, publicado em 21 de setembro de 2026. Para atualizações posteriores, confira o último deploy concluído no painel.
 - **Verificações reais:** reconfirmadas em 27/09/2026, 11h28 (UTC−03): página HTTP 200 e health `UP`; POST com valores atuais fictícios `60.00`/`40.00`, metas `50.0000`/`50.0000` e aporte `100.00` retornou parcelas `40.00`/`60.00`. O asset servido nessa verificação foi `/assets/index-Cqhwipg4.js`, da versão anterior a este incremento.
 
 O `Dockerfile` e o perfil `demo` continuam a definir o pacote da demonstração. O `render.yaml` é a configuração declarativa de referência; como o serviço foi criado manualmente no painel, a configuração efetiva de Auto-Deploy deve ser conferida no próprio Render. `PORT` é fornecida pelo Render e já é lida pelo Spring Boot. Não configure `DATABASE_URL`, credenciais ou um PostgreSQL para esta demonstração.

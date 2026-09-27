@@ -244,7 +244,7 @@ Nenhuma fonte de dados financeiros foi integrada. A pesquisa preliminar acima n�
 
 ## ADR-014 — Equalização opcional por classe com vendas simuladas
 
-**Status:** aprovada pelo autor em 27 de setembro de 2026 e implementada localmente.
+**Status:** aprovada pelo autor em 27 de setembro de 2026, implementada e validada na CI do PR #10.
 
 Manter a ADR-003 como comportamento padrão e oferecer uma opção explícita para simular vendas entre classes. Calcular a meta monetária sobre patrimônio atual mais aporte, usando os mesmos centavos inteiros, maiores restos e desempate por `classId`. Uma classe acima da meta fornece a diferença como venda hipotética; uma classe abaixo recebe a diferença como compra. Compras menos vendas conservam exatamente o aporte externo.
 

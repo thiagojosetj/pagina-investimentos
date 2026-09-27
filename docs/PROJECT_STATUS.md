@@ -14,7 +14,7 @@ O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviç
 
 O autor aprovou uma primeira versão online com frontend e API Java no mesmo serviço gratuito, sem banco, login ou carteiras salvas. O `Dockerfile` incorpora o build Vite ao JAR. `render.yaml` declara plano Free, branch `main`, healthcheck e deploy após a CI, mas é apenas referência para o serviço criado manualmente: a opção efetiva deve ser conferida no painel. O perfil `demo` desativa a persistência e as rotas de documentação da API. A interface avisa que somente valores fictícios devem ser usados e que as entradas são transmitidas à API para cálculo, sem salvar carteira.
 
-**Estado:** publicação concluída e verificada. O serviço `pagina-investimentos-demo` está ativo no Render Free a partir do commit `270fa663bf1136992b8893f3ca18183163587e98` da `main`; continua sem banco, login, cotações externas ou dados persistidos. O procedimento de verificação e atualização está em [`render-deployment.md`](render-deployment.md).
+**Estado:** publicação inicial concluída e verificada no Render Free, originalmente a partir do commit `270fa663bf1136992b8893f3ca18183163587e98` da `main`. Continua sem banco, login, cotações externas ou dados persistidos. Atualizações posteriores exigem um novo deploy concluído; o procedimento está em [`render-deployment.md`](render-deployment.md).
 
 **Verificações reais:** a CI da `main` aprovou os jobs Backend, Frontend e Public demo image. O deploy terminou como `Live`; a página pública respondeu HTTP 200, `/actuator/health` respondeu `UP` e uma simulação com valores inteiramente fictícios retornou as parcelas `40.00` e `60.00`.
 
@@ -128,7 +128,7 @@ Os números desta seção são históricos; as verificações mais recentes de I
 
 ## SIM-001 — equalização opcional com vendas simuladas
 
-Implementação local em 27 de setembro de 2026: a opção “Incluir vendas para equalizar classes” começa desmarcada e permite simular compras e vendas monetárias para atingir as metas por classe sobre o patrimônio após o aporte. O modo padrão mantém a distribuição proporcional de dinheiro novo. Não há ordem, seleção de ativo, nova persistência ou provedor.
+Implementado e validado na CI do PR #10 em 27 de setembro de 2026: a opção “Incluir vendas para equalizar classes” começa desmarcada e permite simular compras e vendas monetárias para atingir as metas por classe sobre o patrimônio após o aporte. O modo padrão mantém a distribuição proporcional de dinheiro novo. Não há ordem, seleção de ativo, nova persistência ou provedor.
 
 A API preserva chamadas sem a opção e o campo `suggestedContribution`, acrescentando compras e vendas explícitas. Aporte zero permite transferências hipotéticas; metas monetárias usam centavos inteiros e desempate estável por identificador. Regra e limites em [`class-rebalancing.md`](class-rebalancing.md), decisão na ADR-014.
 
@@ -147,6 +147,8 @@ Em 27 de setembro de 2026, o simulador ganhou região de anúncio persistente, m
 O perfil `demo` aplica headers de segurança antes do filtro de corpo, também em 413. Arquivos Vite com hash têm cache imutável; HTML revalida. Compressão e limites conservadores do Tomcat reduzem custo sem substituir rate limiting. A imagem contém defaults de bind/porta/memória; Swagger local continua disponível. Decisões nas ADRs 015–017 e prioridades em [`REVIEW_FOLLOW_UP.md`](REVIEW_FOLLOW_UP.md).
 
 **Validação local:** backend `-Pwithout-docker verify` com 68 testes, zero falhas/erros, Spotless e build. Frontend completo com 41 testes e format-check, lint, typecheck e build. HTTP real do JAR demonstrativo confirmou página 200/no-cache e JavaScript com cache imutável/gzip. PostgreSQL e smoke da imagem dependem da CI; nenhum Docker local foi iniciado.
+
+**Validação completa na CI:** [execução 36326271598 do PR #10](https://github.com/thiagojosetj/pagina-investimentos/actions/runs/36326271598), sobre `0da5a32`, aprovou Backend, Frontend e Public demo image. Backend: 88 testes sem falhas, incluindo 20 com PostgreSQL real (sete de contexto/migration e 13 do serviço de carteiras). Frontend: 41 testes e demais verificações. Imagem: inicialização limitada a 512 MB, health, modos padrão/com vendas, 413 protegido, cache/gzip e documentação desativada. Esse resultado não comprova sozinho o deploy no Render.
 
 ## Próximo incremento recomendado
 
