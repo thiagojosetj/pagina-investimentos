@@ -169,3 +169,9 @@ Uma execução intermediária falhou ao compilar o teste da HQL por uso de um m�
 ## INC-010A — proposta de segurança web
 
 [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md) registra uma proposta baseada em fontes oficiais consultadas em 27/09/2026: identidade Google OIDC no Java, vínculo por provider/sub, sessão por cookie, CSRF, expiração, logout, ownership e testes com dados/provedor sintéticos. Inclui ameaças, alternativas e tarefas pequenas. Os detalhes não foram aprovados nem implementados; não existe login novo, endpoint de carteira, credencial ou mudança de deploy neste incremento.
+
+## WEB-006 — botão deslizante para vendas simuladas
+
+Implementado localmente em 27/09/2026: “Incluir vendas para equalizar classes” usa um switch com indicador branco à esquerda e trilho claro quando desligado; ao ativar, desliza para a direita e o trilho fica verde. O input nativo permanece acessível com `role="switch"`, rótulo e descrição, clique/toque e Tab/Espaço. O foco envolve o trilho; movimento reduzido e cores de alto contraste são respeitados. A regra financeira, o estado inicial desligado, a invalidação de resultado e o contrato da API não mudaram.
+
+`npm run check` passou: format-check, lint, typecheck, 42 testes frontend e build. Uma regressão cobre clique no rótulo e teclado sem envio acidental. Edge headless verificou 320/1280 px, claro/escuro, deslocamento e cores, ausência de overflow, foco e movimento reduzido; isso não substitui teste em aparelho físico. O fluxo com API real pelo Vite retornou HTTP 200 nos modos desligado/ligado (`includeSales=false/true`), usando o exemplo sintético. Evidências visuais temporárias em `backend/target`, ignorado pelo Git. Nenhum arquivo backend mudou neste ajuste; PostgreSQL não foi executado novamente. Ainda sem push, CI ou deploy deste incremento.

@@ -341,7 +341,7 @@ describe('ContributionSimulator', () => {
 
     expect(screen.getByLabelText('Valor atual de Ações')).toHaveValue('4800,00')
     expect(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: 'Incluir vendas para equalizar classes',
       }),
     ).not.toBeChecked()
@@ -352,6 +352,40 @@ describe('ContributionSimulator', () => {
         'O aporte é simulado a partir dos déficits da carteira.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('toggles simulated sales through its label and keyboard without submitting', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ContributionSimulator />)
+
+    const salesSwitch = screen.getByRole('switch', {
+      name: 'Incluir vendas para equalizar classes',
+    })
+    expect(salesSwitch).toHaveAttribute('type', 'checkbox')
+    expect(salesSwitch).not.toBeChecked()
+    expect(salesSwitch).toHaveAccessibleDescription(
+      'Somente novos aportes. Nenhuma venda será simulada.',
+    )
+
+    await user.click(screen.getByText('Incluir vendas para equalizar classes'))
+
+    expect(salesSwitch).toBeChecked()
+    expect(salesSwitch).toHaveAccessibleDescription(
+      /Não considera impostos, taxas, liquidez ou quantidades de ativos/,
+    )
+
+    await user.click(screen.getByLabelText('Quanto você quer aportar?'))
+    await user.tab()
+    expect(salesSwitch).toHaveFocus()
+    await user.keyboard(' ')
+
+    expect(salesSwitch).not.toBeChecked()
+    expect(salesSwitch).toHaveAccessibleDescription(
+      'Somente novos aportes. Nenhuma venda será simulada.',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('restores the original example after starting with the synthetic overview', async () => {
@@ -365,7 +399,7 @@ describe('ContributionSimulator', () => {
     expect(screen.getAllByRole('group')).toHaveLength(5)
     expect(screen.getByLabelText('Valor atual de Caixa')).toHaveValue('3000,00')
     expect(screen.getByRole('note')).toHaveTextContent('caixa hipotético')
-    const salesOption = screen.getByRole('checkbox', {
+    const salesOption = screen.getByRole('switch', {
       name: 'Incluir vendas para equalizar classes',
     })
     expect(salesOption).not.toBeChecked()
@@ -474,7 +508,7 @@ describe('ContributionSimulator', () => {
     render(<ContributionSimulator />)
 
     await user.click(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: 'Incluir vendas para equalizar classes',
       }),
     )
@@ -530,7 +564,7 @@ describe('ContributionSimulator', () => {
     ).toBeInTheDocument()
 
     await user.click(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: 'Incluir vendas para equalizar classes',
       }),
     )
@@ -560,7 +594,7 @@ describe('ContributionSimulator', () => {
     const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit
 
     await user.click(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: 'Incluir vendas para equalizar classes',
       }),
     )
@@ -617,7 +651,7 @@ describe('ContributionSimulator', () => {
         }}
       />,
     )
-    const salesOption = screen.getByRole('checkbox', {
+    const salesOption = screen.getByRole('switch', {
       name: 'Incluir vendas para equalizar classes',
     })
     await user.click(salesOption)

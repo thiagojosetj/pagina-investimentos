@@ -354,10 +354,11 @@
   background: var(--surface-alt);
 }
 
-.sales-option label {
+.sales-switch {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-height: 44px;
   color: var(--ink);
   font-size: 0.83rem;
@@ -365,12 +366,55 @@
   cursor: pointer;
 }
 
-.sales-option input {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
+.sales-switch-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   margin: 0;
-  accent-color: var(--teal);
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.sales-switch-track {
+  display: flex;
+  align-items: center;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 30px;
+  padding: 3px;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: #e6ebe8;
+}
+
+.sales-switch-thumb {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #71827f;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(16, 42, 43, 0.18);
+  transform: translateX(0);
+}
+
+.sales-switch-input:checked + .sales-switch-track {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.sales-switch-input:checked + .sales-switch-track .sales-switch-thumb {
+  border-color: #102a2b;
+  transform: translateX(22px);
+}
+
+.sales-switch-input:focus-visible + .sales-switch-track {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.sales-switch-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .sales-option p,
@@ -382,7 +426,7 @@
 }
 
 .sales-option p {
-  margin-left: 28px;
+  margin-left: 64px;
 }
 
 .error-message {
@@ -697,6 +741,18 @@
   transform-origin: left center;
 }
 @media (prefers-reduced-motion: no-preference) {
+  .sales-switch-track {
+    transition:
+      background-color var(--motion-base) var(--motion-ease),
+      border-color var(--motion-base) var(--motion-ease);
+  }
+
+  .sales-switch-thumb {
+    transition:
+      transform var(--motion-base) var(--motion-ease),
+      border-color var(--motion-base) var(--motion-ease);
+  }
+
   .result-stage {
     animation: result-stage-enter var(--motion-slow)
       var(--motion-ease-emphasized) both;
@@ -733,6 +789,34 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+}
+
+@media (forced-colors: active) {
+  .sales-switch-track {
+    forced-color-adjust: none;
+    border-color: ButtonText;
+    background: Canvas;
+  }
+
+  .sales-switch-thumb {
+    border-color: ButtonText;
+    background: ButtonText;
+    box-shadow: none;
+  }
+
+  .sales-switch-input:checked + .sales-switch-track {
+    border-color: Highlight;
+    background: Highlight;
+  }
+
+  .sales-switch-input:checked + .sales-switch-track .sales-switch-thumb {
+    border-color: HighlightText;
+    background: HighlightText;
+  }
+
+  .sales-switch-input:focus-visible + .sales-switch-track {
+    outline-color: Highlight;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -781,6 +865,10 @@
 }
 
 @media (max-width: 620px) {
+  .sales-option p {
+    margin-left: 0;
+  }
+
   .simulator-form,
   .simulator-result {
     padding: 24px 18px;
