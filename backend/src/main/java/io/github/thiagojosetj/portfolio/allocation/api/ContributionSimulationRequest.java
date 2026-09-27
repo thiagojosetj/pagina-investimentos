@@ -11,6 +11,7 @@ import java.util.List;
 public record ContributionSimulationRequest(
     @NotBlank @Pattern(regexp = "BRL") String currency,
     @NotBlank String contribution,
+    Boolean includeSales,
     @NotEmpty @Size(max = 20) List<@NotNull @Valid AllocationInput> allocations) {
 
   public record AllocationInput(

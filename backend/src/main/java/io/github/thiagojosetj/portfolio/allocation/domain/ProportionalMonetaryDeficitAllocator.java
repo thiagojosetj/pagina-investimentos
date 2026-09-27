@@ -12,10 +12,18 @@ import java.util.Set;
 public final class ProportionalMonetaryDeficitAllocator {
 
   public static final String METHOD = "PROPORTIONAL_MONETARY_DEFICIT_V1";
+  public static final String SALES_METHOD = "TARGET_CLASS_REBALANCING_WITH_SIMULATED_SALES_V1";
   public static final BigInteger TOTAL_PERCENTAGE_UNITS = BigInteger.valueOf(1_000_000L);
 
   public ContributionPlan allocate(
       List<AllocationClass> allocationClasses, BigInteger contributionInCents) {
+    return allocate(allocationClasses, contributionInCents, false);
+  }
+
+  public ContributionPlan allocate(
+      List<AllocationClass> allocationClasses,
+      BigInteger contributionInCents,
+      boolean includeSales) {
     validate(allocationClasses, contributionInCents);
 
     var currentTotal =
@@ -60,19 +68,29 @@ public final class ProportionalMonetaryDeficitAllocator {
             .map(
                 item -> {
                   var suggestedContribution = contributions.get(item.classId());
+                  var targetAmount = targetAmounts.get(item.classId());
+                  var suggestedPurchase =
+                      includeSales ? deficits.get(item.classId()) : suggestedContribution;
+                  var suggestedSale =
+                      includeSales
+                          ? item.currentAmountInCents().subtract(targetAmount).max(BigInteger.ZERO)
+                          : BigInteger.ZERO;
                   return new AllocationSuggestion(
                       item.classId(),
                       item.name(),
                       item.currentAmountInCents(),
                       item.targetPercentageUnits(),
-                      targetAmounts.get(item.classId()),
+                      targetAmount,
                       deficits.get(item.classId()),
                       suggestedContribution,
-                      item.currentAmountInCents().add(suggestedContribution));
+                      suggestedPurchase,
+                      suggestedSale,
+                      item.currentAmountInCents().add(suggestedPurchase).subtract(suggestedSale));
                 })
             .toList();
 
-    return new ContributionPlan(currentTotal, contributionInCents, projectedTotal, suggestions);
+    return new ContributionPlan(
+        currentTotal, contributionInCents, projectedTotal, includeSales, suggestions);
   }
 
   private void validate(List<AllocationClass> items, BigInteger contributionInCents) {

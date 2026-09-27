@@ -17,4 +17,9 @@ public class ContributionSimulationService {
       List<AllocationClass> allocations, BigInteger contributionInCents) {
     return allocator.allocate(allocations, contributionInCents);
   }
+
+  public ContributionPlan simulate(
+      List<AllocationClass> allocations, BigInteger contributionInCents, boolean includeSales) {
+    return allocator.allocate(allocations, contributionInCents, includeSales);
+  }
 }
