@@ -129,6 +129,213 @@ afterEach(() => {
 })
 
 describe('ContributionSimulator', () => {
+  it('keeps one announcement mounted from idle through loading and completion', async () => {
+    const user = userEvent.setup()
+    let resolveRequest!: (response: Response) => void
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveRequest = resolve
+          }),
+      ),
+    )
+    render(<ContributionSimulator />)
+    const announcement = screen.getByRole('status')
+    expect(announcement).toBeEmptyDOMElement()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    expect(screen.getByRole('status')).toBe(announcement)
+    expect(announcement).toHaveTextContent('Calculando a simulação. Aguarde.')
+    await act(async () => {
+      resolveRequest(
+        new Response(JSON.stringify(successfulResponse), { status: 200 }),
+      )
+    })
+
+    expect(screen.getByRole('status')).toBe(announcement)
+    expect(announcement).toHaveTextContent(
+      'Simulação concluída. Total projetado: R$ 12.000,00.',
+    )
+    expect(
+      screen
+        .getByText('Distribuição do novo aporte')
+        .closest('.result-content'),
+    ).not.toHaveAttribute('aria-live')
+  })
+
+  it('cancels a pending simulation without displaying an error or late result', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockImplementation(
+      (_url: string, options: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          options.signal?.addEventListener(
+            'abort',
+            () => reject(new DOMException('Cancelled', 'AbortError')),
+            { once: true },
+          )
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ContributionSimulator />)
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    expect(
+      screen.getByText(/O serviço gratuito pode levar/),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancelar simulação' }))
+
+    expect((fetchMock.mock.calls[0][1] as RequestInit).signal?.aborted).toBe(
+      true,
+    )
+    expect(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    ).toBeEnabled()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Distribuição do novo aporte'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('validates fractional targets with exact four-decimal units', () => {
+    render(
+      <ContributionSimulator
+        initialPreset={{
+          source: 'demo',
+          contribution: '0,00',
+          allocations: [
+            {
+              classId: 'a',
+              name: 'Classe A',
+              currentAmount: '0,00',
+              targetPercentage: '33,3333',
+            },
+            {
+              classId: 'b',
+              name: 'Classe B',
+              currentAmount: '0,00',
+              targetPercentage: '33,3333',
+            },
+            {
+              classId: 'c',
+              name: 'Classe C',
+              currentAmount: '0,00',
+              targetPercentage: '33,3334',
+            },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText(/Soma das metas:/)).toHaveTextContent('100,00%')
+    expect(
+      screen.getByText('Metas válidas: somam exatamente 100%.'),
+    ).toBeInTheDocument()
+  })
+
+  it('marks excessive precision invalid and submits the unchanged precision to the API', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          detail: 'Use uma meta entre 0 e 100 com até quatro casas decimais.',
+        }),
+        { status: 422 },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(
+      <ContributionSimulator
+        initialPreset={{
+          source: 'demo',
+          contribution: '0,00',
+          allocations: [
+            {
+              classId: 'a',
+              name: 'Classe A',
+              currentAmount: '0,00',
+              targetPercentage: '33,33333',
+            },
+            {
+              classId: 'b',
+              name: 'Classe B',
+              currentAmount: '0,00',
+              targetPercentage: '33,33333',
+            },
+            {
+              classId: 'c',
+              name: 'Classe C',
+              currentAmount: '0,00',
+              targetPercentage: '33,33334',
+            },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText(/Soma das metas:/)).toHaveTextContent(
+      'valor inválido',
+    )
+    expect(screen.getByText(/Meta inválida: use valores/)).toBeInTheDocument()
+    await user.click(
+      screen.getByRole('button', { name: 'Simular distribuição' }),
+    )
+    const submitted = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    expect(submitted.allocations[0].targetPercentage).toBe('33.33333')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'até quatro casas decimais',
+    )
+  })
+
+  it.each(['-1', '100.0001', '01', '1e2'])(
+    'marks unsupported target syntax %s invalid',
+    (target) => {
+      render(
+        <ContributionSimulator
+          initialPreset={{
+            source: 'demo',
+            contribution: '0,00',
+            allocations: [
+              {
+                classId: 'a',
+                name: 'Classe A',
+                currentAmount: '0,00',
+                targetPercentage: target,
+              },
+            ],
+          }}
+        />,
+      )
+      expect(screen.getByText(/Meta inválida: use valores/)).toBeInTheDocument()
+    },
+  )
+
+  it('explains a validly formatted sum that is not exactly 100 percent', () => {
+    render(
+      <ContributionSimulator
+        initialPreset={{
+          source: 'demo',
+          contribution: '0,00',
+          allocations: [
+            {
+              classId: 'a',
+              name: 'Classe A',
+              currentAmount: '0,00',
+              targetPercentage: '99,9999',
+            },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText(/Soma das metas:/)).toHaveTextContent('99,9999%')
+    expect(
+      screen.getByText('Metas inválidas: a soma deve ser exatamente 100%.'),
+    ).toBeInTheDocument()
+  })
+
   it('starts with the fictitious example and explains the calculation', () => {
     render(<ContributionSimulator />)
 

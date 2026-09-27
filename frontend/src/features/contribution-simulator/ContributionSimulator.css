@@ -256,6 +256,35 @@
   color: var(--red);
 }
 
+.target-total-description {
+  display: block;
+  max-width: 240px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.simulation-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.cancel-button {
+  display: block;
+  min-height: 44px;
+  margin: 8px auto 0;
+  padding: 8px 16px;
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .contribution-field {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(145px, 0.58fr);

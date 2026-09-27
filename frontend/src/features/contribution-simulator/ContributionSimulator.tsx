@@ -78,9 +78,19 @@ function completeMoneyValue(value: string): string {
   return `${integerPart},${decimalPart.padEnd(2, '0')}`
 }
 
-function parseForDisplay(value: string): number {
-  const parsed = Number(normalizeDecimal(value))
-  return Number.isFinite(parsed) ? parsed : 0
+function parseTargetUnits(value: string): bigint | null {
+  const normalized = normalizeDecimal(value)
+  if (!/^(?:(?:0|[1-9]\d?)(?:\.\d{1,4})?|100(?:\.0{1,4})?)$/.test(normalized)) {
+    return null
+  }
+  const [integerPart, decimalPart = ''] = normalized.split('.')
+  return BigInt(integerPart) * 10000n + BigInt(decimalPart.padEnd(4, '0'))
+}
+
+function formatTargetTotal(units: bigint): string {
+  const integerPart = units / 10000n
+  const decimalPart = (units % 10000n).toString().padStart(4, '0')
+  return `${integerPart.toLocaleString('pt-BR')},${decimalPart.replace(/0{1,2}$/, '')}%`
 }
 
 function formatCurrency(value: string): string {
@@ -168,7 +178,7 @@ function SimulationResult({
   result: ContributionSimulationResponse
 }) {
   return (
-    <div aria-atomic="true" className="result-content" aria-live="polite">
+    <div className="result-content">
       <div className="result-heading result-stage result-stage-heading">
         <div>
           <p className="eyebrow">Resultado da simulação</p>
@@ -344,16 +354,18 @@ export function ContributionSimulator({
     }
   }, [allocations])
 
-  const targetTotal = useMemo(
-    () =>
-      allocations.reduce(
-        (total, allocation) =>
-          total + parseForDisplay(allocation.targetPercentage),
-        0,
-      ),
-    [allocations],
-  )
-  const isTargetTotalValid = Math.abs(targetTotal - 100) < 0.00005
+  const targetSummary = useMemo(() => {
+    const units = allocations.map((allocation) =>
+      parseTargetUnits(allocation.targetPercentage),
+    )
+    const hasInvalidTarget = units.some((value) => value === null)
+    const total = units.reduce<bigint>((sum, value) => sum + (value ?? 0n), 0n)
+    return {
+      total,
+      hasInvalidTarget,
+      isValid: !hasInvalidTarget && total === 1000000n,
+    }
+  }, [allocations])
 
   function updateAllocation(
     index: number,
@@ -624,11 +636,24 @@ export function ContributionSimulator({
           </button>
           <p
             className={
-              isTargetTotalValid ? 'target-total valid' : 'target-total invalid'
+              targetSummary.isValid
+                ? 'target-total valid'
+                : 'target-total invalid'
             }
           >
             Soma das metas:{' '}
-            <strong>{formatPercentage(targetTotal.toFixed(4))}</strong>
+            <strong>
+              {targetSummary.hasInvalidTarget
+                ? 'valor inválido'
+                : formatTargetTotal(targetSummary.total)}
+            </strong>
+            <span className="target-total-description">
+              {targetSummary.isValid
+                ? 'Metas válidas: somam exatamente 100%.'
+                : targetSummary.hasInvalidTarget
+                  ? 'Meta inválida: use valores entre 0 e 100 com até quatro casas decimais.'
+                  : 'Metas inválidas: a soma deve ser exatamente 100%.'}
+            </span>
           </p>
         </div>
 
@@ -699,11 +724,28 @@ export function ContributionSimulator({
           )}
         </button>
         {isLoading ? (
-          <p className="loading-status" role="status">
-            Calculando a simulação. Aguarde.
-          </p>
+          <>
+            <p className="loading-status">
+              O serviço gratuito pode levar até dois minutos para iniciar.
+            </p>
+            <button
+              className="cancel-button"
+              type="button"
+              onClick={invalidateSimulation}
+            >
+              Cancelar simulação
+            </button>
+          </>
         ) : null}
       </form>
+
+      <p className="simulation-announcement" role="status" aria-atomic="true">
+        {isLoading
+          ? 'Calculando a simulação. Aguarde.'
+          : result
+            ? `Simulação concluída. Total projetado: ${formatCurrency(result.projectedTotal)}.`
+            : ''}
+      </p>
 
       <aside
         aria-busy={isLoading}
