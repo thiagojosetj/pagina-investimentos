@@ -124,6 +124,69 @@ describe('App', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('opens assets for the overview category and resets asset filters only on explicit transfer', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    await user.click(screen.getByRole('button', { name: 'Ações' }))
+    await user.type(screen.getByLabelText('Buscar ativos'), 'SYN-STK-01')
+    await user.click(
+      screen.getByRole('button', { name: 'Ver detalhes de SYN-STK-01' }),
+    )
+    expect(
+      screen.getByRole('region', { name: 'Detalhes do ativo' }),
+    ).toHaveTextContent('Empresa Horizonte — exemplo')
+
+    await user.click(screen.getByRole('button', { name: 'Visão geral' }))
+    await user.click(screen.getByRole('button', { name: 'FIIs' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Explorar ativos de FIIs' }),
+    )
+
+    expect(screen.getByRole('button', { name: 'Ativos' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(screen.getByLabelText('Buscar ativos')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'FIIs' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Mostrando 2 de 7 ativos.',
+    )
+    expect(
+      screen.getByRole('region', { name: 'Detalhes do ativo' }),
+    ).toHaveTextContent('Um ativo, uma visão mais próxima.')
+
+    await user.type(screen.getByLabelText('Buscar ativos'), 'SYN-FII-02')
+    await user.click(screen.getByRole('button', { name: 'Visão geral' }))
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    expect(screen.getByLabelText('Buscar ativos')).toHaveValue('SYN-FII-02')
+    expect(screen.getByRole('button', { name: 'FIIs' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Visão geral' }))
+    await user.click(screen.getByRole('button', { name: 'Todos' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Explorar todos os ativos' }),
+    )
+    expect(screen.getByLabelText('Buscar ativos')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Todos' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Mostrando 7 de 7 ativos.',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('preserves the simulator draft and result when switching views', async () => {
     const user = userEvent.setup()
     vi.stubGlobal(

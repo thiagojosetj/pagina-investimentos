@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Atualizado em:** 27 de setembro de 2026
+**Atualizado em:** 28 de setembro de 2026
 
 ## Estado real
 
@@ -187,3 +187,9 @@ O painel inline mostra fonte/data, valor e participação predefinidos, sem infe
 Depois do ajuste de foco ao limpar filtros, `npm run check` passou novamente com os mesmos 60 testes e build. Um smoke adicional confirmou Enter para abrir, foco/restauração/limpeza, movimento reduzido e simulação real HTTP 200 pelo Vite, com resultado preservado ao passar pela aba Ativos.
 
 Uma falha intermediária de importação/typecheck foi corrigida renomeando o helper para `assetCatalog.ts`, sem colisão de caixa com `AssetExplorer.tsx` no Windows. O Vite deste projeto foi reiniciado após resolver uma referência antiga em cache; API e demais processos foram preservados. Nenhum backend, schema, dependência, autenticação, provedor ou configuração de deploy mudou. PostgreSQL continua pendente para o INC-008B; este incremento ainda não teve push, CI ou deploy.
+
+## WEB-008 — navegação contextual entre visão geral e ativos
+
+Implementado localmente em 28/09/2026: filtrar posições por uma classe de investimento na visão geral oferece um atalho para a aba Ativos já nessa classe. O filtro Todos abre os sete investimentos; Caixa exibe uma explicação e não gera atalho, pois é apenas hipótese visual. A transferência é explícita e reinicia a busca, ordenação e detalhe anteriores da consulta de Ativos; alternar normalmente pelas abas preserva os estados e o rascunho do simulador.
+
+Esta melhoria usa a fixture sintética existente e não adiciona API, cotação, cadastro, persistência ou cálculo financeiro. `./scripts/check.ps1 -SkipDocker` aprovou 78 testes backend sem PostgreSQL e 62 frontend, além de formatação, lint, typecheck e builds. O fluxo foi conferido no Edge headless em 320, 390 e 1280 px, nos dois temas, com transferência para FIIs, preservação/reinício de filtros e Caixa sem atalho, sem overflow, erros JavaScript ou chamadas à API. O Docker Engine local permaneceu indisponível; nenhum recurso foi iniciado ou removido. A CI e a publicação ainda não ocorreram, e os testes PostgreSQL novos do INC-008B seguem obrigatórios antes de integrar esta branch à `main`.

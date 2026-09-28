@@ -10,9 +10,15 @@ import {
 } from './assetCatalog'
 import './AssetExplorer.css'
 
-export function AssetExplorer() {
+interface AssetExplorerProps {
+  initialCategoryId?: string
+}
+
+export function AssetExplorer({
+  initialCategoryId = 'all',
+}: AssetExplorerProps) {
   const [search, setSearch] = useState('')
-  const [categoryId, setCategoryId] = useState('all')
+  const [categoryId, setCategoryId] = useState(initialCategoryId)
   const [sort, setSort] = useState<AssetSort>('code')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const detailButtons = useRef(new Map<string, HTMLButtonElement>())

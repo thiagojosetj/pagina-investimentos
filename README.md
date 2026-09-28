@@ -17,13 +17,14 @@ Simulador de aportes com o exemplo sintético da própria interface. O aporte de
 - **Distribuição proporcional aos déficits** sobre o patrimônio projetado, sem vendas por padrão; opção explícita de compras e vendas simuladas para equalizar classes.
 - **Visão geral demonstrativa** com dados sintéticos, filtro por categoria, modos claro e escuro e microinterações que respeitam a preferência por menos movimento.
 - **Exploração de ativos demonstrativos:** aba com busca, filtros por categoria, ordenação alfabética e painel de detalhes dos sete ativos fictícios. Valores e participação vêm da mesma fixture; não são cotações ou posições do usuário.
+- **Atalho contextual da visão geral para Ativos:** o filtro de posições determina a categoria aberta na aba Ativos; Caixa permanece apenas na visão geral. A navegação normal conserva filtros, enquanto esse atalho reinicia explicitamente a consulta da aba Ativos.
 - **Transferência demonstrativa para o simulador:** o botão “Simular esta demonstração” preenche as cinco classes sintéticas, inclusive a hipótese de caixa, sem enviar a requisição até a pessoa confirmar a simulação. Não carrega uma carteira salva.
 - **API documentada** com OpenAPI e Swagger UI, com erros no formato `application/problem+json`.
 - **Persistência de carteiras e metas** com PostgreSQL e Flyway, coberta por testes de integração, ainda sem endpoint público.
 
 A demonstração pública está disponível em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com). Ela roda no Render Free sem banco ou contas: a visão geral é sintética e o simulador apenas calcula entradas fictícias, sem salvar uma carteira.
 
-A aba Ativos foi implementada localmente; sua disponibilidade online depende de push aprovado, CI e deploy concluídos. Não há promessa de atualização automática da versão publicada.
+A aba Ativos e o atalho contextual foram implementados localmente; sua disponibilidade online depende de push aprovado, CI e deploy concluídos. Não há promessa de atualização automática da versão publicada.
 
 ## Destaques técnicos
 

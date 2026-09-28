@@ -2,7 +2,7 @@
 
 O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futuros são propostas; decisões materiais continuam sujeitas à aprovação do autor.
 
-## Acompanhamento dos incrementos — 27 de setembro de 2026
+## Acompanhamento dos incrementos — 28 de setembro de 2026
 
 As tarefas abaixo não substituem as dependências das fases seguintes. Cada sessão entrega um resultado pequeno, não autenticação, deploy ou aplicativo completo em três horas. Contexto web/celular em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
 
@@ -17,6 +17,7 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 | WEB-005 / média | Melhorar anúncios assistivos e controle da espera; depende SIM-001 | Região de estado persistente, metas exatas em texto, cancelamento e timeout de 120s; testes de componente e API cliente | Concluído; CI do PR #10 com 41 testes frontend, lint, typecheck e build |
 | WEB-006 / baixa | Apresentar vendas opcionais como switch deslizante; depende SIM-001 | Off claro/esquerda, on verde/direita; clique, Tab/Espaço, foco, temas e movimento reduzido sem mudar cálculo | Implementado localmente; 42 testes frontend e build aprovados, fluxo real com API e inspeção em 320/1280 px; publicação pendente |
 | WEB-007 / média | Abrir uma aba dedicada à consulta dos ativos sintéticos; depende da visão geral demonstrativa | Busca, filtros, ordenação, detalhes acessíveis, estado vazio e três opções de navegação; sem cadastro, API externa ou cálculo financeiro novo | Implementado localmente; 60 testes frontend e 78 backend sem PostgreSQL, builds e inspeção em 320–1280 px aprovados; publicação pendente |
+| WEB-008 / baixa | Ligar o filtro da visão geral à aba Ativos; depende WEB-007 | Atalho para todos ou categoria de investimento; Caixa sem atalho; navegação comum preserva o estado e ação explícita reinicia a consulta; testes de componente e integração | Implementado localmente; 62 testes frontend, 78 backend sem PostgreSQL e navegador aprovados; publicação pendente |
 | HARD-002 / alta | Proteger e reduzir custo da demonstração; depende RELEASE-001 | Headers inclusive 413, CSP só demo, cache/gzip, limites Tomcat e defaults na imagem; testes Java e smoke da CI | Concluído; CI do PR #10 com 88 testes backend (20 PostgreSQL) e smoke da imagem aprovados |
 | DEV-001 / alta | Permitir testar o simulador sem o Docker local; depende da API pura existente | Perfil opt-in sem banco, POST real com cinco classes pelo proxy Vite, erro 502 claro; testes de contexto/HTTP e frontend | Concluído; CI de `main` aprovou a cobertura PostgreSQL e a imagem pública |
 | DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído; última execução local com 78 testes backend e 60 frontend; modo completo/CI continuam obrigatórios |
@@ -58,6 +59,15 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 - **Critérios de aceite:** sete ativos em quatro categorias, caixa fora da lista, busca insensível a acentos/maiúsculas, combinação com categoria e ordem alfabética, detalhes com fonte/data e participação do cenário completo, filtros preservados na navegação e nenhum rascunho financeiro substituído sem ação explícita.
 - **Verificações:** Vitest de busca/filtros/detalhes/navegação, formatação, lint, typecheck, build e inspeção claro/escuro em 320 px e desktop. Nenhum indicador financeiro calculado ou dado salvo no navegador.
 - **Definition of Done:** consultas funcionam com os exemplos existentes, estados sem resultado e foco são úteis, limitações ficam visíveis e regressões do simulador permanecem aprovadas. CI e deploy serão verificados após aprovação de publicação.
+
+### WEB-008 — Atalho contextual para consulta de ativos
+
+- **Objetivo:** abrir a aba Ativos já filtrada pela categoria escolhida na visão geral demonstrativa.
+- **Prioridade:** baixa; melhoria de navegação sem regra financeira nova.
+- **Dependências:** WEB-007 e fixture sintética compartilhada.
+- **Critérios de aceite:** Todos abre os sete investimentos; cada categoria de investimento abre apenas seus itens; Caixa informa que não é ativo; busca, ordenação e detalhe anteriores são reiniciados apenas pela ação explícita. A navegação comum continua preservando o estado das abas e o simulador.
+- **Verificações:** testes de componente e integração para categorias, Caixa e preservação/reinício; format-check, lint, typecheck, build e inspeção responsiva em temas claro/escuro.
+- **Definition of Done:** fluxo no navegador e suíte frontend aprovados, sem cadastro, cotação, persistência ou modificação no cálculo da API. Publicação depende ainda da validação PostgreSQL do INC-008B e da aprovação do push.
 
 ### INC-001 — Estrutura e documentação inicial
 

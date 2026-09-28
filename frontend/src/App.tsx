@@ -95,6 +95,10 @@ function App() {
     version: number
     preset: SimulationDraftPreset
   } | null>(null)
+  const [assetTransfer, setAssetTransfer] = useState<{
+    version: number
+    categoryId: string
+  } | null>(null)
   const mainRef = useRef<HTMLElement>(null)
 
   useLayoutEffect(() => {
@@ -132,6 +136,14 @@ function App() {
       preset: createDemoSimulationPreset(),
     }))
     openView('simulator')
+  }
+
+  function exploreAssets(categoryId: string) {
+    setAssetTransfer((current) => ({
+      version: (current?.version ?? 0) + 1,
+      categoryId,
+    }))
+    openView('assets')
   }
 
   return (
@@ -203,10 +215,14 @@ function App() {
           <PortfolioOverview
             onOpenSimulator={() => openView('simulator')}
             onUseDemoPortfolio={useDemoPortfolio}
+            onExploreAssets={exploreAssets}
           />
         </div>
         <div className="app-view" hidden={activeView !== 'assets'}>
-          <AssetExplorer />
+          <AssetExplorer
+            key={assetTransfer?.version ?? 0}
+            initialCategoryId={assetTransfer?.categoryId}
+          />
         </div>
         <div className="app-view" hidden={activeView !== 'simulator'}>
           <section className="intro" aria-labelledby="page-title">
