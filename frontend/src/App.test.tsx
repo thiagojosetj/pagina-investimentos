@@ -6,8 +6,12 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+
+beforeEach(() => {
+  vi.stubGlobal('scrollTo', vi.fn())
+})
 
 afterEach(() => {
   cleanup()
@@ -377,42 +381,35 @@ describe('App', () => {
     expect(fetchMock).toHaveBeenCalledOnce()
   })
 
-  it('avoids smooth scrolling when reduced motion is preferred', async () => {
-    const user = userEvent.setup()
-    const scrollIntoView = vi.fn()
-    const previousScrollIntoView = Object.getOwnPropertyDescriptor(
-      HTMLElement.prototype,
-      'scrollIntoView',
-    )
-
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn(() => ({ matches: true })),
-    )
-    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
-
-    try {
-      render(<App />)
-      await user.click(screen.getByRole('button', { name: 'Simulador' }))
-
-      await waitFor(() =>
-        expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto' }),
+  it.each([false, true])(
+    'opens every page at the document top with reduced motion set to %s',
+    async (reducedMotion) => {
+      const user = userEvent.setup()
+      const scrollTo = vi.mocked(window.scrollTo)
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query: string) => ({
+          matches:
+            query === '(prefers-reduced-motion: reduce)' && reducedMotion,
+        })),
       )
-    } finally {
-      if (previousScrollIntoView) {
-        Object.defineProperty(
-          HTMLElement.prototype,
-          'scrollIntoView',
-          previousScrollIntoView,
+      render(<App />)
+
+      for (const page of ['Ativos', 'Simulador', 'Visão geral']) {
+        scrollTo.mockClear()
+        await user.click(screen.getByRole('button', { name: page }))
+
+        await waitFor(() =>
+          expect(scrollTo).toHaveBeenCalledWith({
+            top: 0,
+            left: 0,
+            behavior: 'instant',
+          }),
         )
-      } else {
-        Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+        expect(screen.getByRole('main')).toHaveFocus()
       }
-    }
-  })
+    },
+  )
 
   it('switches color theme and persists the visual preference', async () => {
     const user = userEvent.setup()

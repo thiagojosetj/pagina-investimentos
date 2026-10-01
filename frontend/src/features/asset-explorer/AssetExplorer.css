@@ -175,6 +175,29 @@
   color: var(--muted);
 }
 
+.assets-sort {
+  position: relative;
+}
+
+.assets-sort::after {
+  content: '';
+  position: absolute;
+  right: 15px;
+  bottom: 21px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--muted-strong);
+  border-bottom: 1.5px solid var(--muted-strong);
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+.assets-controls select {
+  appearance: none;
+  padding-right: 34px;
+  cursor: pointer;
+}
+
 .assets-controls input:focus-visible,
 .assets-controls select:focus-visible {
   outline: 3px solid var(--focus-ring);
@@ -478,7 +501,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .assets-card:hover {
+  .assets-card:not([data-selected='true']):hover {
     border-color: var(--border-strong);
     box-shadow: var(--panel-shadow);
   }

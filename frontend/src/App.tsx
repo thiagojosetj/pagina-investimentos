@@ -119,14 +119,8 @@ function App() {
     setActiveView(view)
     window.requestAnimationFrame(() => {
       const main = mainRef.current
-      const prefersReducedMotion =
-        typeof window.matchMedia === 'function' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
       main?.focus({ preventScroll: true })
-      main?.scrollIntoView?.({
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      })
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     })
   }
 
