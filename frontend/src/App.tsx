@@ -6,11 +6,13 @@ import { ContributionSimulator } from './features/contribution-simulator/Contrib
 import type { SimulationDraftPreset } from './features/contribution-simulator/contracts'
 import { PortfolioOverview } from './features/portfolio-overview/PortfolioOverview'
 import { createDemoSimulationPreset } from './features/portfolio-overview/demoPortfolio'
+import { SavedPortfolio } from './features/saved-portfolio/SavedPortfolio'
 
 const NAV_ITEMS = [
   { id: 'overview', label: 'Visão geral' },
   { id: 'assets', label: 'Ativos' },
   { id: 'simulator', label: 'Simulador' },
+  { id: 'wallet', label: 'Carteira' },
 ] as const
 
 type ActiveView = (typeof NAV_ITEMS)[number]['id']
@@ -76,6 +78,11 @@ function ViewIcon({ view }: { view: ActiveView }) {
           <rect x="3" y="14" width="7" height="7" rx="1.5" />
           <rect x="14" y="14" width="7" height="7" rx="1.5" />
         </>
+      ) : view === 'wallet' ? (
+        <>
+          <path d="M4 7V5h14v3M4 8h16v12H4z" />
+          <path d="M15 12h5v5h-5z" />
+        </>
       ) : (
         <>
           <path d="M3 6h18M3 12h18M3 18h18" />
@@ -91,6 +98,7 @@ function ViewIcon({ view }: { view: ActiveView }) {
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('overview')
   const [theme, setTheme] = useState<ColorTheme>(getInitialTheme)
+  const [walletVisited, setWalletVisited] = useState(false)
   const [demoTransfer, setDemoTransfer] = useState<{
     version: number
     preset: SimulationDraftPreset
@@ -116,6 +124,7 @@ function App() {
   }, [theme])
 
   function openView(view: ActiveView) {
+    if (view === 'wallet') setWalletVisited(true)
     setActiveView(view)
     window.requestAnimationFrame(() => {
       const main = mainRef.current
@@ -199,7 +208,11 @@ function App() {
             <span>Modo {theme === 'light' ? 'escuro' : 'claro'}</span>
           </button>
           <span className="status-badge">
-            {activeView === 'simulator' ? 'Módulo inicial' : 'Dados sintéticos'}
+            {activeView === 'simulator'
+              ? 'Módulo inicial'
+              : activeView === 'wallet'
+                ? 'Carteiras e metas'
+                : 'Dados sintéticos'}
           </span>
         </div>
       </header>
@@ -229,9 +242,9 @@ function App() {
             <div className="intro-copy">
               <p>
                 Este é o primeiro módulo de uma plataforma de carteira em
-                evolução. Por enquanto, ele trabalha com um cenário informado na
-                tela; carteiras salvas, cadastro de ativos e movimentações ainda
-                não estão disponíveis.
+                evolução e usa um cenário informado na tela. A aba Carteira
+                permite salvar classes e metas no ambiente local habilitado;
+                cadastro de ativos e movimentações ainda não estão disponíveis.
               </p>
               <p className="disclaimer">
                 Simulação educacional, sem recomendação de investimento. Use
@@ -245,6 +258,9 @@ function App() {
             key={demoTransfer?.version ?? 0}
             initialPreset={demoTransfer?.preset}
           />
+        </div>
+        <div className="app-view" hidden={activeView !== 'wallet'}>
+          {walletVisited && <SavedPortfolio />}
         </div>
       </main>
 

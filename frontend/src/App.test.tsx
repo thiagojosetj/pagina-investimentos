@@ -22,6 +22,39 @@ afterEach(() => {
 })
 
 describe('App', () => {
+  it('loads the saved-wallet session only after explicit navigation and preserves the view across tabs', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          authenticated: false,
+          loginMode: 'demo',
+          walletAvailable: false,
+        }),
+        { status: 200 },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Carteira' }))
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Explore a demonstração sem criar uma conta.',
+      }),
+    ).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    await user.click(screen.getByRole('button', { name: 'Carteira' }))
+    expect(
+      screen.getByRole('heading', {
+        name: 'Explore a demonstração sem criar uma conta.',
+      }),
+    ).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledOnce()
+  }, 10000)
+
   it('opens with the portfolio overview and navigates to the simulator', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -40,9 +73,7 @@ describe('App', () => {
       screen.getByText(/primeiro módulo de uma plataforma de carteira/i),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(
-        /carteiras salvas, cadastro de ativos e movimentações ainda não/i,
-      ),
+      screen.getByText(/cadastro de ativos e movimentações ainda não/i),
     ).toBeInTheDocument()
     expect(screen.getByText(/use apenas valores fictícios/i)).toHaveTextContent(
       'as entradas são enviadas à API para o cálculo',
@@ -60,7 +91,7 @@ describe('App', () => {
       within(screen.getByRole('navigation', { name: 'Navegação principal' }))
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Visão geral', 'Ativos', 'Simulador'])
+    ).toEqual(['Visão geral', 'Ativos', 'Simulador', 'Carteira'])
     expect(screen.getByRole('button', { name: 'Visão geral' })).toHaveAttribute(
       'aria-current',
       'page',
