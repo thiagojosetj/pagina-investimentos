@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Atualizado em:** 27 de setembro de 2026
+**Atualizado em:** 28 de setembro de 2026
 
 ## Estado real
 
@@ -116,8 +116,8 @@ Os números desta seção são históricos; as verificações mais recentes de I
 ## Limitações conhecidas
 
 - A fundação do schema e a camada JPA interna existem, mas ainda não há endpoint de carteira nem autenticação.
-- A política de exclusão de classes já referenciadas por ativos precisa ser definida antes de criar essas referências. A leitura de carteira e metas em duas consultas ainda precisa de garantia de snapshot consistente.
-- Valores atuais são informados manualmente por classe; não existem ativos ou movimentações.
+- A política de exclusão de classes já referenciadas por ativos precisa ser definida antes de criar essas referências. O INC-008B substitui as duas consultas de leitura por snapshot escalar; sua execução PostgreSQL está pendente.
+- Valores atuais são informados manualmente por classe; não há cadastro ou persistência de ativos e movimentações. A consulta demonstrativa usa apenas exemplos fixos.
 - Nenhum dado de mercado ou provedor externo.
 - Apenas BRL.
 - A interface usa conversão numérica somente para formatação/gráficos; contratos financeiros continuam sendo strings e o backend é a fonte de verdade.
@@ -152,4 +152,44 @@ O perfil `demo` aplica headers de segurança antes do filtro de corpo, também e
 
 ## Próximo incremento recomendado
 
-Garantir snapshot consistente de carteira/metas e alinhar nomes de 80 versus 60 caracteres (INC-008B); depois concluir o threat model do login Google (INC-010A). Só então entregar a primeira tela e API autenticadas de carteira/metas. Cadastro de ativos, rentabilidade, proventos e provedores permanecem incrementos posteriores, não funcionalidades prontas.
+Validar o INC-008B com PostgreSQL real e revisar [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md). Após aprovação do desenho de autenticação, começar segurança local/sessão em uma fatia pequena, mantendo a demonstração pública sem dados pessoais. Cadastro de ativos, rentabilidade, proventos e provedores permanecem posteriores, não funcionalidades prontas.
+
+## INC-008B — leitura coerente e nomes compatíveis
+
+Implementado localmente em 27 de setembro de 2026, a partir de `e912bfb`, na branch `fix/consistent-portfolio-snapshots`. O serviço lê cabeçalho, versão e metas em uma consulta HQL com projeção escalar imutável e ownership, sem locks extras ou novas associações JPA. A carteira sem classes continua legível. CAS, IDs estáveis, contrato público, banco e migrations permanecem inalterados.
+
+Novos nomes de classes e substituições aceitam até 60 unidades UTF-16 após strip. O schema mantém capacidade de 80; nomes históricos são lidos completos e exigem renomeação explícita ao editar, sem truncamento automático.
+
+`./mvnw.cmd --no-transfer-progress -Pwithout-docker verify` aprovou 78 testes, Spotless e build. Inclui cinco testes adicionais de nomes, quatro de mapeamento e um de validação da HQL sem conexão. Quatro regressões PostgreSQL foram acrescentadas e compiladas, mas não executadas: Docker Engine segue desligado. A validação com PostgreSQL é obrigatória antes de concluir o incremento ou integrá-lo à `main`; não reutilizar relatórios antigos.
+
+`./scripts/check.ps1 -SkipDocker` também terminou com exit 0: backend com os mesmos 78 testes e frontend com 41 testes, format-check, lint, typecheck e build. Nenhum arquivo frontend mudou. Depois do ajuste de encerramento do executor no teste concorrente, `spotless:apply` e o Maven `verify` sem Docker foram repetidos e passaram. A branch ainda não foi enviada; a CI e o deploy deste incremento não foram executados.
+
+Uma execução intermediária falhou ao compilar o teste da HQL por uso de um método inexistente em `SelectionQuery`; o teste foi corrigido para validar a construção e o binding dos parâmetros. A execução posterior passou. Os avisos preexistentes de deprecação e autoattach do Mockito continuam sem impedir o build.
+
+## INC-010A — proposta de segurança web
+
+[`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md) registra uma proposta baseada em fontes oficiais consultadas em 27/09/2026: identidade Google OIDC no Java, vínculo por provider/sub, sessão por cookie, CSRF, expiração, logout, ownership e testes com dados/provedor sintéticos. Inclui ameaças, alternativas e tarefas pequenas. Os detalhes não foram aprovados nem implementados; não existe login novo, endpoint de carteira, credencial ou mudança de deploy neste incremento.
+
+## WEB-006 — botão deslizante para vendas simuladas
+
+Implementado localmente em 27/09/2026: “Incluir vendas para equalizar classes” usa um switch com indicador branco à esquerda e trilho claro quando desligado; ao ativar, desliza para a direita e o trilho fica verde. O input nativo permanece acessível com `role="switch"`, rótulo e descrição, clique/toque e Tab/Espaço. O foco envolve o trilho; movimento reduzido e cores de alto contraste são respeitados. A regra financeira, o estado inicial desligado, a invalidação de resultado e o contrato da API não mudaram.
+
+`npm run check` passou: format-check, lint, typecheck, 42 testes frontend e build. Uma regressão cobre clique no rótulo e teclado sem envio acidental. Edge headless verificou 320/1280 px, claro/escuro, deslocamento e cores, ausência de overflow, foco e movimento reduzido; isso não substitui teste em aparelho físico. O fluxo com API real pelo Vite retornou HTTP 200 nos modos desligado/ligado (`includeSales=false/true`), usando o exemplo sintético. Evidências visuais temporárias em `backend/target`, ignorado pelo Git. Nenhum arquivo backend mudou neste ajuste; PostgreSQL não foi executado novamente. Ainda sem push, CI ou deploy deste incremento.
+
+## WEB-007 — nova aba Ativos
+
+Implementada localmente em 27/09/2026: navegação com Visão geral, Ativos e Simulador, indicador deslizante para três opções e ícones originais. A nova página consulta os sete ativos e quatro categorias da fixture existente; busca por nome/código/tipo/categoria ignora acentos, maiúsculas e espaços, pode combinar filtro e ordem alfabética, e oferece estado vazio e limpeza dos filtros.
+
+O painel inline mostra fonte/data, valor e participação predefinidos, sem inferir quantidade, cotação, preço de compra, rentabilidade ou proventos. A hipótese de caixa não entra na lista, mas permanece explicitamente no denominador do cenário completo. Abrir detalhes leva foco ao título; fechar devolve ao item; limpar filtros leva foco à busca. Um filtro que esconde o ativo limpa a seleção sem fazê-la reaparecer automaticamente. Navegar preserva buscas e o rascunho/resultado do simulador somente enquanto a página está aberta.
+
+`./scripts/check.ps1 -SkipDocker` terminou com exit 0: 78 testes backend sem PostgreSQL e 60 frontend, formatação, lint, typecheck e builds aprovados. Foram acrescentadas 18 regressões de apresentação, consulta e navegação. Edge headless verificou 320, 390, 768 e 1280 px, claro/escuro, alinhamento do indicador, busca sem acentos, filtro, seleção e estados entre abas; zero overflow/cortes, erros JavaScript ou chamadas à API nessa consulta. Screenshots de 320/1280 px foram inspecionadas; evidências temporárias em `backend/target`, ignorado. Isso não substitui teste em aparelhos físicos.
+
+Depois do ajuste de foco ao limpar filtros, `npm run check` passou novamente com os mesmos 60 testes e build. Um smoke adicional confirmou Enter para abrir, foco/restauração/limpeza, movimento reduzido e simulação real HTTP 200 pelo Vite, com resultado preservado ao passar pela aba Ativos.
+
+Uma falha intermediária de importação/typecheck foi corrigida renomeando o helper para `assetCatalog.ts`, sem colisão de caixa com `AssetExplorer.tsx` no Windows. O Vite deste projeto foi reiniciado após resolver uma referência antiga em cache; API e demais processos foram preservados. Nenhum backend, schema, dependência, autenticação, provedor ou configuração de deploy mudou. PostgreSQL continua pendente para o INC-008B; este incremento ainda não teve push, CI ou deploy.
+
+## WEB-008 — navegação contextual entre visão geral e ativos
+
+Implementado localmente em 28/09/2026: filtrar posições por uma classe de investimento na visão geral oferece um atalho para a aba Ativos já nessa classe. O filtro Todos abre os sete investimentos; Caixa exibe uma explicação e não gera atalho, pois é apenas hipótese visual. A transferência é explícita e reinicia a busca, ordenação e detalhe anteriores da consulta de Ativos; alternar normalmente pelas abas preserva os estados e o rascunho do simulador.
+
+Esta melhoria usa a fixture sintética existente e não adiciona API, cotação, cadastro, persistência ou cálculo financeiro. `./scripts/check.ps1 -SkipDocker` aprovou 78 testes backend sem PostgreSQL e 62 frontend, além de formatação, lint, typecheck e builds. O fluxo foi conferido no Edge headless em 320, 390 e 1280 px, nos dois temas, com transferência para FIIs, preservação/reinício de filtros e Caixa sem atalho, sem overflow, erros JavaScript ou chamadas à API. O Docker Engine local permaneceu indisponível; nenhum recurso foi iniciado ou removido. A CI e a publicação ainda não ocorreram, e os testes PostgreSQL novos do INC-008B seguem obrigatórios antes de integrar esta branch à `main`.

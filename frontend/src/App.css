@@ -75,7 +75,7 @@
   border-radius: 999px;
   background: var(--surface-translucent);
   display: grid;
-  grid-template-columns: repeat(2, minmax(108px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 3px;
   transition:
     border-color var(--motion-base) var(--motion-ease),
@@ -86,34 +86,56 @@
 .nav-indicator {
   position: absolute;
   inset: 4px auto 4px 4px;
-  width: calc(50% - 5.5px);
+  width: calc((100% - 14px) / 3);
   border-radius: 999px;
   background: var(--emphasis-surface);
   box-shadow: 0 3px 10px
     color-mix(in srgb, var(--emphasis-surface) 22%, transparent);
   pointer-events: none;
-  transform: translateX(0);
+  transform: translateX(calc(var(--nav-active-index, 0) * (100% + 3px)));
   transition:
     transform var(--motion-slow) var(--motion-ease-emphasized),
     background-color var(--motion-base) var(--motion-ease),
     box-shadow var(--motion-base) var(--motion-ease);
 }
 
-.app-nav[data-active-view='simulator'] .nav-indicator {
-  transform: translateX(calc(100% + 3px));
-}
-
 .app-nav button {
   position: relative;
   z-index: 1;
-  padding: 7px 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 11px;
   border: 0;
   border-radius: 999px;
   color: var(--muted-strong);
   background: transparent;
   font-size: 0.76rem;
   font-weight: 750;
+  white-space: nowrap;
   transition: color var(--motion-base) var(--motion-ease);
+}
+
+.nav-icon {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-icon circle {
+  fill: var(--surface);
+}
+
+.app-nav button.active .nav-icon circle {
+  fill: var(--emphasis-surface);
 }
 
 .app-nav button.active {
@@ -336,6 +358,10 @@ footer p {
 }
 
 @media (max-width: 560px) {
+  .nav-icon {
+    display: none;
+  }
+
   .app-shell {
     padding: 0 16px;
   }

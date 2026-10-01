@@ -2,7 +2,7 @@
 
 O roadmap usa fatias verticais de aproximadamente uma a três horas. Itens futuros são propostas; decisões materiais continuam sujeitas à aprovação do autor.
 
-## Acompanhamento dos incrementos — 27 de setembro de 2026
+## Acompanhamento dos incrementos — 28 de setembro de 2026
 
 As tarefas abaixo não substituem as dependências das fases seguintes. Cada sessão entrega um resultado pequeno, não autenticação, deploy ou aplicativo completo em três horas. Contexto web/celular em [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
 
@@ -15,12 +15,15 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 | WEB-004 / baixa | Corrigir o foco de controles compostos e completar centavos no frontend; depende WEB-001 | Contorno único para `R$`/`%`, Enter ou blur completam `,00`, nenhum envio prematuro; teste de componente e verificações frontend | Concluído localmente em 24/09: 25 testes frontend, format-check, lint, typecheck e build; sem mudança financeira ou de API |
 | SIM-001 / média | Equalizar classes com vendas hipotéticas opcionais; depende INC-002/003/004 e ADR-014 | Padrão sem vendas, conservação do dinheiro, aporte zero e contrato compatível; testes de domínio, API e interface | Implementado; detalhes abaixo e em `class-rebalancing.md` |
 | WEB-005 / média | Melhorar anúncios assistivos e controle da espera; depende SIM-001 | Região de estado persistente, metas exatas em texto, cancelamento e timeout de 120s; testes de componente e API cliente | Concluído; CI do PR #10 com 41 testes frontend, lint, typecheck e build |
+| WEB-006 / baixa | Apresentar vendas opcionais como switch deslizante; depende SIM-001 | Off claro/esquerda, on verde/direita; clique, Tab/Espaço, foco, temas e movimento reduzido sem mudar cálculo | Implementado localmente; 42 testes frontend e build aprovados, fluxo real com API e inspeção em 320/1280 px; publicação pendente |
+| WEB-007 / média | Abrir uma aba dedicada à consulta dos ativos sintéticos; depende da visão geral demonstrativa | Busca, filtros, ordenação, detalhes acessíveis, estado vazio e três opções de navegação; sem cadastro, API externa ou cálculo financeiro novo | Implementado localmente; 60 testes frontend e 78 backend sem PostgreSQL, builds e inspeção em 320–1280 px aprovados; publicação pendente |
+| WEB-008 / baixa | Ligar o filtro da visão geral à aba Ativos; depende WEB-007 | Atalho para todos ou categoria de investimento; Caixa sem atalho; navegação comum preserva o estado e ação explícita reinicia a consulta; testes de componente e integração | Implementado localmente; 62 testes frontend, 78 backend sem PostgreSQL e navegador aprovados; publicação pendente |
 | HARD-002 / alta | Proteger e reduzir custo da demonstração; depende RELEASE-001 | Headers inclusive 413, CSP só demo, cache/gzip, limites Tomcat e defaults na imagem; testes Java e smoke da CI | Concluído; CI do PR #10 com 88 testes backend (20 PostgreSQL) e smoke da imagem aprovados |
 | DEV-001 / alta | Permitir testar o simulador sem o Docker local; depende da API pura existente | Perfil opt-in sem banco, POST real com cinco classes pelo proxy Vite, erro 502 claro; testes de contexto/HTTP e frontend | Concluído; CI de `main` aprovou a cobertura PostgreSQL e a imagem pública |
-| DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído; última execução local com 68 testes backend e 41 frontend; modo completo/CI continuam obrigatórios |
+| DEV-002 / média | Permitir validação local parcial sem Docker; depende dos testes existentes | `check.ps1 -SkipDocker` não chama Docker, exclui apenas a tag `postgres` e preserva todas as verificações web | Concluído; última execução local com 78 testes backend e 60 frontend; modo completo/CI continuam obrigatórios |
 | INC-008A / alta | Preservar IDs das classes; depende INC-008 | Renomeação, reordenação, criação e remoção sem perder a identidade das classes mantidas; ownership e concorrência | Implementado e validado no PR #7 |
-| INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Teste concorrente deve impedir versão antiga combinada com metas novas; alinhar nomes de 80 caracteres na persistência versus 60 no simulador sem truncamento | Proposto: estratégia e compatibilidade revisadas antes do endpoint |
-| INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposto: documento e contratos aprovados antes de INC-011 |
+| INC-008B / alta | Garantir snapshot consistente de carteira/metas; depende INC-008 | Uma consulta escalar; teste concorrente e snapshot com contexto JPA antigo; nomes novos até 60, históricos preservados | Implementado localmente; testes sem banco passaram, regressões PostgreSQL ainda pendentes |
+| INC-010A / alta | Concluir threat model web; depende ADR-009 | Fluxo OIDC, sessão, CSRF, redirects, logout, expiração e ownership revistos; testes previstos e decisões explicitadas | Proposta em `AUTH_SECURITY_PLAN.md`; aguardando aprovação antes de implementar login |
 | RELEASE-001 / alta | Publicar uma demonstração sem banco no Render Free; depende do perfil `demo`, empacotamento único e CI | Site e API na mesma origem HTTPS, health `UP`, simulação real, sem carteiras salvas; CI da imagem e teste do URL | Concluído em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com): commit `270fa663`, HTTP 200, health `UP` e resposta sintética `40.00/60.00` |
 | RELEASE-002 / futura | Planejar hospedagem de contas e carteiras persistidas; depende de autenticação e revisão de privacidade | Custos, banco durável, backups/restauração, segurança e observabilidade revisados com fontes oficiais | Proposta separada; a vitrine gratuita não guarda dados |
 | PWA-001 / futura | Validar instalação online-first; depende aprovação específica e ambiente HTTPS | Manifest, ícones e instalação nos dispositivos escolhidos; sem cache privado ou promessa offline | Proposto: prova real e limitações documentadas |
@@ -47,6 +50,24 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 - **Definition of Done:** fluxo integrado verificado com API real e exemplo sintético, regra documentada, commits revisáveis e três jobs da CI aprovados. Ordens e seleção de ativos permanecem fora desse incremento.
 
 ## Fase 0 — Fundação e primeira fatia
+
+### WEB-007 — Exploração demonstrativa de ativos
+
+- **Objetivo:** oferecer uma consulta mais detalhada por ativo, além da visão geral e do simulador.
+- **Prioridade:** média; fatia de interface independente de autenticação.
+- **Dependências:** fixture sintética e navegação existentes; cadastro conectado continua dependente de INC-011/012/013.
+- **Critérios de aceite:** sete ativos em quatro categorias, caixa fora da lista, busca insensível a acentos/maiúsculas, combinação com categoria e ordem alfabética, detalhes com fonte/data e participação do cenário completo, filtros preservados na navegação e nenhum rascunho financeiro substituído sem ação explícita.
+- **Verificações:** Vitest de busca/filtros/detalhes/navegação, formatação, lint, typecheck, build e inspeção claro/escuro em 320 px e desktop. Nenhum indicador financeiro calculado ou dado salvo no navegador.
+- **Definition of Done:** consultas funcionam com os exemplos existentes, estados sem resultado e foco são úteis, limitações ficam visíveis e regressões do simulador permanecem aprovadas. CI e deploy serão verificados após aprovação de publicação.
+
+### WEB-008 — Atalho contextual para consulta de ativos
+
+- **Objetivo:** abrir a aba Ativos já filtrada pela categoria escolhida na visão geral demonstrativa.
+- **Prioridade:** baixa; melhoria de navegação sem regra financeira nova.
+- **Dependências:** WEB-007 e fixture sintética compartilhada.
+- **Critérios de aceite:** Todos abre os sete investimentos; cada categoria de investimento abre apenas seus itens; Caixa informa que não é ativo; busca, ordenação e detalhe anteriores são reiniciados apenas pela ação explícita. A navegação comum continua preservando o estado das abas e o simulador.
+- **Verificações:** testes de componente e integração para categorias, Caixa e preservação/reinício; format-check, lint, typecheck, build e inspeção responsiva em temas claro/escuro.
+- **Definition of Done:** fluxo no navegador e suíte frontend aprovados, sem cadastro, cotação, persistência ou modificação no cálculo da API. Publicação depende ainda da validação PostgreSQL do INC-008B e da aprovação do push.
 
 ### INC-001 — Estrutura e documentação inicial
 
@@ -135,6 +156,8 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 
 ### INC-009 — Persistência na interface
 
+Antes de INC-009, o INC-008B valida snapshot e nomes; o INC-010A precisa ser aprovado para iniciar a autenticação. A proposta e as tarefas pequenas de login estão em [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md).
+
 - **Status:** proposto.
 - **Objetivo:** carregar e editar as metas da carteira no fluxo existente.
 - **Dependências:** INC-008 e INC-011.
@@ -146,7 +169,7 @@ As tarefas abaixo não substituem as dependências das fases seguintes. Cada ses
 
 ### INC-010 — Decidir autenticação e ameaças básicas
 
-- **Status:** Google OpenID Connect e sessão backend aprovados; threat model e configuração ainda pendentes.
+- **Status:** direção Google OpenID Connect e sessão backend aprovados; threat model proposto em `AUTH_SECURITY_PLAN.md`, detalhes/configuração ainda sujeitos à aprovação.
 - **Objetivo:** detalhar Google OpenID Connect, criação da conta interna e sessão por cookie sem expor secrets ao frontend.
 - **Dependências:** INC-007.
 - **Critérios de aceite:** redirects permitidos, vínculo por `provider + subject`, CSRF, cookies, expiração, rate limit, logout e ownership documentados.

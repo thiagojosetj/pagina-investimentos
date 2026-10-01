@@ -21,6 +21,43 @@ class AllocationTargetSetTest {
   }
 
   @Test
+  void acceptsSixtyCharacterNamesAfterStrippingSurroundingWhitespaceWithoutTruncating() {
+    String name = "A".repeat(60);
+
+    AllocationTargetSet targets =
+        AllocationTargetSet.from(List.of(target("\t " + name + " \n", "100")));
+
+    assertThat(targets.targets()).containsExactly(target(name, "100.0000"));
+  }
+
+  @Test
+  void rejectsSixtyOneCharacterNamesInsteadOfTruncating() {
+    String name = "A".repeat(61);
+
+    assertThatThrownBy(() -> AllocationTargetSet.from(List.of(target(name, "100"))))
+        .isInstanceOfSatisfying(
+            PortfolioValidationException.class,
+            exception -> {
+              assertThat(exception.field()).isEqualTo("allocationTargets[0].name");
+              assertThat(exception.code()).isEqualTo("length");
+              assertThat(exception.getMessage()).contains("1 e 60");
+            });
+  }
+
+  @Test
+  void measuresTheNameLimitInUtf16CharactersLikeTheSimulatorContract() {
+    String name = "📈".repeat(30);
+
+    AllocationTargetSet targets = AllocationTargetSet.from(List.of(target(name, "100")));
+
+    assertThat(targets.targets()).containsExactly(target(name, "100.0000"));
+    assertThatThrownBy(() -> AllocationTargetSet.from(List.of(target(name + "A", "100"))))
+        .isInstanceOfSatisfying(
+            PortfolioValidationException.class,
+            exception -> assertThat(exception.code()).isEqualTo("length"));
+  }
+
+  @Test
   void rejectsAnInvalidNumberOfTargets() {
     assertThatThrownBy(() -> AllocationTargetSet.from(List.of()))
         .isInstanceOfSatisfying(

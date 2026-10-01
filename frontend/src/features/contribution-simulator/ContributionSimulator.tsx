@@ -685,17 +685,25 @@ export function ContributionSimulator({
         </div>
 
         <div className="sales-option">
-          <label>
+          <label className="sales-switch" htmlFor="include-sales">
             <input
               aria-describedby="sales-mode-description"
               checked={includeSales}
+              className="sales-switch-input"
+              id="include-sales"
               onChange={(event) => {
                 invalidateSimulation()
                 setIncludeSales(event.target.checked)
               }}
+              role="switch"
               type="checkbox"
             />
-            <span>Incluir vendas para equalizar classes</span>
+            <span aria-hidden="true" className="sales-switch-track">
+              <span className="sales-switch-thumb" />
+            </span>
+            <span className="sales-switch-label">
+              Incluir vendas para equalizar classes
+            </span>
           </label>
           <p id="sales-mode-description">
             {includeSales

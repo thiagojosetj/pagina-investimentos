@@ -12,6 +12,7 @@ describe('PortfolioOverview', () => {
   it('shows a clearly synthetic portfolio with fixed income and cash', () => {
     render(
       <PortfolioOverview
+        onExploreAssets={vi.fn()}
         onOpenSimulator={vi.fn()}
         onUseDemoPortfolio={vi.fn()}
       />,
@@ -36,6 +37,7 @@ describe('PortfolioOverview', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(
       <PortfolioOverview
+        onExploreAssets={vi.fn()}
         onOpenSimulator={vi.fn()}
         onUseDemoPortfolio={vi.fn()}
       />,
@@ -57,6 +59,7 @@ describe('PortfolioOverview', () => {
     const onOpenSimulator = vi.fn()
     render(
       <PortfolioOverview
+        onExploreAssets={vi.fn()}
         onOpenSimulator={onOpenSimulator}
         onUseDemoPortfolio={vi.fn()}
       />,
@@ -75,6 +78,7 @@ describe('PortfolioOverview', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(
       <PortfolioOverview
+        onExploreAssets={vi.fn()}
         onOpenSimulator={onOpenSimulator}
         onUseDemoPortfolio={onUseDemoPortfolio}
       />,
@@ -88,5 +92,35 @@ describe('PortfolioOverview', () => {
     expect(onUseDemoPortfolio).toHaveBeenCalledOnce()
     expect(onOpenSimulator).not.toHaveBeenCalled()
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('opens only investment categories in the asset explorer and explains why cash is excluded', async () => {
+    const user = userEvent.setup()
+    const onExploreAssets = vi.fn()
+    render(
+      <PortfolioOverview
+        onExploreAssets={onExploreAssets}
+        onOpenSimulator={vi.fn()}
+        onUseDemoPortfolio={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Explorar todos os ativos' }),
+    )
+    expect(onExploreAssets).toHaveBeenLastCalledWith('all')
+
+    await user.click(screen.getByRole('button', { name: 'FIIs' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Explorar ativos de FIIs' }),
+    )
+    expect(onExploreAssets).toHaveBeenLastCalledWith('real-estate-funds')
+
+    await user.click(screen.getByRole('button', { name: 'Caixa' }))
+    expect(
+      screen.queryByRole('button', { name: /Explorar ativos/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(/Caixa.*não.*ativo/i)).toBeInTheDocument()
+    expect(onExploreAssets).toHaveBeenCalledTimes(2)
   })
 })

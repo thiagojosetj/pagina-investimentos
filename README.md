@@ -16,11 +16,15 @@ Simulador de aportes com o exemplo sintético da própria interface. O aporte de
 - **Simulador de aportes de ponta a ponta:** interface React com classes, valores atuais, metas e aporte editáveis, conectada a uma API Spring Boot.
 - **Distribuição proporcional aos déficits** sobre o patrimônio projetado, sem vendas por padrão; opção explícita de compras e vendas simuladas para equalizar classes.
 - **Visão geral demonstrativa** com dados sintéticos, filtro por categoria, modos claro e escuro e microinterações que respeitam a preferência por menos movimento.
+- **Exploração de ativos demonstrativos:** aba com busca, filtros por categoria, ordenação alfabética e painel de detalhes dos sete ativos fictícios. Valores e participação vêm da mesma fixture; não são cotações ou posições do usuário.
+- **Atalho contextual da visão geral para Ativos:** o filtro de posições determina a categoria aberta na aba Ativos; Caixa permanece apenas na visão geral. A navegação normal conserva filtros, enquanto esse atalho reinicia explicitamente a consulta da aba Ativos.
 - **Transferência demonstrativa para o simulador:** o botão “Simular esta demonstração” preenche as cinco classes sintéticas, inclusive a hipótese de caixa, sem enviar a requisição até a pessoa confirmar a simulação. Não carrega uma carteira salva.
 - **API documentada** com OpenAPI e Swagger UI, com erros no formato `application/problem+json`.
 - **Persistência de carteiras e metas** com PostgreSQL e Flyway, coberta por testes de integração, ainda sem endpoint público.
 
 A demonstração pública está disponível em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com). Ela roda no Render Free sem banco ou contas: a visão geral é sintética e o simulador apenas calcula entradas fictícias, sem salvar uma carteira.
+
+A aba Ativos e o atalho contextual foram implementados localmente; sua disponibilidade online depende de push aprovado, CI e deploy concluídos. Não há promessa de atualização automática da versão publicada.
 
 ## Destaques técnicos
 
@@ -29,6 +33,7 @@ A demonstração pública está disponível em [pagina-investimentos-demo.onrend
 - **Organização por funcionalidade**, com camadas `api`, `application`, `domain` e `persistence`, DTOs e mappers explícitos.
 - **Schema versionado.** O Flyway é o dono do schema e o Hibernate apenas valida os mapeamentos (`ddl-auto=validate`).
 - **Atualização de metas protegida contra concorrência** pela versão da carteira (compare-and-set).
+- **Leitura coerente de carteira e metas** em uma consulta escalar, sem misturar a versão com metas de outra edição; regressões PostgreSQL acompanham o serviço interno.
 - **Testes em várias camadas:** domínio, API, integração com PostgreSQL real via Testcontainers e fluxo da interface com Vitest e Testing Library.
 - **Configuração defensiva:** API ligada a `127.0.0.1` por padrão, limite de tamanho do corpo das requisições (HTTP 413) e respostas de erro sem stack trace.
 - **CI no GitHub Actions** com jobs Backend, Frontend e Public demo image, actions fixadas por SHA e permissões mínimas, além de Dependabot para Maven, npm e Actions.
@@ -36,7 +41,7 @@ A demonstração pública está disponível em [pagina-investimentos-demo.onrend
 ## Ainda não implementado
 
 - Contas, autenticação (planejada com login Google) e endpoints para salvar ou consultar carteiras.
-- Ativos, movimentações, cotações, rentabilidade e proventos.
+- Cadastro e persistência de ativos, movimentações, cotações, rentabilidade e proventos; a aba Ativos atual só consulta exemplos fixos.
 - Dashboard conectado: a visão geral atual usa uma fixture sintética.
 - Preenchimento do simulador a partir de posições reais persistidas; a transferência demonstrativa usa exclusivamente valores fixos e fictícios.
 
@@ -194,6 +199,7 @@ O formulário indica em texto se as metas fecham exatamente 100%, com até quatr
 - [`docs/render-deployment.md`](docs/render-deployment.md) — demonstração pública e atualização da versão online.
 - [`docs/class-rebalancing.md`](docs/class-rebalancing.md) — regra e limites das vendas simuladas.
 - [`docs/REVIEW_FOLLOW_UP.md`](docs/REVIEW_FOLLOW_UP.md) — correções priorizadas e melhorias adiadas.
+- [`docs/AUTH_SECURITY_PLAN.md`](docs/AUTH_SECURITY_PLAN.md) — proposta de login, sessão e isolamento, ainda sem autenticação implementada.
 
 ## Dados e licença
 

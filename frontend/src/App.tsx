@@ -1,11 +1,19 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import './App.css'
+import { AssetExplorer } from './features/asset-explorer/AssetExplorer'
 import { ContributionSimulator } from './features/contribution-simulator/ContributionSimulator'
 import type { SimulationDraftPreset } from './features/contribution-simulator/contracts'
 import { PortfolioOverview } from './features/portfolio-overview/PortfolioOverview'
 import { createDemoSimulationPreset } from './features/portfolio-overview/demoPortfolio'
 
-type ActiveView = 'overview' | 'simulator'
+const NAV_ITEMS = [
+  { id: 'overview', label: 'Visão geral' },
+  { id: 'assets', label: 'Ativos' },
+  { id: 'simulator', label: 'Simulador' },
+] as const
+
+type ActiveView = (typeof NAV_ITEMS)[number]['id']
 type ColorTheme = 'light' | 'dark'
 
 const THEME_STORAGE_KEY = 'portfolio-planner-theme'
@@ -56,12 +64,40 @@ function ThemeIcon({ theme }: { theme: ColorTheme }) {
   )
 }
 
+function ViewIcon({ view }: { view: ActiveView }) {
+  return (
+    <svg aria-hidden="true" className="nav-icon" viewBox="0 0 24 24">
+      {view === 'overview' ? (
+        <path d="M4 19V10h4v9M10 19V5h4v14M16 19v-7h4v7M3 19h18" />
+      ) : view === 'assets' ? (
+        <>
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </>
+      ) : (
+        <>
+          <path d="M3 6h18M3 12h18M3 18h18" />
+          <circle cx="8" cy="6" r="2" />
+          <circle cx="16" cy="12" r="2" />
+          <circle cx="10" cy="18" r="2" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('overview')
   const [theme, setTheme] = useState<ColorTheme>(getInitialTheme)
   const [demoTransfer, setDemoTransfer] = useState<{
     version: number
     preset: SimulationDraftPreset
+  } | null>(null)
+  const [assetTransfer, setAssetTransfer] = useState<{
+    version: number
+    categoryId: string
   } | null>(null)
   const mainRef = useRef<HTMLElement>(null)
 
@@ -102,6 +138,14 @@ function App() {
     openView('simulator')
   }
 
+  function exploreAssets(categoryId: string) {
+    setAssetTransfer((current) => ({
+      version: (current?.version ?? 0) + 1,
+      categoryId,
+    }))
+    openView('assets')
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -124,24 +168,27 @@ function App() {
           aria-label="Navegação principal"
           className="app-nav"
           data-active-view={activeView}
+          style={
+            {
+              '--nav-active-index': NAV_ITEMS.findIndex(
+                (item) => item.id === activeView,
+              ),
+            } as CSSProperties
+          }
         >
           <span aria-hidden="true" className="nav-indicator" />
-          <button
-            aria-current={activeView === 'overview' ? 'page' : undefined}
-            className={activeView === 'overview' ? 'active' : undefined}
-            type="button"
-            onClick={() => openView('overview')}
-          >
-            Visão geral
-          </button>
-          <button
-            aria-current={activeView === 'simulator' ? 'page' : undefined}
-            className={activeView === 'simulator' ? 'active' : undefined}
-            type="button"
-            onClick={() => openView('simulator')}
-          >
-            Simulador
-          </button>
+          {NAV_ITEMS.map((item) => (
+            <button
+              aria-current={activeView === item.id ? 'page' : undefined}
+              className={activeView === item.id ? 'active' : undefined}
+              key={item.id}
+              type="button"
+              onClick={() => openView(item.id)}
+            >
+              <ViewIcon view={item.id} />
+              {item.label}
+            </button>
+          ))}
         </nav>
         <div className="header-tools">
           <button
@@ -158,7 +205,7 @@ function App() {
             <span>Modo {theme === 'light' ? 'escuro' : 'claro'}</span>
           </button>
           <span className="status-badge">
-            {activeView === 'overview' ? 'Dados sintéticos' : 'Módulo inicial'}
+            {activeView === 'simulator' ? 'Módulo inicial' : 'Dados sintéticos'}
           </span>
         </div>
       </header>
@@ -168,6 +215,13 @@ function App() {
           <PortfolioOverview
             onOpenSimulator={() => openView('simulator')}
             onUseDemoPortfolio={useDemoPortfolio}
+            onExploreAssets={exploreAssets}
+          />
+        </div>
+        <div className="app-view" hidden={activeView !== 'assets'}>
+          <AssetExplorer
+            key={assetTransfer?.version ?? 0}
+            initialCategoryId={assetTransfer?.categoryId}
           />
         </div>
         <div className="app-view" hidden={activeView !== 'simulator'}>
@@ -182,8 +236,8 @@ function App() {
               <p>
                 Este é o primeiro módulo de uma plataforma de carteira em
                 evolução. Por enquanto, ele trabalha com um cenário informado na
-                tela; carteiras salvas, ativos e movimentações ainda não estão
-                disponíveis.
+                tela; carteiras salvas, cadastro de ativos e movimentações ainda
+                não estão disponíveis.
               </p>
               <p className="disclaimer">
                 Simulação educacional, sem recomendação de investimento. Use

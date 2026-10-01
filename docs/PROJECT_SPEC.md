@@ -47,7 +47,10 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 - Visão geral sem persistência, com valores sintéticos por categoria e item.
 - Total do cenário sintético separado entre posições e uma hipótese visual de caixa.
 - Filtro por Ações, FIIs, ETFs, Renda fixa e Caixa.
-- Navegação entre a visão geral e o simulador.
+- Navegação entre a visão geral, a exploração de ativos demonstrativos e o simulador, preservando os rascunhos enquanto a página permanece aberta.
+- Aba Ativos com busca por código/nome/tipo/categoria, filtros e ordenação alfabética, usando os mesmos sete ativos sintéticos da visão geral. A hipótese de caixa não entra na lista de ativos.
+- Detalhes de cada exemplo com valor e participação fixos, fonte sintética e data de referência. A participação é a fração do cenário completo de R$ 60.000,00, inclusive a hipótese visual de caixa; filtros não mudam esse denominador.
+- Não há cadastro, edição ou consulta externa nessa aba. Quantidade, preço de compra, rentabilidade e proventos não são inventados para preencher a demonstração.
 - Ação explícita “Simular esta demonstração” que pré-preenche o simulador com as cinco categorias sintéticas, inclusive Caixa como hipótese visual. O rascunho pode ser editado antes do envio à API; navegar normalmente entre as abas não substitui entradas manuais, enquanto repetir a ação demonstrativa reinicia o rascunho e limpa o resultado anterior.
 - Modos claro e escuro com preferência local e respeito à configuração inicial do sistema.
 
@@ -156,6 +159,10 @@ Os UUIDs são gerados pela aplicação, sem extensão específica no banco. Time
 A soma de metas e o limite de uma a vinte classes são invariantes entre várias linhas. O serviço interno substitui o conjunto completo em uma transação, valida a soma exata `100.0000` com escala de quatro casas e exige ownership em todas as operações. A escrita usa compare-and-set sobre a versão da carteira para rejeitar edição concorrente; um `CHECK` isolado não consegue garantir essas regras.
 
 Na substituição interna de metas, cada classe existente é identificada por seu UUID. Renomear, reordenar ou alterar a meta mantém o ID e a criação; um item sem ID cria uma classe, e a ausência de um ID anteriormente presente remove essa classe. O serviço rejeita IDs que não pertençam à carteira e mantém a operação integralmente transacional. Antes de vincular ativos às classes, a política de exclusão de classes referenciadas deverá ser definida.
+
+A leitura interna obtém carteira e classes em uma única consulta escalar ordenada, sempre filtrada pelo proprietário. Cabeçalho, versão e metas pertencem ao mesmo snapshot da instrução SQL; a projeção não reaproveita entidades antigas no contexto JPA. Isso não bloqueia uma edição posterior e não substitui o compare-and-set ao gravar.
+
+Novos nomes de classes e alterações aceitam até 60 unidades UTF-16 após remover espaços externos, como no contrato atual do simulador. O schema existente continua com `VARCHAR(80)` para preservar registros históricos: nomes maiores ainda são lidos integralmente, mas devem ser renomeados explicitamente antes de um novo envio de metas. Não há truncamento, migration destrutiva nem mudança no contrato público.
 
 Relacionamentos:
 

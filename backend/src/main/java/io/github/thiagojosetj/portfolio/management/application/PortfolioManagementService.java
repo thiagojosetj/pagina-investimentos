@@ -8,6 +8,7 @@ import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetUpdate
 import io.github.thiagojosetj.portfolio.management.domain.PortfolioValidationException;
 import io.github.thiagojosetj.portfolio.management.persistence.AllocationClassJpaEntity;
 import io.github.thiagojosetj.portfolio.management.persistence.AllocationClassJpaRepository;
+import io.github.thiagojosetj.portfolio.management.persistence.OwnedPortfolioSnapshotRow;
 import io.github.thiagojosetj.portfolio.management.persistence.PortfolioJpaEntity;
 import io.github.thiagojosetj.portfolio.management.persistence.PortfolioJpaRepository;
 import java.time.Clock;
@@ -231,31 +232,36 @@ public class PortfolioManagementService {
   }
 
   private PortfolioView loadOwnedPortfolio(UUID ownerUserId, UUID portfolioId) {
-    PortfolioJpaEntity portfolio =
-        portfolioRepository
-            .findOwnedById(ownerUserId, portfolioId)
-            .orElseThrow(PortfolioNotFoundException::new);
+    // One scalar projection keeps version and targets in the same database snapshot and avoids
+    // stale managed entities when a caller already has an open persistence context.
+    List<OwnedPortfolioSnapshotRow> rows =
+        portfolioRepository.findOwnedSnapshotRows(ownerUserId, portfolioId);
+    if (rows.isEmpty()) {
+      throw new PortfolioNotFoundException();
+    }
+    OwnedPortfolioSnapshotRow portfolio = rows.getFirst();
     List<AllocationTargetView> targets =
-        allocationClassRepository.findAllOwnedByPortfolioId(ownerUserId, portfolioId).stream()
+        rows.stream()
+            .filter(row -> row.allocationClassId() != null)
             .map(
                 target ->
                     new AllocationTargetView(
-                        target.getId(),
-                        target.getName(),
-                        target.getDisplayOrder(),
-                        target.getTargetPercentage(),
-                        target.getCreatedAt(),
-                        target.getUpdatedAt()))
+                        target.allocationClassId(),
+                        target.allocationClassName(),
+                        target.displayOrder(),
+                        target.targetPercentage(),
+                        target.allocationClassCreatedAt(),
+                        target.allocationClassUpdatedAt()))
             .toList();
 
     return new PortfolioView(
-        portfolio.getId(),
-        portfolio.getOwnerUserId(),
-        portfolio.getName(),
-        portfolio.getBaseCurrency(),
-        portfolio.getVersion(),
-        portfolio.getCreatedAt(),
-        portfolio.getUpdatedAt(),
+        portfolio.portfolioId(),
+        portfolio.ownerUserId(),
+        portfolio.portfolioName(),
+        portfolio.baseCurrency(),
+        portfolio.portfolioVersion(),
+        portfolio.portfolioCreatedAt(),
+        portfolio.portfolioUpdatedAt(),
         targets);
   }
 

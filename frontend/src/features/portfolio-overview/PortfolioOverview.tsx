@@ -5,6 +5,7 @@ import './PortfolioOverview.css'
 interface PortfolioOverviewProps {
   onOpenSimulator: () => void
   onUseDemoPortfolio: () => void
+  onExploreAssets: (categoryId: string) => void
 }
 
 function formatCurrency(value: string): string {
@@ -16,6 +17,7 @@ function formatCurrency(value: string): string {
 export function PortfolioOverview({
   onOpenSimulator,
   onUseDemoPortfolio,
+  onExploreAssets,
 }: PortfolioOverviewProps) {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [isCompositionRevealed, setIsCompositionRevealed] = useState(false)
@@ -37,6 +39,9 @@ export function PortfolioOverview({
           ),
     [selectedCategory],
   )
+  const selectedCategoryName = DEMO_PORTFOLIO.categories.find(
+    (category) => category.id === selectedCategory,
+  )?.name
 
   return (
     <section className="portfolio-overview" aria-labelledby="overview-title">
@@ -198,6 +203,31 @@ export function PortfolioOverview({
             Mostrando {visibleItems.length}{' '}
             {visibleItems.length === 1 ? 'item' : 'itens'}.
           </p>
+
+          <div className="holdings-explore">
+            {selectedCategory === 'cash' ? (
+              <p>
+                Caixa é apenas uma hipótese visual e não aparece na aba Ativos.
+              </p>
+            ) : (
+              <>
+                <p>
+                  {selectedCategory === 'all'
+                    ? 'Consulte os sete investimentos fictícios desta carteira.'
+                    : `Consulte os investimentos fictícios de ${selectedCategoryName}.`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onExploreAssets(selectedCategory)}
+                >
+                  {selectedCategory === 'all'
+                    ? 'Explorar todos os ativos'
+                    : `Explorar ativos de ${selectedCategoryName}`}
+                  <span aria-hidden="true">↗</span>
+                </button>
+              </>
+            )}
+          </div>
 
           <div
             aria-labelledby="holdings-title"
