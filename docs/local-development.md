@@ -17,6 +17,8 @@ Este guia considera Windows 11, PowerShell 7 e IntelliJ IDEA Ultimate. Os comand
 
 Não é necessário instalar Maven globalmente, pois `backend/mvnw.cmd` fixa o fluxo do projeto.
 
+Use Node.js **24.15.0 ou posterior da linha 24**: as dependências de desenvolvimento do lockfile exigem essa versão mínima.
+
 ## 2. O que o Docker faz aqui
 
 - **Imagem:** pacote versionado do PostgreSQL (`postgres:18.6-bookworm`).
@@ -140,9 +142,11 @@ Configurações compartilhadas em `.run/`:
 
 - `Backend`: executa/depura `PortfolioApiApplication` com o JDK do módulo; o PostgreSQL precisa estar ativo antes.
 - `Backend - Simulator`: executa/depura apenas a API do simulador com o perfil `simulator`, sem Docker.
+- `Backend - Local Wallet`: executa a primeira carteira persistida, com PostgreSQL e identidade fictícia restrita ao loopback.
 - `Frontend`: executa `npm run dev`.
 - `Full stack`: inicia Backend e Frontend em paralelo.
 - `Simulator + Frontend`: inicia o backend no perfil `simulator` e o frontend em paralelo, sem Docker.
+- `Local Wallet + Frontend`: inicia a API privada de desenvolvimento e o frontend; execute o PostgreSQL antes.
 - `Backend - Verify`: executa o goal Maven `verify` pelo wrapper, incluindo a cobertura PostgreSQL/Testcontainers.
 - `Backend - Verify without Docker`: executa `verify` com o perfil Maven `without-docker`, excluindo apenas os testes marcados com `postgres`.
 - `Frontend - Checks`: executa `npm run check`.
@@ -290,3 +294,32 @@ Ambos devem apontar para JDK 21. Ajuste o `JAVA_HOME` do seu ambiente/IDE; não 
 ### Interface informa que não encontrou a API
 
 O Vite pode responder HTTP 502 quando a API na porta `8080` não está em execução. Confirme `http://localhost:8080/api/v1/system/status` e os logs do backend. Para apenas simular, use o perfil `simulator` acima, sem Docker. Para o modo completo, inicie primeiro o PostgreSQL. O build público do Render serve o Vite e a API pelo mesmo processo Java, sem usar o proxy de desenvolvimento.
+
+## 9. Testar a primeira carteira salva
+
+Esta fatia salva **nome, classes e metas**; ainda não registra ativos, compras, vendas, cotações ou saldo. Use somente exemplos fictícios. Não altera os ativos sintéticos da demonstração nem preenche automaticamente o simulador.
+
+1. Inicie o Docker Desktop intencionalmente e, na raiz, execute `docker compose up -d --wait postgres`.
+2. No IntelliJ, escolha `Local Wallet + Frontend`. Não deixe outro backend ocupando a porta 8080.
+3. Abra <http://localhost:5173>, entre na aba **Carteira** e escolha **Entrar com usuário fictício**.
+4. Crie uma carteira de exemplo; ela começa com Ações 40%, FIIs 25%, ETFs 15% e Renda fixa 20%.
+5. Edite nomes e percentuais mantendo a soma exatamente 100%; salve e recarregue a página. Os dados devem permanecer no PostgreSQL.
+6. Teste soma inválida, adição/remoção de classes e duas abas salvando a mesma carteira. Uma versão antiga deve receber conflito, sem sobrescrever silenciosamente a nova.
+7. Saia e recarregue: dados privados não devem continuar aparecendo sem uma nova sessão. Este perfil usa sempre a mesma identidade fictícia; não demonstra dois usuários distintos pela interface.
+
+Pelo terminal, substitua somente a execução do backend:
+
+```powershell
+Set-Location .\backend
+.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=local-wallet'
+```
+
+O frontend continua com `npm run dev`. O perfil `local-wallet` não pode ser combinado com `wallet`, `demo` ou `simulator`; ele limita o servidor a `127.0.0.1` e não deve ser publicado. A V2 cria as tabelas operacionais de sessão JDBC, sem alterar ou apagar as tabelas da V1. As sessões também ficam no banco; o navegador recebe apenas um cookie HttpOnly e solicita o token CSRF para comandos protegidos.
+
+### Login Google: implementação preparada, operação externa pendente
+
+O perfil `wallet` usa Google OpenID Connect e requer três variáveis no **processo Java**, sem fallback: `PORTFOLIO_PUBLIC_ORIGIN` (origem HTTPS fixa, sem caminho), `PORTFOLIO_GOOGLE_CLIENT_ID` e `PORTFOLIO_GOOGLE_CLIENT_SECRET`. Cadastre o callback exato `<origem>/login/oauth2/code/google` em um cliente web do Google Cloud. Nunca copie o secret para o frontend, chat ou arquivos versionados.
+
+Não altere o serviço gratuito de demonstração para esse perfil: login real exige um ambiente privado aprovado, PostgreSQL durável, backups, secrets e teste real do callback. O cookie desse ambiente é `Secure`, HttpOnly e SameSite=Lax; a sessão tem 30 minutos de inatividade e limite absoluto de 8 horas. O backend usa Authorization Code + PKCE, identifica contas por provedor e `sub`, e não guarda tokens Google na sessão final. O proxy Vite inclui `/oauth2` e `/login/oauth2` para desenvolvimento controlado, mas não substitui HTTPS nem a origem registrada.
+
+No Render atual e nos perfis `demo`/`simulator`, a aba Carteira explica que a persistência não está habilitada. Nenhum cadastro é simulado como se tivesse sido salvo.

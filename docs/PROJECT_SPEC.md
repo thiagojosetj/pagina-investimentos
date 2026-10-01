@@ -65,6 +65,14 @@ Caixa aparece na demonstração apenas como hipótese de interface. O modelo per
 - Dashboard com patrimônio, alocação, desvios e acesso ao simulador.
 - Autorização no servidor e testes de isolamento entre usuários.
 
+### Primeira carteira utilizável
+
+O autor autorizou começar esta fatia em 1º de outubro de 2026. A aba Carteira cria/lista carteiras BRL e permite salvar suas classes/metas com soma exata de 100%, até quatro casas decimais, IDs estáveis e edição protegida por versão. A criação começa com um modelo editável 40/25/15/20. O proprietário vem exclusivamente da identidade validada no servidor.
+
+`local-wallet` oferece uma identidade fictícia em loopback para testar PostgreSQL, sessão, recarregamento e logout. `wallet` usa Google OIDC, sem fallback de identidade, e exige origem HTTPS/configuração externa. Sessões JDBC compartilham o PostgreSQL e usam cookie protegido, CSRF e expiração. O ambiente público `demo` mantém somente as consultas sintéticas e o simulador; a aba Carteira explica que persistência não está habilitada.
+
+Ainda não há posições ou movimentações na carteira salva. O simulador continua recebendo o cenário informado na tela; carregar posições reais dependerá dos incrementos de ativos/avaliações. Não há cotação, provento ou indicador ficticiamente atribuído a uma carteira do usuário.
+
 ## 4. Fora do MVP
 
 - Integração automática com B3, bancos, corretoras ou Open Finance.
@@ -145,7 +153,7 @@ Essa opção foi aprovada pelo autor e não inclui impostos, taxas, liquidez ou 
 
 ## 6. Modelo de dados inicial e evolução proposta
 
-A migration `V1__create_identity_and_portfolio_tables.sql` implementa somente a fundação aprovada abaixo. O incremento implementado e validado localmente acrescenta mapeamentos JPA, repositories e um serviço transacional interno para carteira e classes; nenhuma operação pública foi criada para esses registros.
+A migration `V1__create_identity_and_portfolio_tables.sql` implementa a fundação aprovada abaixo. A primeira fatia autenticada expõe operações de carteira e metas apenas nos perfis privados habilitados. A V2 acrescenta tabelas operacionais `spring_session` e `spring_session_attributes`, sem criar dados de ativos ou movimentações.
 
 ### Primeira etapa de persistência implementada
 
@@ -225,7 +233,7 @@ O mapeamento Java das metas usa `BigDecimal` com escala validada nas bordas; os 
 
 - O modelo inicial não cobre desdobramentos, grupamentos, amortizações, subscrições, transferências de custódia ou tributação.
 - Instrumento global, renda fixa, movimentações, caixa, avaliações e proventos não pertencem à primeira migration; o desenho apenas reserva um caminho de evolução.
-- A política de exclusão de classes referenciadas por ativos ainda precisa ser definida antes da associação com ativos. A interface/API pública de edição de metas ainda não existe.
+- A política de exclusão de classes referenciadas por ativos ainda precisa ser definida antes da associação com ativos. A API de edição de metas existe na primeira fatia autenticada; o perfil público `demo` não a habilita.
 - A metodologia de preço médio será uma simplificação educacional documentada, não uma apuração fiscal oficial.
 - A estratégia de correção/remoção de movimentações precisa ser aprovada antes da migration correspondente.
 

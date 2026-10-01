@@ -1,8 +1,8 @@
-# Proposta de autenticação e autorização web
+# Autenticação e autorização web
 
-**Incremento:** INC-010A. **Consulta:** 27 de setembro de 2026. **Status:** proposta para aprovação; não implementada.
+**Incremento:** INC-010A e primeira fatia de identidade/carteira. **Consulta atualizada:** 1º de outubro de 2026. **Status:** direção técnica autorizada pelo autor; implementação local com identidades fictícias. Google real e publicação privada continuam pendentes.
 
-A direção Google para identidade foi aceita na ADR-009. Este documento propõe os detalhes ainda não aprovados: fluxo, sessão, proteção CSRF, contrato HTTP e condições de operação. Não acrescenta dependências, endpoints, credenciais ou contas ao aplicativo. A demonstração pública continua sem login, banco ou carteiras pessoais.
+A direção Google para identidade foi aceita na ADR-009. Em 1º de outubro, o autor delegou a escolha da solução profissional e escalável e autorizou começar a carteira utilizável. A primeira fatia adota Google OIDC no backend, cookie, CSRF e Spring Session JDBC no PostgreSQL. O perfil `local-wallet` permite testar uma identidade fictícia; o perfil `wallet` exige origem HTTPS e configuração Google. A demonstração pública continua sem banco ou carteiras pessoais.
 
 ## 1. Recomendação e alternativas
 
@@ -10,13 +10,13 @@ Usar Spring Security OAuth2 Login no Java, com OpenID Connect e fluxo Authorizat
 
 | Alternativa | Benefício | Motivo para não priorizar |
 | --- | --- | --- |
-| Sessão no Java | Aproveita a arquitetura aprovada; revogação e regras centralizadas | Exige CSRF e política de expiração; reiniciar um processo pode encerrar sessões |
+| Sessão no Java + JDBC | Aproveita a arquitetura aprovada; revogação e regras centralizadas; sessões compartilháveis | Exige CSRF, expiração e banco disponível; não demonstra capacidade de carga por si só |
 | JWT administrado pelo navegador | Pode atender clientes independentes | Acrescenta armazenamento, renovação e revogação; não resolve uma necessidade da web atual |
 | Senha local | Não depende de login Google | Exige recuperação, verificação, armazenamento de senha e proteção adicional fora da primeira fatia |
 
 A sessão web não determina o login do futuro aplicativo nativo. Esse cliente exigirá decisão própria; não abrir autenticação Google em WebView embutida. Ver [`WEB_MOBILE_PLAN.md`](WEB_MOBILE_PLAN.md).
 
-## 2. Fluxo proposto e identidade local
+## 2. Fluxo implementado e identidade local
 
 1. O usuário inicia o login por navegação de primeiro nível ao backend, não enviando senha ou token ao React.
 2. Spring registra a tentativa em sessão e produz `state` e `nonce` aleatórios vinculados ao navegador; o retorno precisa corresponder à tentativa e não pode ser reaproveitado.
@@ -27,39 +27,43 @@ A sessão web não determina o login do futuro aplicativo nativo. Esse cliente e
 
 O `sub` estável, não o e-mail, identifica a conta Google. O desenho reutiliza as tabelas existentes; não precisa de coluna de senha. [Google: identidade e validação OIDC](https://developers.google.com/identity/openid-connect/openid-connect).
 
-Propor PKCE com `S256`, gerado pela infraestrutura de segurança. Spring documenta `requireProofKey` para Authorization Code; a referência Google OIDC menciona PKCE, mas isso não comprova a configuração do futuro cliente confidencial. Antes de habilitar o login, verificar compatibilidade do registro Google e da versão efetiva de Spring, testar challenge/verifier e registrar o resultado. Não omitir silenciosamente a proteção caso haja incompatibilidade: revisar a proposta antes de publicar. [Spring: PKCE](https://docs.spring.io/spring-security/reference/servlet/oauth2/client/authorization-grants.html), [Google: referência OIDC](https://developers.google.com/identity/openid-connect/reference), [OWASP: OAuth2](https://cheatsheetseries.owasp.org/cheatsheets/OAuth2_Cheat_Sheet.html).
+PKCE com `S256` é habilitado por `requireProofKey`, gerado pela infraestrutura de segurança e coberto pelo teste do redirect. Isso não comprova a configuração de um cliente Google real. Antes de habilitar o login público, verificar compatibilidade do registro, concluir uma troca real e registrar o resultado sem tokens. Não omitir silenciosamente a proteção caso haja incompatibilidade: revisar a decisão antes de publicar. [Spring: PKCE](https://docs.spring.io/spring-security/reference/servlet/oauth2/client/authorization-grants.html), [Google: referência OIDC](https://developers.google.com/identity/openid-connect/reference), [OWASP: OAuth2](https://cheatsheetseries.owasp.org/cheatsheets/OAuth2_Cheat_Sheet.html).
 
 ## 3. Sessão, navegador e encerramento
 
-- Cookie de sessão proposto em produção: `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, sem `Domain`; avaliar nome com prefixo `__Host-`. `Lax` permite o retorno Google por navegação GET, mas não substitui CSRF.
+- Cookie de sessão no perfil `wallet`: `__Host-PORTFOLIO_SESSION`, `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, sem `Domain`. `Lax` permite o retorno Google por navegação GET, mas não substitui CSRF. O perfil local tem cookie próprio sem `Secure`, apenas em loopback.
 - Rotacionar o ID da sessão ao autenticar, usando a proteção de session fixation do framework. Não aceitar sessão pela URL.
-- Proposta de expiração: 30 minutos de inatividade e limite absoluto de oito horas desde a autenticação. O limite absoluto requer verificação explícita no servidor; não presumir que o timeout do container o implementa. Usar relógio controlável nos testes.
+- Expiração: 30 minutos de inatividade e limite absoluto de oito horas desde a autenticação. O limite absoluto tem filtro explícito no servidor e relógio controlável nos testes.
 - Não adicionar “lembrar de mim” nem pedir refresh token. Não guardar token, ID de sessão ou credencial em `localStorage`/`sessionStorage`; tema visual pode continuar local.
 - Tokens recebidos pelo backend não entram em DTOs, logs ou tabelas financeiras. Validar o armazenamento mínimo do principal e do cliente OAuth2 na implementação; nenhum token de longa duração será persistido nessa fatia.
-- Começar com sessão em memória em uma única instância, se aprovado: reinício/deploy encerra login. Banco durável preserva carteiras, não torna automaticamente a sessão durável. Não adicionar Redis ou novas tabelas de sessão sem necessidade.
+- Usar Spring Session JDBC no PostgreSQL existente, com schema Flyway V2: sessões deixam de depender da memória de uma instância. Várias instâncias podem compartilhar o mesmo repositório de sessões, sem acrescentar Redis. Isso não comprova capacidade de carga ou disponibilidade; essas propriedades dependem de implantação, conexão ao banco, relógios e testes de operação. O principal persistido contém UUID local, nome e instante da autenticação; tokens Google são descartados após identificar o usuário.
 - Logout por POST com CSRF válido: invalidar sessão no servidor, limpar contexto e cookie e descartar estado privado na interface. Isso não encerra a conta Google no navegador nem exclui a carteira.
 
 Fontes: [Spring: sessões e rotação](https://docs.spring.io/spring-security/reference/servlet/authentication/session-management.html), [OWASP: gestão de sessão](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).
 
-## 4. CSRF e contrato HTTP a aprovar
+## 4. CSRF e contrato HTTP da primeira fatia
 
-Manter CSRF ativo para operações autenticadas que alterem estado. Propor token sincronizado em sessão: um recurso JSON da mesma origem fornece token e nome do header; React mantém esse token apenas em memória e o envia no header dos comandos. O cookie autenticado permanece `HttpOnly`. Após login/logout, obter token novo, pois o anterior é invalidado; seguir o tratamento de token adiado e proteção BREACH suportado por Spring. [Spring: CSRF e JavaScript](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html), [OWASP: CSRF](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
+CSRF fica ativo para operações autenticadas que alteram estado. Um recurso JSON da mesma origem fornece token sincronizado e nome do header; React mantém esse token apenas em memória e o envia nos comandos. O cookie autenticado permanece `HttpOnly`. Após login/logout, obter token novo, pois o anterior é invalidado; o tratamento usa token adiado e proteção BREACH do Spring. O cálculo público e sem persistência do simulador permanece independente da sessão. [Spring: CSRF e JavaScript](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html), [OWASP: CSRF](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
 
-Os nomes abaixo são exemplos para discussão, não endpoints existentes ou contrato aprovado:
+Contrato da primeira fatia:
 
-| Operação proposta | Comportamento |
+| Operação | Comportamento |
 | --- | --- |
 | Início e callback Google | Redirect somente no fluxo explícito de login; falha genérica, sem código/token na tela ou log |
 | `GET /api/v1/session` | Estado mínimo da sessão; nunca devolver tokens ou claims completos |
 | `GET /api/v1/csrf` | Token/header JSON, mesma origem, sem cache público |
 | `POST /api/v1/logout` | CSRF obrigatório; encerra somente a sessão atual |
+| `POST /api/v1/local-session` | Somente `local-wallet` em loopback, usuário fictício fixo e CSRF obrigatório |
+| `GET/POST /api/v1/portfolios` | Lista/cria carteiras do principal local; listagem inicial limitada a 100 |
+| `GET /api/v1/portfolios/{id}` | Fotografia da carteira do usuário; `404` para inexistente ou de outro usuário |
+| `PUT /api/v1/portfolios/{id}/targets` | Substitui metas com `expectedVersion`, IDs estáveis, validação e CSRF |
 | Recursos privados de carteira | `401` JSON sem redirect se sessão ausente/expirada; erros uniformes |
 
-Propor `Cache-Control: private, no-store` em respostas de sessão, CSRF e dados privados, inclusive erros. Assets com hash continuam separados do cache privado. Nenhum service worker poderá guardar carteiras ou autenticação. Fetch usa credenciais da mesma origem; produção não precisa de CORS amplo. Desenvolvimento usa o proxy Vite existente, em vez de liberar origens arbitrárias.
+Respostas de sessão, CSRF e dados privados, inclusive erros, usam `Cache-Control: private, no-store`. Assets com hash continuam separados do cache privado. Nenhum service worker poderá guardar carteiras ou autenticação. Fetch usa credenciais da mesma origem; produção não precisa de CORS amplo. Desenvolvimento usa o proxy Vite existente, em vez de liberar origens arbitrárias.
 
 ## 5. Autorização e fronteiras de operação
 
-O servidor obtém `ownerId` exclusivamente do principal local validado, nunca de corpo JSON, query ou header do usuário. Cada consulta/comando verifica ownership por usuário e carteira; UUID imprevisível não substitui autorização. Propor `404` uniforme para carteira inexistente ou pertencente a outro usuário, sem revelar existência. A concorrência e os IDs estáveis das classes continuam protegidos pelo serviço transacional atual. [OWASP: autorização](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
+O servidor obtém `ownerId` exclusivamente do principal local validado, nunca de corpo JSON, query ou header do usuário. Cada consulta/comando verifica ownership por usuário e carteira; UUID imprevisível não substitui autorização. O retorno `404` é uniforme para carteira inexistente ou pertencente a outro usuário, sem revelar existência. A concorrência e os IDs estáveis das classes continuam protegidos pelo serviço transacional. [OWASP: autorização](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
 
 Separar o perfil público `demo`, sem autenticação/persistência privada, de um futuro ambiente autenticado. Credenciais ausentes devem impedir a inicialização do ambiente privado, não liberar recursos como fallback. O simulador público continuará sem acessar registros pessoais; “usar minha carteira” será um recurso privado futuro.
 
@@ -90,10 +94,10 @@ Contas públicas exigem PostgreSQL durável e privado, orçamento/provedor aprov
 
 Todos os itens encerram com diff revisado, verificações executadas, documentação do estado real e limitações registradas. JUnit é o framework backend; Vitest cobre interface e clientes. Usar fakes OIDC e relógio controlado na CI, sem conta Google, segredo real ou chamadas externas. E2E só após a fatia vertical estável; mocks de principal não substituem testes de validação do callback/protocolo.
 
-## 8. Escolhas necessárias antes do login, não para o incremento atual
+## 8. Limites da primeira fatia e próximos passos
 
-1. Aprovar esta proposta: sessão Java, contrato definitivo, 30 minutos/oito horas, logout e testes de isolamento.
-2. Escolher o primeiro ambiente privado: apenas local com dados fictícios ou publicação com contas sintéticas, provedor/banco duráveis, domínio/origem e orçamento.
-3. Definir quem poderá entrar inicialmente: lista de testadores fictícios ou cadastro aberto. Dados financeiros reais continuam sujeitos a revisão própria de segurança e privacidade.
+1. O ambiente inicial é local, com dados fictícios, sessão Java/JDBC, 30 minutos de inatividade e limite absoluto de oito horas.
+2. Validar redirect, state/nonce e PKCE com um cliente Google real antes de anunciar login Google disponível.
+3. Para publicar contas, decidir provedor/banco duráveis, backup, domínio/origem, orçamento e quem poderá entrar inicialmente. Dados financeiros reais continuam sujeitos a revisão própria de segurança e privacidade.
 
 Somente depois dessas escolhas serão solicitadas as ações no console Google para cadastro do cliente e consentimento. Nunca compartilhar client secret, cookies ou tokens em mensagens; configuração sensível fica no ambiente apropriado.
