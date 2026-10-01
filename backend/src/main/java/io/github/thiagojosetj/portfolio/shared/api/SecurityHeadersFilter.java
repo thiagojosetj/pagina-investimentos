@@ -13,7 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Política da demonstração servida na mesma origem, aplicada antes de possíveis rejeições. */
 @Component
-@Profile("demo")
+@Profile("demo | wallet")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class SecurityHeadersFilter extends OncePerRequestFilter {
 

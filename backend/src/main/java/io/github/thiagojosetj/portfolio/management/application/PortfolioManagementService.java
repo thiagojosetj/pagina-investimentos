@@ -55,8 +55,11 @@ public class PortfolioManagementService {
     String name = normalizePortfolioName(command.name());
     AllocationTargetSet targetSet = AllocationTargetSet.from(command.allocationTargets());
 
-    if (!portfolioRepository.ownerExists(command.ownerUserId())) {
+    if (portfolioRepository.lockOwner(command.ownerUserId()).isEmpty()) {
       throw invalid("ownerUserId", "not_found", "O proprietário da carteira não existe.");
+    }
+    if (portfolioRepository.countByOwnerUserId(command.ownerUserId()) >= 100) {
+      throw invalid("name", "limit", "O limite inicial é de 100 carteiras por usuário.");
     }
     Instant now = databaseTimestamp();
     UUID portfolioId = UUID.randomUUID();
@@ -80,6 +83,16 @@ public class PortfolioManagementService {
   public PortfolioView findPortfolio(UUID ownerUserId, UUID portfolioId) {
     requireIdentifiers(ownerUserId, portfolioId);
     return loadOwnedPortfolio(ownerUserId, portfolioId);
+  }
+
+  @Transactional(readOnly = true)
+  public List<PortfolioView> listPortfolios(UUID ownerUserId) {
+    if (ownerUserId == null) {
+      throw invalid("ownerUserId", "required", "O proprietário da carteira é obrigatório.");
+    }
+    return portfolioRepository.findOwnedIds(ownerUserId).stream()
+        .map(id -> loadOwnedPortfolio(ownerUserId, id))
+        .toList();
   }
 
   @Transactional

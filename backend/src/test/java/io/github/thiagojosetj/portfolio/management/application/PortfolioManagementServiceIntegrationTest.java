@@ -108,6 +108,69 @@ class PortfolioManagementServiceIntegrationTest {
   }
 
   @Test
+  void listsOnlyOwnedPortfoliosAndEnforcesTheBoundedInitialLimit() {
+    UUID owner = insertSyntheticUser("Usuário fictício Um");
+    UUID other = insertSyntheticUser("Usuário fictício Dois");
+    createBalancedPortfolio(other);
+    for (int index = 0; index < 100; index++) {
+      jdbcTemplate.update(
+          "INSERT INTO portfolio(id, owner_user_id, name) VALUES (?, ?, ?)",
+          UUID.randomUUID(),
+          owner,
+          "Carteira " + index);
+    }
+    assertThat(service.listPortfolios(owner))
+        .hasSize(100)
+        .allMatch(wallet -> wallet.ownerUserId().equals(owner));
+    assertThatThrownBy(() -> createBalancedPortfolio(owner))
+        .isInstanceOfSatisfying(
+            PortfolioValidationException.class,
+            exception -> assertThat(exception.code()).isEqualTo("limit"));
+    assertThat(service.listPortfolios(other)).hasSize(1);
+  }
+
+  @Test
+  void concurrentCreationCannotExceedTheOwnedPortfolioLimit() throws Exception {
+    UUID owner = insertSyntheticUser("Usuário fictício");
+    for (int index = 0; index < 99; index++) {
+      jdbcTemplate.update(
+          "INSERT INTO portfolio(id, owner_user_id, name) VALUES (?, ?, ?)",
+          UUID.randomUUID(),
+          owner,
+          "Carteira " + index);
+    }
+    var ready = new CountDownLatch(2);
+    var start = new CountDownLatch(1);
+    try (var executor = Executors.newFixedThreadPool(2)) {
+      java.util.function.Function<String, Callable<Object>> task =
+          name ->
+              () -> {
+                ready.countDown();
+                if (!start.await(5, TimeUnit.SECONDS)) {
+                  throw new IllegalStateException("Synthetic timeout");
+                }
+                try {
+                  return service.createPortfolio(
+                      new CreatePortfolioCommand(owner, name, List.of(target("Ações", "100"))));
+                } catch (PortfolioValidationException exception) {
+                  return exception;
+                }
+              };
+      var first = executor.submit(task.apply("Última Um"));
+      var second = executor.submit(task.apply("Última Dois"));
+      assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+      start.countDown();
+      var outcomes = List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
+      assertThat(outcomes).filteredOn(PortfolioView.class::isInstance).hasSize(1);
+      assertThat(outcomes).filteredOn(PortfolioValidationException.class::isInstance).hasSize(1);
+      assertThat(
+              jdbcTemplate.queryForObject(
+                  "SELECT count(*) FROM portfolio WHERE owner_user_id = ?", Integer.class, owner))
+          .isEqualTo(100);
+    }
+  }
+
+  @Test
   void retainsExistingIdsAndTimestampsWhileAddingAndRemovingTargets() {
     UUID ownerUserId = insertSyntheticUser("Usuário Sintético");
     PortfolioView created = createBalancedPortfolio(ownerUserId);
