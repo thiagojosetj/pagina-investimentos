@@ -278,7 +278,7 @@ Fontes oficiais consultadas em 27 de setembro de 2026: [Render Free](https://ren
 
 ## ADR-018 — Snapshot escalar de carteira e compatibilidade dos nomes
 
-**Status:** implementada localmente no INC-008B em 27 de setembro de 2026; execução PostgreSQL ainda pendente.
+**Status:** implementada no INC-008B em 27 de setembro de 2026; integrada no PR #11 em 1º de outubro, com execução PostgreSQL aprovada na CI.
 
 Substituir a leitura de cabeçalho e classes em duas consultas por uma projeção escalar imutável, com `LEFT JOIN`, filtro por carteira/proprietário e ordenação pela ordem da classe. PostgreSQL `READ COMMITTED` usa um snapshot por instrução; duas consultas podem observar commits diferentes. Projetar valores, não entidades, evita também combinar um cabeçalho antigo mantido no contexto JPA com metas novas.
 
@@ -288,10 +288,22 @@ Alternativas: `REPEATABLE READ` protege consultas sucessivas numa transação pr
 
 Novas definições/substituições usam limite de 60 unidades UTF-16, consistente com a API atual. `VARCHAR(80)` e migration V1 permanecem intactos; dados antigos não são truncados ou removidos. Um nome histórico maior que 60 exige renomeação explícita ao editar. Ampliar silenciosamente o contrato público ou reduzir a coluna com possível perda de dados foi rejeitado.
 
-Testes sem banco validam mapeamento, lista imutável, ownership dos parâmetros, carteira sem classes, limites dos nomes e construção da HQL com os mapeamentos reais. Testes PostgreSQL acrescentados verificam uma instrução/zero entidades carregadas, carteira sem classes, nome histórico/renomeação e edição concorrente enquanto o leitor mantém um cabeçalho antigo no contexto. Compilar esses testes não significa executá-los; a CI completa permanece necessária.
+Testes sem banco validam mapeamento, lista imutável, ownership dos parâmetros, carteira sem classes, limites dos nomes e construção da HQL com os mapeamentos reais. Testes PostgreSQL verificam uma instrução/zero entidades carregadas, carteira sem classes, nome histórico/renomeação e edição concorrente enquanto o leitor mantém um cabeçalho antigo no contexto. Essa cobertura foi executada e aprovada na CI completa do PR #11.
 
 Fontes oficiais consultadas em 27 de setembro de 2026: [PostgreSQL 18: isolamento](https://www.postgresql.org/docs/18/transaction-iso.html) e [Hibernate: joins e projeções](https://docs.hibernate.org/orm/7.1/querylanguage/html_single/).
 
-## INC-010A — Proposta de autenticação, sem configuração ativa
+## INC-010A — Evolução da autenticação web
 
-O detalhamento da ADR-009 está em [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md). Fluxo OIDC, cookies, expiração, CSRF, contrato e operação privada são propostas para aprovação. Nenhum login, endpoint privado, dependência de segurança, credencial ou novo provedor de hospedagem foi adicionado. Autenticação somente após ratificar esses detalhes e seu ambiente.
+O detalhamento da ADR-009 está em [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md). Em 1º de outubro de 2026, o autor autorizou a solução profissional/escalável e o começo da carteira utilizável. A ADR-019 registra a primeira fatia; publicação privada e validação Google real permanecem etapas próprias.
+
+## ADR-019 — Identidade web e primeira carteira persistida
+
+**Status:** autorizado pelo autor em 1º de outubro de 2026; validação do cliente Google real e hospedagem privada pendentes.
+
+Usar Spring Security OAuth2 Login/Google OpenID Connect no Java, com Authorization Code e PKCE S256, origem HTTPS/callback fixos, identidade por `GOOGLE + sub` e UUID interno. O navegador recebe somente cookie HttpOnly/Secure/SameSite=Lax; comandos privados exigem CSRF. A sessão expira após 30 minutos de inatividade ou oito horas da autenticação, e logout invalida o contexto. Não persistir o token Google nem unir contas por e-mail.
+
+Spring Session JDBC reutiliza o PostgreSQL. A migration V2 acrescenta somente as duas tabelas operacionais de sessão e seus índices; identidades, carteiras e classes usam o schema V1 aprovado. O armazenamento permite compartilhar sessões entre instâncias sem um serviço adicional. Não há benchmark, autoscaling ou garantia de disponibilidade implementados. Sessões em memória seriam mais simples, mas exigiriam afinidade/relogin ao crescer; Redis acrescentaria infraestrutura sem benefício necessário nesta fatia.
+
+O perfil `local-wallet` usa um usuário fictício fixo e aceita login somente em loopback. `wallet` exige configuração Google/origem e não possui fallback sintético. Ambos são incompatíveis com `demo` e `simulator`; a demonstração pública permanece sem persistência. A API obtém o proprietário do principal validado, devolve 401 sem sessão e 404 para carteira inexistente/de outro usuário, usa no-store e mantém edição otimista. A primeira interface cria carteiras e edita metas; não adiciona ativos ou movimentações.
+
+Referências oficiais consultadas em 1º de outubro de 2026: [Spring Session JDBC](https://docs.spring.io/spring-session/reference/configuration/jdbc.html), [Spring OAuth2 Login](https://docs.spring.io/spring-security/reference/servlet/oauth2/login/advanced.html), [Spring CSRF](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html) e [Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect).

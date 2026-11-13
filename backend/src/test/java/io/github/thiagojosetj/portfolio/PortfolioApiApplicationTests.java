@@ -26,7 +26,7 @@ class PortfolioApiApplicationTests {
   void contextLoads() {}
 
   @Test
-  void appliesTheInitialMigrationWithOnlyTheApprovedDomainTables() {
+  void appliesDomainAndSessionMigrations() {
     List<String> tables =
         jdbcTemplate.queryForList(
             """
@@ -49,7 +49,13 @@ class PortfolioApiApplicationTests {
             Integer.class);
 
     assertThat(tables)
-        .containsExactly("allocation_class", "app_user", "external_identity", "portfolio");
+        .containsExactly(
+            "allocation_class",
+            "app_user",
+            "external_identity",
+            "portfolio",
+            "spring_session",
+            "spring_session_attributes");
     assertThat(appliedMigrationCount).isEqualTo(1);
   }
 

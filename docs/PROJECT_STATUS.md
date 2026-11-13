@@ -1,6 +1,16 @@
 # Status do projeto
 
-**Atualizado em:** 28 de setembro de 2026
+**Atualizado em:** 13 de novembro de 2026
+
+## Atualização corrente
+
+Os PRs #12 (Spotless), #13 (dependências frontend) e #11 (snapshot coerente, switch e aba Ativos) foram integrados à `main` após autorização do autor. A CI do #11 foi repetida sobre as dependências atualizadas e aprovou Backend, Frontend e Public demo image: [execução 36928760913](https://github.com/thiagojosetj/pagina-investimentos/actions/runs/36928760913). Isso inclui as regressões PostgreSQL antes pendentes. Os relatos abaixo preservam resultados históricos; menções a falta de push/CI nos incrementos antigos não descrevem mais o estado corrente.
+
+A primeira fatia de carteira utilizável acrescenta a aba Carteira, login fictício local explícito, criação/listagem de carteiras e edição persistida das classes/metas. O servidor obtém o proprietário da sessão, aplica CSRF e mantém a versão otimista; a interface conserva o rascunho em conflito. Spring Security/Google OIDC e Spring Session JDBC estabelecem a fundação da identidade web. Configuração Google real, publicação privada e cadastro de ativos/movimentações continuam pendentes. A vitrine Render usa `demo`, sem banco ou conta pessoal.
+
+Correções visuais: seta do seletor sem preenchimento nativo branco; destaque do ativo selecionado preservado no hover; navegação volta ao topo mantendo o cabeçalho. A verificação em Edge headless passou em 320, 390 e 1280 px, claro/escuro. Na Carteira, a navegação por teclado mantém o foco ao adicionar/remover classes, e respostas de validação apresentam instruções específicas. O retorno do Google abre a Carteira; o resultado na URL não autentica ninguém, pois a interface verifica a sessão no servidor.
+
+A listagem de carteiras usa uma consulta para os IDs limitados e outra para carregar os respectivos snapshots por proprietário, em vez de uma consulta adicional por carteira. Sessões do modo errado são invalidadas. A atualização local foi verificada com 112 testes backend sem Docker e os checks de formatação, lint, tipos, testes e build do frontend. O Vitest usa até dois processos para evitar pressão de memória no Windows. PostgreSQL e a imagem pública são verificados na CI do PR #26. Os PRs #24 e #25 atualizaram dependências frontend com verificações aprovadas.
 
 ## Estado real
 
@@ -8,7 +18,7 @@ O primeiro corte vertical está implementado, validado e publicado no GitHub e n
 
 O primeiro push em `main` foi o commit `2dcdc84976f11c7ab98f6bcef26f4c24d8df98d6`, cuja CI terminou com sucesso nos jobs Backend e Frontend. Desde então `main` recebeu persistência de carteira e metas, visão geral demonstrativa e endurecimento de rede da API. A CI atual possui três jobs: Backend, Frontend e Public demo image. PostgreSQL real, JPA, Flyway e Testcontainers continuam obrigatórios no Backend. O Dependabot está ativo; atualizações de dependências são revisadas separadamente das funcionalidades.
 
-O INC-008 está concluído e validado localmente. Os mapeamentos JPA e o serviço interno de carteiras/metas existem, mas ainda não há endpoint para essas operações por decisão de escopo.
+O INC-008 está concluído e sua evolução usa snapshots consistentes validados na CI. Os endpoints de carteira/metas agora existem somente nos perfis autenticados habilitados; a vitrine pública não os disponibiliza.
 
 ## RELEASE-001 — demonstração pública no Render Free
 
@@ -152,7 +162,7 @@ O perfil `demo` aplica headers de segurança antes do filtro de corpo, também e
 
 ## Próximo incremento recomendado
 
-Validar o INC-008B com PostgreSQL real e revisar [`AUTH_SECURITY_PLAN.md`](AUTH_SECURITY_PLAN.md). Após aprovação do desenho de autenticação, começar segurança local/sessão em uma fatia pequena, mantendo a demonstração pública sem dados pessoais. Cadastro de ativos, rentabilidade, proventos e provedores permanecem posteriores, não funcionalidades prontas.
+Concluir a validação da primeira carteira salva e ratificar o modelo de compras/movimentações antes de uma nova migration. A base de login e a edição de metas são a primeira fatia; Google real e hospedagem privada precisam de configuração e verificação específicas. Cadastro de ativos, rentabilidade, proventos e provedores permanecem posteriores, não funcionalidades prontas.
 
 ## INC-008B — leitura coerente e nomes compatíveis
 

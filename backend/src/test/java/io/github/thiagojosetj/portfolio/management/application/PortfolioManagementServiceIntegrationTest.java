@@ -11,7 +11,9 @@ import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetDefini
 import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetUpdate;
 import io.github.thiagojosetj.portfolio.management.domain.PortfolioValidationException;
 import io.github.thiagojosetj.portfolio.management.persistence.AllocationClassJpaRepository;
+import io.github.thiagojosetj.portfolio.management.persistence.OwnedPortfolioSnapshotRow;
 import io.github.thiagojosetj.portfolio.management.persistence.PortfolioJpaEntity;
+import io.github.thiagojosetj.portfolio.management.persistence.PortfolioJpaRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
@@ -45,6 +47,8 @@ class PortfolioManagementServiceIntegrationTest {
   @Autowired JdbcTemplate jdbcTemplate;
 
   @Autowired PlatformTransactionManager transactionManager;
+
+  @Autowired PortfolioJpaRepository portfolioRepository;
 
   @PersistenceContext EntityManager entityManager;
 
@@ -105,6 +109,128 @@ class PortfolioManagementServiceIntegrationTest {
               assertThat(exception.field()).isEqualTo("name");
               assertThat(exception.code()).isEqualTo("duplicate");
             });
+  }
+
+  @Test
+  void listsOnlyOwnedPortfoliosAndEnforcesTheBoundedInitialLimit() {
+    UUID owner = insertSyntheticUser("Usuário fictício Um");
+    UUID other = insertSyntheticUser("Usuário fictício Dois");
+    createBalancedPortfolio(other);
+    for (int index = 0; index < 100; index++) {
+      jdbcTemplate.update(
+          "INSERT INTO portfolio(id, owner_user_id, name) VALUES (?, ?, ?)",
+          UUID.randomUUID(),
+          owner,
+          "Carteira " + index);
+    }
+    assertThat(service.listPortfolios(owner))
+        .hasSize(100)
+        .allMatch(wallet -> wallet.ownerUserId().equals(owner));
+    assertThatThrownBy(() -> createBalancedPortfolio(owner))
+        .isInstanceOfSatisfying(
+            PortfolioValidationException.class,
+            exception -> assertThat(exception.code()).isEqualTo("limit"));
+    assertThat(service.listPortfolios(other)).hasSize(1);
+  }
+
+  @Test
+  void listsTheOwnedSnapshotsInOrderWithTwoStatementsAndNoManagedEntities() {
+    UUID owner = insertSyntheticUser("Usuário fictício Um");
+    UUID other = insertSyntheticUser("Usuário fictício Dois");
+    PortfolioView foreign = createBalancedPortfolio(other);
+    UUID newerFirst = UUID.fromString("20000000-0000-4000-8000-000000000001");
+    UUID newerSecond = UUID.fromString("30000000-0000-4000-8000-000000000001");
+    UUID older = UUID.fromString("10000000-0000-4000-8000-000000000001");
+    jdbcTemplate.update(
+        """
+        INSERT INTO portfolio(id, owner_user_id, name, created_at, updated_at)
+        VALUES (?, ?, 'Segunda', '2026-09-27T12:00:00Z', '2026-09-27T12:00:00Z'),
+               (?, ?, 'Primeira', '2026-09-27T12:00:00Z', '2026-09-27T12:00:00Z'),
+               (?, ?, 'Terceira', '2026-09-26T12:00:00Z', '2026-09-26T12:00:00Z')
+        """,
+        newerSecond,
+        owner,
+        newerFirst,
+        owner,
+        older,
+        owner);
+    jdbcTemplate.update(
+        """
+        INSERT INTO allocation_class(id, portfolio_id, name, display_order, target_percentage)
+        VALUES (?, ?, 'FIIs', 1, 40.0000), (?, ?, 'Ações', 0, 60.0000)
+        """,
+        UUID.randomUUID(),
+        newerFirst,
+        UUID.randomUUID(),
+        newerFirst);
+
+    var statistics =
+        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+    boolean previouslyEnabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      statistics.clear();
+
+      List<PortfolioView> listed = service.listPortfolios(owner);
+
+      assertThat(listed)
+          .extracting(PortfolioView::id)
+          .containsExactly(newerFirst, newerSecond, older);
+      assertThat(listed.getFirst().allocationTargets())
+          .extracting(PortfolioView.AllocationTargetView::name)
+          .containsExactly("Ações", "FIIs");
+      assertThat(listed.get(1).allocationTargets()).isEmpty();
+      assertThat(listed.get(2).allocationTargets()).isEmpty();
+      assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
+      assertThat(statistics.getEntityLoadCount()).isZero();
+    } finally {
+      statistics.setStatisticsEnabled(previouslyEnabled);
+    }
+
+    assertThat(portfolioRepository.findOwnedSnapshotRows(owner, List.of(older, foreign.id())))
+        .extracting(OwnedPortfolioSnapshotRow::portfolioId)
+        .containsExactly(older);
+  }
+
+  @Test
+  void concurrentCreationCannotExceedTheOwnedPortfolioLimit() throws Exception {
+    UUID owner = insertSyntheticUser("Usuário fictício");
+    for (int index = 0; index < 99; index++) {
+      jdbcTemplate.update(
+          "INSERT INTO portfolio(id, owner_user_id, name) VALUES (?, ?, ?)",
+          UUID.randomUUID(),
+          owner,
+          "Carteira " + index);
+    }
+    var ready = new CountDownLatch(2);
+    var start = new CountDownLatch(1);
+    try (var executor = Executors.newFixedThreadPool(2)) {
+      java.util.function.Function<String, Callable<Object>> task =
+          name ->
+              () -> {
+                ready.countDown();
+                if (!start.await(5, TimeUnit.SECONDS)) {
+                  throw new IllegalStateException("Synthetic timeout");
+                }
+                try {
+                  return service.createPortfolio(
+                      new CreatePortfolioCommand(owner, name, List.of(target("Ações", "100"))));
+                } catch (PortfolioValidationException exception) {
+                  return exception;
+                }
+              };
+      var first = executor.submit(task.apply("Última Um"));
+      var second = executor.submit(task.apply("Última Dois"));
+      assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+      start.countDown();
+      var outcomes = List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
+      assertThat(outcomes).filteredOn(PortfolioView.class::isInstance).hasSize(1);
+      assertThat(outcomes).filteredOn(PortfolioValidationException.class::isInstance).hasSize(1);
+      assertThat(
+              jdbcTemplate.queryForObject(
+                  "SELECT count(*) FROM portfolio WHERE owner_user_id = ?", Integer.class, owner))
+          .isEqualTo(100);
+    }
   }
 
   @Test

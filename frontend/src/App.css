@@ -75,7 +75,7 @@
   border-radius: 999px;
   background: var(--surface-translucent);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 3px;
   transition:
     border-color var(--motion-base) var(--motion-ease),
@@ -86,7 +86,7 @@
 .nav-indicator {
   position: absolute;
   inset: 4px auto 4px 4px;
-  width: calc((100% - 14px) / 3);
+  width: calc((100% - 17px) / 4);
   border-radius: 999px;
   background: var(--emphasis-surface);
   box-shadow: 0 3px 10px
@@ -358,6 +358,11 @@ footer p {
 }
 
 @media (max-width: 560px) {
+  .app-nav button {
+    padding-inline: 4px;
+    font-size: 0.7rem;
+  }
+
   .nav-icon {
     display: none;
   }

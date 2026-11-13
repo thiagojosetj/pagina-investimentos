@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.github.thiagojosetj.portfolio.management.domain.PortfolioValidationException;
@@ -37,7 +38,7 @@ class PortfolioSnapshotMappingTest {
         new ArrayList<>(
             List.of(
                 row(firstId, "Ações", (short) 0, "60"), row(secondId, "FIIs", (short) 1, "40")));
-    when(portfolios.findOwnedSnapshotRows(ownerId, portfolioId)).thenReturn(rows);
+    when(portfolios.findOwnedSnapshotRows(ownerId, List.of(portfolioId))).thenReturn(rows);
 
     PortfolioView result = service.findPortfolio(ownerId, portfolioId);
     rows.clear();
@@ -59,13 +60,13 @@ class PortfolioSnapshotMappingTest {
     assertThat(result.allocationTargets().getFirst().updatedAt()).isEqualTo(now);
     assertThatThrownBy(() -> result.allocationTargets().clear())
         .isInstanceOf(UnsupportedOperationException.class);
-    verify(portfolios).findOwnedSnapshotRows(ownerId, portfolioId);
+    verify(portfolios).findOwnedSnapshotRows(ownerId, List.of(portfolioId));
     verifyNoInteractions(targets);
   }
 
   @Test
   void mapsTheLeftJoinSentinelToAnEmptyTargetList() {
-    when(portfolios.findOwnedSnapshotRows(ownerId, portfolioId))
+    when(portfolios.findOwnedSnapshotRows(ownerId, List.of(portfolioId)))
         .thenReturn(List.of(row(null, null, null, null)));
 
     PortfolioView result = service.findPortfolio(ownerId, portfolioId);
@@ -78,7 +79,7 @@ class PortfolioSnapshotMappingTest {
 
   @Test
   void hidesAMissingOrForeignPortfolioWhenTheSnapshotIsEmpty() {
-    when(portfolios.findOwnedSnapshotRows(ownerId, portfolioId)).thenReturn(List.of());
+    when(portfolios.findOwnedSnapshotRows(ownerId, List.of(portfolioId))).thenReturn(List.of());
 
     assertThatThrownBy(() -> service.findPortfolio(ownerId, portfolioId))
         .isInstanceOf(PortfolioNotFoundException.class)
@@ -99,9 +100,52 @@ class PortfolioSnapshotMappingTest {
     verifyNoInteractions(portfolios, targets);
   }
 
+  @Test
+  void skipsTheSnapshotQueryWhenTheOwnerHasNoPortfolios() {
+    when(portfolios.findOwnedIds(ownerId)).thenReturn(List.of());
+
+    assertThat(service.listPortfolios(ownerId)).isEmpty();
+
+    verify(portfolios).findOwnedIds(ownerId);
+    verifyNoMoreInteractions(portfolios);
+    verifyNoInteractions(targets);
+  }
+
+  @Test
+  void groupsTheBatchedRowsWithoutChangingPortfolioOrTargetOrder() {
+    UUID emptyPortfolioId = UUID.randomUUID();
+    UUID firstClassId = UUID.randomUUID();
+    UUID secondClassId = UUID.randomUUID();
+    List<UUID> orderedIds = List.of(emptyPortfolioId, portfolioId);
+    when(portfolios.findOwnedIds(ownerId)).thenReturn(orderedIds);
+    when(portfolios.findOwnedSnapshotRows(ownerId, orderedIds))
+        .thenReturn(
+            List.of(
+                row(firstClassId, "Ações", (short) 0, "60"),
+                row(secondClassId, "FIIs", (short) 1, "40"),
+                rowFor(emptyPortfolioId, null, null, null, null)));
+
+    List<PortfolioView> result = service.listPortfolios(ownerId);
+
+    assertThat(result).extracting(PortfolioView::id).containsExactlyElementsOf(orderedIds);
+    assertThat(result.getFirst().allocationTargets()).isEmpty();
+    assertThat(result.getLast().allocationTargets())
+        .extracting(PortfolioView.AllocationTargetView::id)
+        .containsExactly(firstClassId, secondClassId);
+    verify(portfolios).findOwnedIds(ownerId);
+    verify(portfolios).findOwnedSnapshotRows(ownerId, orderedIds);
+    verifyNoMoreInteractions(portfolios);
+    verifyNoInteractions(targets);
+  }
+
   private OwnedPortfolioSnapshotRow row(UUID classId, String name, Short order, String percentage) {
+    return rowFor(portfolioId, classId, name, order, percentage);
+  }
+
+  private OwnedPortfolioSnapshotRow rowFor(
+      UUID id, UUID classId, String name, Short order, String percentage) {
     return new OwnedPortfolioSnapshotRow(
-        portfolioId,
+        id,
         ownerId,
         "Carteira Sintética",
         "BRL",

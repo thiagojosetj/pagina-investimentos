@@ -6,17 +6,24 @@ import { ContributionSimulator } from './features/contribution-simulator/Contrib
 import type { SimulationDraftPreset } from './features/contribution-simulator/contracts'
 import { PortfolioOverview } from './features/portfolio-overview/PortfolioOverview'
 import { createDemoSimulationPreset } from './features/portfolio-overview/demoPortfolio'
+import { SavedPortfolio } from './features/saved-portfolio/SavedPortfolio'
 
 const NAV_ITEMS = [
   { id: 'overview', label: 'Visão geral' },
   { id: 'assets', label: 'Ativos' },
   { id: 'simulator', label: 'Simulador' },
+  { id: 'wallet', label: 'Carteira' },
 ] as const
 
 type ActiveView = (typeof NAV_ITEMS)[number]['id']
 type ColorTheme = 'light' | 'dark'
 
 const THEME_STORAGE_KEY = 'portfolio-planner-theme'
+
+function getLoginResult() {
+  const result = new URLSearchParams(window.location.search).get('login')
+  return result === 'success' || result === 'failed' ? result : null
+}
 
 function getInitialTheme(): ColorTheme {
   try {
@@ -76,6 +83,11 @@ function ViewIcon({ view }: { view: ActiveView }) {
           <rect x="3" y="14" width="7" height="7" rx="1.5" />
           <rect x="14" y="14" width="7" height="7" rx="1.5" />
         </>
+      ) : view === 'wallet' ? (
+        <>
+          <path d="M4 7V5h14v3M4 8h16v12H4z" />
+          <path d="M15 12h5v5h-5z" />
+        </>
       ) : (
         <>
           <path d="M3 6h18M3 12h18M3 18h18" />
@@ -89,8 +101,12 @@ function ViewIcon({ view }: { view: ActiveView }) {
 }
 
 function App() {
-  const [activeView, setActiveView] = useState<ActiveView>('overview')
+  const [loginResult] = useState(getLoginResult)
+  const [activeView, setActiveView] = useState<ActiveView>(
+    loginResult ? 'wallet' : 'overview',
+  )
   const [theme, setTheme] = useState<ColorTheme>(getInitialTheme)
+  const [walletVisited, setWalletVisited] = useState(loginResult !== null)
   const [demoTransfer, setDemoTransfer] = useState<{
     version: number
     preset: SimulationDraftPreset
@@ -100,6 +116,26 @@ function App() {
     categoryId: string
   } | null>(null)
   const mainRef = useRef<HTMLElement>(null)
+  const previousView = useRef(activeView)
+
+  useLayoutEffect(() => {
+    if (previousView.current === activeView) return
+    previousView.current = activeView
+    mainRef.current?.focus({ preventScroll: true })
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    // Keep the new page at the top after the browser settles its scroll anchor.
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [activeView])
+
+  useLayoutEffect(() => {
+    if (!loginResult) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('login')
+    window.history.replaceState(window.history.state, '', url)
+  }, [loginResult])
 
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -116,18 +152,13 @@ function App() {
   }, [theme])
 
   function openView(view: ActiveView) {
+    if (view === 'wallet') setWalletVisited(true)
+    if (view === activeView) {
+      mainRef.current?.focus({ preventScroll: true })
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+      return
+    }
     setActiveView(view)
-    window.requestAnimationFrame(() => {
-      const main = mainRef.current
-      const prefersReducedMotion =
-        typeof window.matchMedia === 'function' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-      main?.focus({ preventScroll: true })
-      main?.scrollIntoView?.({
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      })
-    })
   }
 
   function useDemoPortfolio() {
@@ -205,7 +236,11 @@ function App() {
             <span>Modo {theme === 'light' ? 'escuro' : 'claro'}</span>
           </button>
           <span className="status-badge">
-            {activeView === 'simulator' ? 'Módulo inicial' : 'Dados sintéticos'}
+            {activeView === 'simulator'
+              ? 'Módulo inicial'
+              : activeView === 'wallet'
+                ? 'Carteiras e metas'
+                : 'Dados sintéticos'}
           </span>
         </div>
       </header>
@@ -235,9 +270,9 @@ function App() {
             <div className="intro-copy">
               <p>
                 Este é o primeiro módulo de uma plataforma de carteira em
-                evolução. Por enquanto, ele trabalha com um cenário informado na
-                tela; carteiras salvas, cadastro de ativos e movimentações ainda
-                não estão disponíveis.
+                evolução e usa um cenário informado na tela. A aba Carteira
+                permite salvar classes e metas no ambiente local habilitado;
+                cadastro de ativos e movimentações ainda não estão disponíveis.
               </p>
               <p className="disclaimer">
                 Simulação educacional, sem recomendação de investimento. Use
@@ -251,6 +286,15 @@ function App() {
             key={demoTransfer?.version ?? 0}
             initialPreset={demoTransfer?.preset}
           />
+        </div>
+        <div className="app-view" hidden={activeView !== 'wallet'}>
+          {loginResult === 'failed' && (
+            <p className="wallet-error" role="alert">
+              Não foi possível entrar com o Google. Tente novamente pela aba
+              Carteira.
+            </p>
+          )}
+          {walletVisited && <SavedPortfolio active={activeView === 'wallet'} />}
         </div>
       </main>
 

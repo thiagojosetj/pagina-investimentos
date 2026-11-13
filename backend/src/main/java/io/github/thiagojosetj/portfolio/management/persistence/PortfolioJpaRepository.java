@@ -22,19 +22,30 @@ public interface PortfolioJpaRepository extends Repository<PortfolioJpaEntity, U
       )
       from PortfolioJpaEntity p
       left join AllocationClassJpaEntity a on a.portfolioId = p.id
-      where p.id = :portfolioId
+      where p.id in :portfolioIds
         and p.ownerUserId = :ownerUserId
-      order by a.displayOrder
+      order by p.id, a.displayOrder
       """)
   List<OwnedPortfolioSnapshotRow> findOwnedSnapshotRows(
-      @Param("ownerUserId") UUID ownerUserId, @Param("portfolioId") UUID portfolioId);
+      @Param("ownerUserId") UUID ownerUserId, @Param("portfolioIds") List<UUID> portfolioIds);
 
   boolean existsByIdAndOwnerUserId(UUID portfolioId, UUID ownerUserId);
+
+  @Query(
+      value =
+          "SELECT id FROM portfolio WHERE owner_user_id = :ownerUserId ORDER BY created_at DESC, id LIMIT 100",
+      nativeQuery = true)
+  List<UUID> findOwnedIds(@Param("ownerUserId") UUID ownerUserId);
 
   @Query(
       value = "SELECT EXISTS (SELECT 1 FROM app_user WHERE id = :ownerUserId)",
       nativeQuery = true)
   boolean ownerExists(@Param("ownerUserId") UUID ownerUserId);
+
+  @Query(value = "SELECT id FROM app_user WHERE id = :ownerUserId FOR UPDATE", nativeQuery = true)
+  List<UUID> lockOwner(@Param("ownerUserId") UUID ownerUserId);
+
+  long countByOwnerUserId(UUID ownerUserId);
 
   @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Query(

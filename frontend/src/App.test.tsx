@@ -6,18 +6,117 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+
+beforeEach(() => {
+  vi.stubGlobal('scrollTo', vi.fn())
+})
 
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
   window.localStorage.clear()
+  window.history.replaceState(null, '', '/')
   document.documentElement.removeAttribute('data-theme')
   document.documentElement.style.removeProperty('color-scheme')
 })
 
 describe('App', () => {
+  it.each(['success', 'failed'])(
+    'opens the wallet on Google return %s and removes the one-time marker',
+    async (result) => {
+      window.history.replaceState(null, '', `/?login=${result}&preview=1`)
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          Response.json({
+            authenticated: false,
+            loginMode: 'google',
+            walletAvailable: true,
+          }),
+        ),
+      )
+      render(<App />)
+      expect(screen.getByRole('button', { name: 'Carteira' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+      expect(
+        await screen.findByRole('link', { name: 'Entrar com Google' }),
+      ).toBeVisible()
+      expect(window.location.search).toBe('?preview=1')
+      const alert = screen.queryByText(/Não foi possível entrar com o Google/)
+      if (result === 'failed') expect(alert).toHaveAttribute('role', 'alert')
+      else expect(alert).not.toBeInTheDocument()
+    },
+  )
+
+  it('loads the saved-wallet session only after explicit navigation and preserves the view across tabs', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          authenticated: false,
+          loginMode: 'demo',
+          walletAvailable: false,
+        }),
+        { status: 200 },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Carteira' }))
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Explore a demonstração sem criar uma conta.',
+      }),
+    ).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    await user.click(screen.getByRole('button', { name: 'Carteira' }))
+    expect(
+      screen.getByRole('heading', {
+        name: 'Explore a demonstração sem criar uma conta.',
+      }),
+    ).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledOnce()
+  }, 10000)
+
+  it('rechecks an authenticated session before showing the wallet on return', async () => {
+    const user = userEvent.setup()
+    let authenticated = true
+    const fetchMock = vi.fn(async (path: string) =>
+      path === '/api/v1/session'
+        ? Response.json({
+            authenticated,
+            displayName: authenticated ? 'Titular fictício' : null,
+            loginMode: 'local',
+            walletAvailable: true,
+          })
+        : Response.json({ portfolios: [] }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Carteira' }))
+    expect(await screen.findByText('Titular fictício')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    authenticated = false
+    await user.click(screen.getByRole('button', { name: 'Carteira' }))
+
+    expect(screen.queryByText('Titular fictício')).not.toBeInTheDocument()
+    expect(
+      await screen.findByRole('button', {
+        name: 'Entrar com usuário fictício',
+      }),
+    ).toBeVisible()
+    expect(
+      fetchMock.mock.calls.filter(([path]) => path === '/api/v1/session'),
+    ).toHaveLength(2)
+  })
+
   it('opens with the portfolio overview and navigates to the simulator', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -36,9 +135,7 @@ describe('App', () => {
       screen.getByText(/primeiro módulo de uma plataforma de carteira/i),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(
-        /carteiras salvas, cadastro de ativos e movimentações ainda não/i,
-      ),
+      screen.getByText(/cadastro de ativos e movimentações ainda não/i),
     ).toBeInTheDocument()
     expect(screen.getByText(/use apenas valores fictícios/i)).toHaveTextContent(
       'as entradas são enviadas à API para o cálculo',
@@ -56,7 +153,7 @@ describe('App', () => {
       within(screen.getByRole('navigation', { name: 'Navegação principal' }))
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Visão geral', 'Ativos', 'Simulador'])
+    ).toEqual(['Visão geral', 'Ativos', 'Simulador', 'Carteira'])
     expect(screen.getByRole('button', { name: 'Visão geral' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -377,42 +474,35 @@ describe('App', () => {
     expect(fetchMock).toHaveBeenCalledOnce()
   })
 
-  it('avoids smooth scrolling when reduced motion is preferred', async () => {
-    const user = userEvent.setup()
-    const scrollIntoView = vi.fn()
-    const previousScrollIntoView = Object.getOwnPropertyDescriptor(
-      HTMLElement.prototype,
-      'scrollIntoView',
-    )
-
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn(() => ({ matches: true })),
-    )
-    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
-
-    try {
-      render(<App />)
-      await user.click(screen.getByRole('button', { name: 'Simulador' }))
-
-      await waitFor(() =>
-        expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto' }),
+  it.each([false, true])(
+    'opens every page at the document top with reduced motion set to %s',
+    async (reducedMotion) => {
+      const user = userEvent.setup()
+      const scrollTo = vi.mocked(window.scrollTo)
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query: string) => ({
+          matches:
+            query === '(prefers-reduced-motion: reduce)' && reducedMotion,
+        })),
       )
-    } finally {
-      if (previousScrollIntoView) {
-        Object.defineProperty(
-          HTMLElement.prototype,
-          'scrollIntoView',
-          previousScrollIntoView,
+      render(<App />)
+
+      for (const page of ['Ativos', 'Simulador', 'Visão geral']) {
+        scrollTo.mockClear()
+        await user.click(screen.getByRole('button', { name: page }))
+
+        await waitFor(() =>
+          expect(scrollTo).toHaveBeenCalledWith({
+            top: 0,
+            left: 0,
+            behavior: 'instant',
+          }),
         )
-      } else {
-        Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+        expect(screen.getByRole('main')).toHaveFocus()
       }
-    }
-  })
+    },
+  )
 
   it('switches color theme and persists the visual preference', async () => {
     const user = userEvent.setup()

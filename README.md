@@ -20,11 +20,12 @@ Simulador de aportes com o exemplo sintético da própria interface. O aporte de
 - **Atalho contextual da visão geral para Ativos:** o filtro de posições determina a categoria aberta na aba Ativos; Caixa permanece apenas na visão geral. A navegação normal conserva filtros, enquanto esse atalho reinicia explicitamente a consulta da aba Ativos.
 - **Transferência demonstrativa para o simulador:** o botão “Simular esta demonstração” preenche as cinco classes sintéticas, inclusive a hipótese de caixa, sem enviar a requisição até a pessoa confirmar a simulação. Não carrega uma carteira salva.
 - **API documentada** com OpenAPI e Swagger UI, com erros no formato `application/problem+json`.
-- **Persistência de carteiras e metas** com PostgreSQL e Flyway, coberta por testes de integração, ainda sem endpoint público.
+- **Carteiras e metas salvas:** primeira fatia autenticada com criação, consulta e edição das classes/metas, versionamento e isolamento pelo proprietário. Disponível no ambiente local `local-wallet`, com identidade fictícia explícita.
+- **Fundação do login web:** Spring Security, Google OpenID Connect, CSRF e sessões JDBC no PostgreSQL. O login Google real depende de credenciais/configuração externa e ainda precisa ser validado nesse ambiente.
 
 A demonstração pública está disponível em [pagina-investimentos-demo.onrender.com](https://pagina-investimentos-demo.onrender.com). Ela roda no Render Free sem banco ou contas: a visão geral é sintética e o simulador apenas calcula entradas fictícias, sem salvar uma carteira.
 
-A aba Ativos e o atalho contextual foram implementados localmente; sua disponibilidade online depende de push aprovado, CI e deploy concluídos. Não há promessa de atualização automática da versão publicada.
+A aba Ativos e o atalho contextual foram integrados à `main` no PR #11, com Backend, Frontend e imagem pública aprovados na CI. A disponibilidade online acompanha o último deploy concluído no Render. A nova aba Carteira informa quando o ambiente não oferece persistência.
 
 ## Destaques técnicos
 
@@ -40,7 +41,7 @@ A aba Ativos e o atalho contextual foram implementados localmente; sua disponibi
 
 ## Ainda não implementado
 
-- Contas, autenticação (planejada com login Google) e endpoints para salvar ou consultar carteiras.
+- Validação do login Google com um cliente real e publicação de um ambiente privado com banco durável, backup e operação aprovados.
 - Cadastro e persistência de ativos, movimentações, cotações, rentabilidade e proventos; a aba Ativos atual só consulta exemplos fixos.
 - Dashboard conectado: a visão geral atual usa uma fixture sintética.
 - Preenchimento do simulador a partir de posições reais persistidas; a transferência demonstrativa usa exclusivamente valores fixos e fictícios.
@@ -64,7 +65,7 @@ O serviço gratuito pode dormir após 15 minutos sem acessos e levar aproximadam
 
 ## Executar localmente
 
-Pré-requisitos: JDK 21 e Node.js 24 LTS com npm. Docker (Docker Desktop no Windows e no macOS) é necessário para o modo completo com PostgreSQL e para os testes de integração; não é necessário para apenas simular aportes.
+Pré-requisitos: JDK 21 e Node.js 24 LTS, versão mínima 24.15.0, com npm. Docker (Docker Desktop no Windows e no macOS) é necessário para o modo completo com PostgreSQL e para os testes de integração; não é necessário para apenas simular aportes.
 
 PowerShell:
 
@@ -119,6 +120,20 @@ Mantenha o frontend rodando normalmente em `http://localhost:5173`. Esse perfil 
 Para experimentar a transferência demonstrativa, abra **Visão geral** e clique em **Simular esta demonstração**. Confira as cinco classes, incluindo Caixa (hipótese visual), e o aporte inicial editável de R$ 2.000,00; ajuste os campos se quiser e só então envie pelo botão de simulação. Trocar normalmente entre as abas preserva o rascunho manual; clicar novamente na ação demonstrativa substitui esse rascunho e limpa o resultado anterior. Nenhum dado dessa visão é uma carteira pessoal salva ou uma cotação atual.
 
 Configurações de execução para o IntelliJ IDEA ficam em `.run/`. Detalhes do ambiente e solução de problemas estão em [`docs/local-development.md`](docs/local-development.md).
+
+### Primeira carteira salva local
+
+Inicie o PostgreSQL do projeto, execute **Local Wallet + Frontend** no IntelliJ e abra `http://localhost:5173`. Na aba **Carteira**, escolha **Entrar com usuário fictício**, crie uma carteira e edite suas classes/metas. Salvar e recarregar recupera os dados do PostgreSQL. Os percentuais precisam fechar exatamente 100%, com até quatro casas decimais. Uma edição concorrente retorna conflito e preserva o rascunho para revisão.
+
+Pelo PowerShell, com o PostgreSQL saudável, execute no terminal do backend:
+
+```powershell
+cd backend
+$env:SPRING_PROFILES_ACTIVE = 'local-wallet'
+.\mvnw.cmd spring-boot:run
+```
+
+Em outro terminal, execute o frontend normalmente. Use apenas dados fictícios e mantenha ambos os processos em loopback. Esse perfil não solicita uma conta Google; `wallet` usa OIDC e exige configuração HTTPS/Google, descrita em [`docs/local-development.md`](docs/local-development.md). Ativos, posições e movimentações ainda não são cadastrados na carteira salva.
 
 ## Testes e verificações
 
@@ -199,7 +214,7 @@ O formulário indica em texto se as metas fecham exatamente 100%, com até quatr
 - [`docs/render-deployment.md`](docs/render-deployment.md) — demonstração pública e atualização da versão online.
 - [`docs/class-rebalancing.md`](docs/class-rebalancing.md) — regra e limites das vendas simuladas.
 - [`docs/REVIEW_FOLLOW_UP.md`](docs/REVIEW_FOLLOW_UP.md) — correções priorizadas e melhorias adiadas.
-- [`docs/AUTH_SECURITY_PLAN.md`](docs/AUTH_SECURITY_PLAN.md) — proposta de login, sessão e isolamento, ainda sem autenticação implementada.
+- [`docs/AUTH_SECURITY_PLAN.md`](docs/AUTH_SECURITY_PLAN.md) — login, sessão JDBC, isolamento e validações externas ainda pendentes.
 
 ## Dados e licença
 
@@ -209,4 +224,4 @@ Código distribuído sob a [licença MIT](LICENSE).
 
 ## English summary
 
-Educational full-stack portfolio planning app built with Java 21, Spring Boot, PostgreSQL, React and TypeScript. The current release provides a deterministic contribution simulator: amounts are handled as integer cents and leftover cents are assigned with the largest remainder method, so the split always adds up to the contribution. It is not financial advice and uses synthetic examples only.
+Educational full-stack portfolio planning app built with Java 21, Spring Boot, PostgreSQL, React and TypeScript. The public demo offers synthetic portfolio views and a deterministic contribution simulator with exact integer cents. An explicit local mode now saves portfolios and allocation targets with server-side ownership, CSRF and JDBC sessions. The Google OIDC foundation is implemented, but live Google login and private hosting still require external configuration and verification. This is not financial advice; examples and tests use synthetic data only.
