@@ -27,7 +27,8 @@ public class IdentityService {
         "INSERT INTO app_user(id, display_name) VALUES (?, ?) ON CONFLICT(id) DO NOTHING",
         LOCAL_USER_ID,
         LOCAL_DISPLAY_NAME);
-    return new SessionPrincipal(LOCAL_USER_ID, LOCAL_DISPLAY_NAME, clock.instant());
+    return new SessionPrincipal(
+        LOCAL_USER_ID, LOCAL_DISPLAY_NAME, clock.instant(), SessionPrincipal.Origin.LOCAL);
   }
 
   @Transactional
@@ -79,6 +80,7 @@ public class IdentityService {
           verified,
           subject);
     }
-    return new SessionPrincipal(userId, displayName, clock.instant());
+    return new SessionPrincipal(
+        userId, displayName, clock.instant(), SessionPrincipal.Origin.GOOGLE);
   }
 }

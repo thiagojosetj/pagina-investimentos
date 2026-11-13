@@ -86,7 +86,9 @@ class GoogleLoginConfigurationTest {
         new GoogleLoginConfigurer(environment("https://example.invalid"), service, repository);
     var request = new MockHttpServletRequest();
     var response = new MockHttpServletResponse();
-    var principal = new SessionPrincipal(UUID.randomUUID(), "Usuário fictício", Instant.now());
+    var principal =
+        new SessionPrincipal(
+            UUID.randomUUID(), "Usuário fictício", Instant.now(), SessionPrincipal.Origin.GOOGLE);
     when(service.googleIdentity(
             "synthetic-subject", "Usuário fictício", "fiction@example.com", true))
         .thenReturn(principal);
@@ -99,7 +101,7 @@ class GoogleLoginConfigurationTest {
                   .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
       assertThat(context.getAuthentication().getPrincipal()).isEqualTo(principal);
       assertThat(context.getAuthentication().getCredentials()).isNull();
-      assertThat(response.getRedirectedUrl()).isEqualTo("https://example.invalid/");
+      assertThat(response.getRedirectedUrl()).isEqualTo("https://example.invalid/?login=success");
     } finally {
       SecurityContextHolder.clearContext();
     }

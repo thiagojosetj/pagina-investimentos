@@ -13,9 +13,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 final class AbsoluteSessionExpiryFilter extends OncePerRequestFilter {
   private final Clock clock;
+  private final WalletMode mode;
 
-  AbsoluteSessionExpiryFilter(Clock clock) {
+  AbsoluteSessionExpiryFilter(Clock clock, WalletMode mode) {
     this.clock = clock;
+    this.mode = mode;
   }
 
   @Override
@@ -23,16 +25,14 @@ final class AbsoluteSessionExpiryFilter extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
     var authentication = SecurityContextHolder.getContext().getAuthentication();
-    boolean invalidPrincipal =
+    boolean invalidSession =
         authentication != null
-            && authentication.isAuthenticated()
             && !(authentication instanceof AnonymousAuthenticationToken)
-            && !(authentication.getPrincipal() instanceof SessionPrincipal);
-    boolean expired =
-        authentication != null
-            && authentication.getPrincipal() instanceof SessionPrincipal user
-            && !clock.instant().isBefore(user.authenticatedAt().plus(Duration.ofHours(8)));
-    if (invalidPrincipal || expired) {
+            && (!authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof SessionPrincipal user)
+                || !mode.accepts(user)
+                || !clock.instant().isBefore(user.authenticatedAt().plus(Duration.ofHours(8))));
+    if (invalidSession) {
       var session = request.getSession(false);
       if (session != null) {
         session.invalidate();

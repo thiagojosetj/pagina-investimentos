@@ -105,7 +105,7 @@ public class GoogleLoginConfigurer {
               local, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
       SecurityContextHolder.setContext(context);
       contexts.saveContext(context, request, response);
-      response.sendRedirect(home());
+      response.sendRedirect(home() + "?login=success");
     } catch (RuntimeException exception) {
       // OAuth authentication has already saved its context; do not retain it on DB failure.
       var session = request.getSession(false);

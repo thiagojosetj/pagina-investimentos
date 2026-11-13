@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public final class WalletMode {
-  private final String loginMode;
+  private final SessionPrincipal.Origin sessionOrigin;
 
   public WalletMode(Environment environment) {
     var profiles = Arrays.asList(environment.getActiveProfiles());
@@ -21,14 +21,23 @@ public final class WalletMode {
             .contains(environment.getProperty("server.address", "127.0.0.1"))) {
       throw new IllegalStateException("local-wallet exige bind em endereço de loopback.");
     }
-    loginMode = local ? "local" : google ? "google" : "demo";
+    sessionOrigin =
+        local ? SessionPrincipal.Origin.LOCAL : google ? SessionPrincipal.Origin.GOOGLE : null;
   }
 
   public String loginMode() {
-    return loginMode;
+    return switch (sessionOrigin) {
+      case LOCAL -> "local";
+      case GOOGLE -> "google";
+      case null -> "demo";
+    };
   }
 
   public boolean available() {
-    return !loginMode.equals("demo");
+    return sessionOrigin != null;
+  }
+
+  boolean accepts(SessionPrincipal principal) {
+    return available() && principal.origin() == sessionOrigin;
   }
 }

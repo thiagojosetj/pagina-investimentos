@@ -62,7 +62,8 @@ public class WalletSecurityConfiguration {
                         }));
     if (mode.available()) {
       http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/allocation-simulations/**"))
-          .addFilterAfter(new AbsoluteSessionExpiryFilter(clock), SecurityContextHolderFilter.class)
+          .addFilterAfter(
+              new AbsoluteSessionExpiryFilter(clock, mode), SecurityContextHolderFilter.class)
           .logout(
               logout ->
                   logout

@@ -30,12 +30,17 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -91,6 +96,20 @@ class WalletSecurityMvcTest {
     verifyNoInteractions(portfolios);
   }
 
+  @ParameterizedTest
+  @NullSource
+  @EnumSource(value = SessionPrincipal.Origin.class, names = "GOOGLE")
+  void rejectsAndInvalidatesSessionsWithoutTheLocalOrigin(SessionPrincipal.Origin origin)
+      throws Exception {
+    var session = new MockHttpSession();
+    var context = SecurityContextHolder.createEmptyContext();
+    context.setAuthentication(auth(NOW, origin));
+    session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+    mvc.perform(get("/api/v1/portfolios").session(session)).andExpect(status().isUnauthorized());
+    assertThat(session.isInvalid()).isTrue();
+    verifyNoInteractions(portfolios);
+  }
+
   @Test
   void exposesOnlyTheMinimalSessionState() throws Exception {
     mvc.perform(get("/api/v1/session").with(authentication(auth(NOW))))
@@ -100,6 +119,7 @@ class WalletSecurityMvcTest {
         .andExpect(jsonPath("$.loginMode").value("local"))
         .andExpect(jsonPath("$.walletAvailable").value(true))
         .andExpect(jsonPath("$.userId").doesNotExist())
+        .andExpect(jsonPath("$.origin").doesNotExist())
         .andExpect(jsonPath("$.token").doesNotExist());
   }
 
@@ -114,7 +134,8 @@ class WalletSecurityMvcTest {
   @Test
   void localLoginRotatesSessionAndStoresOnlyLocalPrincipal() throws Exception {
     when(identities.localIdentity())
-        .thenReturn(new SessionPrincipal(OWNER, "Usuário fictício", NOW));
+        .thenReturn(
+            new SessionPrincipal(OWNER, "Usuário fictício", NOW, SessionPrincipal.Origin.LOCAL));
     var session = new org.springframework.mock.web.MockHttpSession();
     String oldId = session.getId();
     mvc.perform(post("/api/v1/local-session").session(session).with(csrf()))
@@ -258,7 +279,8 @@ class WalletSecurityMvcTest {
   @Test
   void logoutRequiresCsrfAndInvalidatesTheServerSession() throws Exception {
     when(identities.localIdentity())
-        .thenReturn(new SessionPrincipal(OWNER, "Usuário fictício", NOW));
+        .thenReturn(
+            new SessionPrincipal(OWNER, "Usuário fictício", NOW, SessionPrincipal.Origin.LOCAL));
     var session = new org.springframework.mock.web.MockHttpSession();
     mvc.perform(post("/api/v1/local-session").session(session).with(csrf()))
         .andExpect(status().isNoContent());
@@ -269,8 +291,13 @@ class WalletSecurityMvcTest {
   }
 
   private UsernamePasswordAuthenticationToken auth(Instant authenticatedAt) {
+    return auth(authenticatedAt, SessionPrincipal.Origin.LOCAL);
+  }
+
+  private UsernamePasswordAuthenticationToken auth(
+      Instant authenticatedAt, SessionPrincipal.Origin origin) {
     return UsernamePasswordAuthenticationToken.authenticated(
-        new SessionPrincipal(OWNER, "Usuário fictício", authenticatedAt),
+        new SessionPrincipal(OWNER, "Usuário fictício", authenticatedAt, origin),
         null,
         List.of(new SimpleGrantedAuthority("ROLE_USER")));
   }

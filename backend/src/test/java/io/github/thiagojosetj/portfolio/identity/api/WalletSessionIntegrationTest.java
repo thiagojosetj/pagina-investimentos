@@ -154,7 +154,21 @@ class WalletSessionIntegrationTest {
   @Test
   void expiredJdbcSessionsCannotUsePreviouslyIssuedCookies() throws Exception {
     login();
-    jdbc.update("UPDATE spring_session SET expiry_time = 0");
+    assertThat(send("GET", "/api/v1/portfolios", null, null).statusCode()).isEqualTo(200);
+    long elapsedMillis = Duration.ofHours(1).toMillis();
+    // The repository checks last access plus the inactivity timeout, not expiry_time alone.
+    int updated =
+        jdbc.update(
+            """
+            UPDATE spring_session
+               SET creation_time = creation_time - ?,
+                   last_access_time = last_access_time - ?,
+                   expiry_time = expiry_time - ?
+            """,
+            elapsedMillis,
+            elapsedMillis,
+            elapsedMillis);
+    assertThat(updated).isOne();
     assertThat(send("GET", "/api/v1/portfolios", null, null).statusCode()).isEqualTo(401);
   }
 

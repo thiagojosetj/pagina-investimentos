@@ -2,8 +2,10 @@ package io.github.thiagojosetj.portfolio.identity.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,14 +15,21 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -86,6 +95,27 @@ class GoogleAuthorizationMvcTest {
                 .param("state", "incorrect-state"))
         .andExpect(status().isFound())
         .andExpect(redirectedUrl("https://portfolio.example.invalid/?login=failed"));
+    verifyNoInteractions(identities);
+  }
+
+  @Test
+  void invalidatesALocalSessionInsteadOfExposingItInGoogleMode() throws Exception {
+    Instant now = Instant.parse("2026-01-01T12:00:00Z");
+    when(clock.instant()).thenReturn(now);
+    var session = new MockHttpSession();
+    var context = SecurityContextHolder.createEmptyContext();
+    context.setAuthentication(
+        UsernamePasswordAuthenticationToken.authenticated(
+            new SessionPrincipal(
+                UUID.randomUUID(), "Investidor fictício", now, SessionPrincipal.Origin.LOCAL),
+            null,
+            List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+    mvc.perform(get("/api/v1/session").session(session))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.authenticated").value(false))
+        .andExpect(jsonPath("$.loginMode").value("google"));
+    assertThat(session.isInvalid()).isTrue();
     verifyNoInteractions(identities);
   }
 
