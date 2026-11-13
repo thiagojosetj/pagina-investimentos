@@ -7,6 +7,33 @@ afterEach(() => {
 })
 
 describe('saved portfolio API', () => {
+  it.each([
+    ['duplicate', 'name', 'Escolha outro nome'],
+    ['limit', 'name', 'limite de 100 carteiras'],
+    ['duplicate', 'targets', 'Confira os dados da carteira'],
+  ])(
+    'handles a rejected wallet field (%s, %s)',
+    async (code, field, message) => {
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValue(
+            Response.json(
+              { code, field, detail: 'server detail' },
+              { status: 422 },
+            ),
+          ),
+      )
+      await expect(
+        readSession(new AbortController().signal),
+      ).rejects.toMatchObject({
+        status: 422,
+        message: expect.stringContaining(message),
+      })
+    },
+  )
+
   it('accepts a nullable display name in the anonymous backend contract', async () => {
     vi.stubGlobal(
       'fetch',

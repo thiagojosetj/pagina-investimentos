@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   createPortfolio,
   endSession,
@@ -31,6 +31,8 @@ export function SavedPortfolio() {
   const requestRef = useRef<AbortController | null>(null)
   const requestSequence = useRef(0)
   const targetSequence = useRef(0)
+  const targetNameInputs = useRef(new Map<string, HTMLInputElement>())
+  const pendingFocusTargetKey = useRef<string | null>(null)
 
   function selectPortfolio(portfolio: Portfolio | null) {
     setSelected(portfolio)
@@ -189,6 +191,33 @@ export function SavedPortfolio() {
       requestRef.current?.abort()
     }
   }, [])
+
+  useLayoutEffect(() => {
+    const key = pendingFocusTargetKey.current
+    if (key !== null) {
+      pendingFocusTargetKey.current = null
+      targetNameInputs.current.get(key)?.focus()
+    }
+  }, [draft])
+
+  function addTarget() {
+    const key = `new-${++targetSequence.current}`
+    pendingFocusTargetKey.current = key
+    setDraft((current) => [
+      ...current,
+      { key, id: null, name: '', percentage: '0' },
+    ])
+    setDirty(true)
+    setNotice('')
+  }
+
+  function removeTarget(index: number, key: string) {
+    pendingFocusTargetKey.current =
+      draft[index + 1]?.key ?? draft[index - 1]?.key ?? null
+    setDraft((current) => current.filter((target) => target.key !== key))
+    setDirty(true)
+    setNotice('')
+  }
 
   function updateTarget(key: string, changes: Partial<TargetDraft>) {
     setDraft((current) =>
@@ -484,6 +513,11 @@ export function SavedPortfolio() {
                           <span>Classe {index + 1}</span>
                           <input
                             aria-label={`Nome da classe ${index + 1}`}
+                            ref={(input) => {
+                              if (input)
+                                targetNameInputs.current.set(target.key, input)
+                              else targetNameInputs.current.delete(target.key)
+                            }}
                             maxLength={60}
                             disabled={pending}
                             value={target.name}
@@ -513,13 +547,7 @@ export function SavedPortfolio() {
                           type="button"
                           aria-label={`Remover classe ${index + 1}`}
                           disabled={pending || draft.length <= 1}
-                          onClick={() => {
-                            setDraft((current) =>
-                              current.filter((item) => item.key !== target.key),
-                            )
-                            setDirty(true)
-                            setNotice('')
-                          }}
+                          onClick={() => removeTarget(index, target.key)}
                         >
                           ×
                         </button>
@@ -530,24 +558,15 @@ export function SavedPortfolio() {
                     type="button"
                     className="wallet-add"
                     disabled={pending || draft.length >= 20}
-                    onClick={() => {
-                      targetSequence.current += 1
-                      setDraft((current) => [
-                        ...current,
-                        {
-                          key: `new-${targetSequence.current}`,
-                          id: null,
-                          name: '',
-                          percentage: '0',
-                        },
-                      ])
-                      setDirty(true)
-                      setNotice('')
-                    }}
+                    onClick={addTarget}
                   >
-                    + Adicionar classe
+                    <span aria-hidden="true">+</span> Adicionar classe
                   </button>
                   <p
+                    id="wallet-target-validation"
+                    role="status"
+                    aria-label="Validação das metas"
+                    aria-atomic="true"
                     className={
                       validationError
                         ? 'wallet-validation invalid'
@@ -561,6 +580,7 @@ export function SavedPortfolio() {
                     <button
                       className="wallet-primary"
                       type="submit"
+                      aria-describedby="wallet-target-validation"
                       disabled={
                         pending ||
                         !!validationError ||

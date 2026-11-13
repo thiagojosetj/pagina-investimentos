@@ -115,6 +115,71 @@ afterEach(() => {
 })
 
 describe('SavedPortfolio', () => {
+  it('focuses the new class name and associates validation with the save control', async () => {
+    const user = userEvent.setup()
+    server([examplePortfolio()], true)
+    render(<SavedPortfolio />)
+    const add = await screen.findByRole('button', { name: 'Adicionar classe' })
+    add.focus()
+    await user.keyboard('{Enter}')
+
+    const name = screen.getByLabelText('Nome da classe 5')
+    expect(name).toHaveFocus()
+    const feedback = screen.getByRole('status', { name: 'Validação das metas' })
+    expect(feedback).toHaveTextContent('Cada classe precisa de um nome')
+    const save = screen.getByRole('button', { name: 'Salvar metas' })
+    expect(save).toBeDisabled()
+    expect(save).toHaveAccessibleDescription(/Cada classe precisa de um nome/)
+
+    await user.type(name, 'Caixa fictício')
+    expect(feedback).toHaveTextContent('Metas somam 100%')
+    expect(save).toBeEnabled()
+  })
+
+  it('focuses the next class name after removal, or the previous name at the end', async () => {
+    const user = userEvent.setup()
+    server([examplePortfolio()], true)
+    render(<SavedPortfolio />)
+    const removeSecond = await screen.findByRole('button', {
+      name: 'Remover classe 2',
+    })
+    removeSecond.focus()
+    await user.keyboard('{Enter}')
+
+    expect(screen.getByLabelText('Nome da classe 2')).toHaveValue('ETFs')
+    expect(screen.getByLabelText('Nome da classe 2')).toHaveFocus()
+
+    const removeLast = screen.getByRole('button', { name: 'Remover classe 3' })
+    removeLast.focus()
+    await user.keyboard(' ')
+    expect(screen.getByLabelText('Nome da classe 2')).toHaveFocus()
+    expect(screen.queryByLabelText('Nome da classe 3')).not.toBeInTheDocument()
+  })
+
+  it('keeps removal disabled when only one class remains', async () => {
+    server(
+      [
+        {
+          ...examplePortfolio(),
+          targets: [
+            {
+              id: 'stocks',
+              name: 'Ações',
+              targetPercentage: '100.0000',
+              displayOrder: 0,
+            },
+          ],
+        },
+      ],
+      true,
+    )
+    render(<SavedPortfolio />)
+
+    expect(
+      await screen.findByRole('button', { name: 'Remover classe 1' }),
+    ).toBeDisabled()
+  })
+
   it('does not expose the previous wallet after a session refresh whose ownership list fails', async () => {
     const user = userEvent.setup()
     const { fetchMock, state } = server([examplePortfolio()], true)

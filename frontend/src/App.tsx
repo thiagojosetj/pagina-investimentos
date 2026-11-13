@@ -20,6 +20,11 @@ type ColorTheme = 'light' | 'dark'
 
 const THEME_STORAGE_KEY = 'portfolio-planner-theme'
 
+function getLoginResult() {
+  const result = new URLSearchParams(window.location.search).get('login')
+  return result === 'success' || result === 'failed' ? result : null
+}
+
 function getInitialTheme(): ColorTheme {
   try {
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
@@ -96,9 +101,12 @@ function ViewIcon({ view }: { view: ActiveView }) {
 }
 
 function App() {
-  const [activeView, setActiveView] = useState<ActiveView>('overview')
+  const [loginResult] = useState(getLoginResult)
+  const [activeView, setActiveView] = useState<ActiveView>(
+    loginResult ? 'wallet' : 'overview',
+  )
   const [theme, setTheme] = useState<ColorTheme>(getInitialTheme)
-  const [walletVisited, setWalletVisited] = useState(false)
+  const [walletVisited, setWalletVisited] = useState(loginResult !== null)
   const [demoTransfer, setDemoTransfer] = useState<{
     version: number
     preset: SimulationDraftPreset
@@ -108,6 +116,21 @@ function App() {
     categoryId: string
   } | null>(null)
   const mainRef = useRef<HTMLElement>(null)
+  const previousView = useRef(activeView)
+
+  useLayoutEffect(() => {
+    if (previousView.current === activeView) return
+    previousView.current = activeView
+    mainRef.current?.focus({ preventScroll: true })
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [activeView])
+
+  useLayoutEffect(() => {
+    if (!loginResult) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('login')
+    window.history.replaceState(window.history.state, '', url)
+  }, [loginResult])
 
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -125,12 +148,12 @@ function App() {
 
   function openView(view: ActiveView) {
     if (view === 'wallet') setWalletVisited(true)
-    setActiveView(view)
-    window.requestAnimationFrame(() => {
-      const main = mainRef.current
-      main?.focus({ preventScroll: true })
+    if (view === activeView) {
+      mainRef.current?.focus({ preventScroll: true })
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-    })
+      return
+    }
+    setActiveView(view)
   }
 
   function useDemoPortfolio() {
@@ -260,6 +283,12 @@ function App() {
           />
         </div>
         <div className="app-view" hidden={activeView !== 'wallet'}>
+          {loginResult === 'failed' && (
+            <p className="wallet-error" role="alert">
+              Não foi possível entrar com o Google. Tente novamente pela aba
+              Carteira.
+            </p>
+          )}
           {walletVisited && <SavedPortfolio />}
         </div>
       </main>

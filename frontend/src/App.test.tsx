@@ -17,11 +17,41 @@ afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
   window.localStorage.clear()
+  window.history.replaceState(null, '', '/')
   document.documentElement.removeAttribute('data-theme')
   document.documentElement.style.removeProperty('color-scheme')
 })
 
 describe('App', () => {
+  it.each(['success', 'failed'])(
+    'opens the wallet on Google return %s and removes the one-time marker',
+    async (result) => {
+      window.history.replaceState(null, '', `/?login=${result}&preview=1`)
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          Response.json({
+            authenticated: false,
+            loginMode: 'google',
+            walletAvailable: true,
+          }),
+        ),
+      )
+      render(<App />)
+      expect(screen.getByRole('button', { name: 'Carteira' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+      expect(
+        await screen.findByRole('link', { name: 'Entrar com Google' }),
+      ).toBeVisible()
+      expect(window.location.search).toBe('?preview=1')
+      const alert = screen.queryByText(/Não foi possível entrar com o Google/)
+      if (result === 'failed') expect(alert).toHaveAttribute('role', 'alert')
+      else expect(alert).not.toBeInTheDocument()
+    },
+  )
+
   it('loads the saved-wallet session only after explicit navigation and preserves the view across tabs', async () => {
     const user = userEvent.setup()
     const fetchMock = vi.fn().mockResolvedValue(

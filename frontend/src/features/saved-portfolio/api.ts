@@ -64,6 +64,21 @@ async function request(
     if (controller.signal.aborted)
       throw new DOMException('Request cancelled', 'AbortError')
     if (!response.ok) {
+      if (response.status === 422) {
+        const problem: unknown = await response.json().catch(() => null)
+        if (controller.signal.aborted)
+          throw new DOMException('Request cancelled', 'AbortError')
+        const reason =
+          isObject(problem) && problem.field === 'name' ? problem.code : null
+        throw new WalletApiError(
+          422,
+          reason === 'duplicate'
+            ? 'Já existe uma carteira com esse nome. Escolha outro nome.'
+            : reason === 'limit'
+              ? 'Você atingiu o limite de 100 carteiras.'
+              : 'Confira os dados da carteira e as metas antes de salvar novamente.',
+        )
+      }
       const messages: Record<number, string> = {
         400: 'Confira os dados informados e tente novamente.',
         401: 'Sua sessão expirou. Entre novamente para continuar.',
