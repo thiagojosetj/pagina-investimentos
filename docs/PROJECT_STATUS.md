@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Atualizado em:** 1º de outubro de 2026
+**Atualizado em:** 13 de novembro de 2026
 
 ## Atualização corrente
 
@@ -8,7 +8,7 @@ Os PRs #12 (Spotless), #13 (dependências frontend) e #11 (snapshot coerente, sw
 
 A primeira fatia de carteira utilizável acrescenta a aba Carteira, login fictício local explícito, criação/listagem de carteiras e edição persistida das classes/metas. O servidor obtém o proprietário da sessão, aplica CSRF e mantém a versão otimista; a interface conserva o rascunho em conflito. Spring Security/Google OIDC e Spring Session JDBC estabelecem a fundação da identidade web. Configuração Google real, publicação privada e cadastro de ativos/movimentações continuam pendentes. A vitrine Render usa `demo`, sem banco ou conta pessoal.
 
-Correções visuais: seta do seletor sem preenchimento nativo branco; destaque da classe selecionada preservado no hover; navegação volta instantaneamente ao topo mantendo o cabeçalho. A verificação em Edge headless passou em 320, 390 e 1280 px, claro/escuro, sem overflow ou erros JavaScript. A execução frontend anterior à carteira passou com 63 testes; os resultados do incremento completo serão registrados depois da validação.
+Correções visuais: seta do seletor sem preenchimento nativo branco; destaque do ativo selecionado preservado no hover; navegação volta instantaneamente ao topo mantendo o cabeçalho. A verificação em Edge headless passou em 320, 390 e 1280 px, claro/escuro, sem overflow ou erros JavaScript. O fluxo da carteira também foi exercitado em navegador com respostas de API controladas. O backend passou 107 testes sem Docker e o frontend 89 testes, formatação, lint, checagem de tipos e build. O Vitest usa até dois processos para evitar falhas de inicialização sob pressão de memória no Windows. Testes PostgreSQL e imagem pública exigem a CI.
 
 ## Estado real
 
