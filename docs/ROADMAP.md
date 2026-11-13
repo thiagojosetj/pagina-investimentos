@@ -191,6 +191,7 @@ O INC-008B foi validado na CI do PR #11; a direção de autenticação foi deleg
 ### INC-012 — Ratificar modelo de movimentações
 
 - **Status:** proposto; aprovação obrigatória.
+- **Proposta para revisão:** [`MANUAL_PURCHASE_PLAN.md`](MANUAL_PURCHASE_PLAN.md).
 - **Objetivo:** definir ativos, compras, vendas, custos, ordenação, correções e auditoria.
 - **Dependências:** INC-011.
 - **Critérios de aceite:** escalas numéricas, invariantes e limites educacionais explícitos.

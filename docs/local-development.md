@@ -322,4 +322,6 @@ O perfil `wallet` usa Google OpenID Connect e requer três variáveis no **proce
 
 Não altere o serviço gratuito de demonstração para esse perfil: login real exige um ambiente privado aprovado, PostgreSQL durável, backups, secrets e teste real do callback. O cookie desse ambiente é `Secure`, HttpOnly e SameSite=Lax; a sessão tem 30 minutos de inatividade e limite absoluto de 8 horas. O backend usa Authorization Code + PKCE, identifica contas por provedor e `sub`, e não guarda tokens Google na sessão final. O proxy Vite inclui `/oauth2` e `/login/oauth2` para desenvolvimento controlado, mas não substitui HTTPS nem a origem registrada.
 
+Não reutilize o banco do `local-wallet` no ambiente Google. Use banco e credenciais separados por ambiente; o servidor também invalida sessões emitidas em outro modo ou sem origem registrada. Após essa atualização, uma sessão criada pela versão anterior deve entrar novamente.
+
 No Render atual e nos perfis `demo`/`simulator`, a aba Carteira explica que a persistência não está habilitada. Nenhum cadastro é simulado como se tivesse sido salvo.
