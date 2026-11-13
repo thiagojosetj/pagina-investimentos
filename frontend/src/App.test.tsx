@@ -85,6 +85,38 @@ describe('App', () => {
     expect(fetchMock).toHaveBeenCalledOnce()
   }, 10000)
 
+  it('rechecks an authenticated session before showing the wallet on return', async () => {
+    const user = userEvent.setup()
+    let authenticated = true
+    const fetchMock = vi.fn(async (path: string) =>
+      path === '/api/v1/session'
+        ? Response.json({
+            authenticated,
+            displayName: authenticated ? 'Titular fictício' : null,
+            loginMode: 'local',
+            walletAvailable: true,
+          })
+        : Response.json({ portfolios: [] }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Carteira' }))
+    expect(await screen.findByText('Titular fictício')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Ativos' }))
+    authenticated = false
+    await user.click(screen.getByRole('button', { name: 'Carteira' }))
+
+    expect(screen.queryByText('Titular fictício')).not.toBeInTheDocument()
+    expect(
+      await screen.findByRole('button', {
+        name: 'Entrar com usuário fictício',
+      }),
+    ).toBeVisible()
+    expect(
+      fetchMock.mock.calls.filter(([path]) => path === '/api/v1/session'),
+    ).toHaveLength(2)
+  })
+
   it('opens with the portfolio overview and navigates to the simulator', async () => {
     const user = userEvent.setup()
     render(<App />)

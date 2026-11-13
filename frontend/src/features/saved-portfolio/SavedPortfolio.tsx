@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   createPortfolio,
   endSession,
@@ -16,7 +22,7 @@ import type {
 } from './contracts'
 import './SavedPortfolio.css'
 
-export function SavedPortfolio() {
+export function SavedPortfolio({ active = true }: { active?: boolean }) {
   const [session, setSession] = useState<WalletSession | null>(null)
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
   const [selected, setSelected] = useState<Portfolio | null>(null)
@@ -28,6 +34,8 @@ export function SavedPortfolio() {
   const [notice, setNotice] = useState('')
   const [logoutFailed, setLogoutFailed] = useState(false)
   const [verifyingSession, setVerifyingSession] = useState(false)
+  const [sessionCheckQueued, setSessionCheckQueued] = useState(false)
+  const previousActive = useRef(active)
   const requestRef = useRef<AbortController | null>(null)
   const requestSequence = useRef(0)
   const targetSequence = useRef(0)
@@ -63,14 +71,19 @@ export function SavedPortfolio() {
       selectPortfolio(next)
   }
 
-  async function operation(action: (signal: AbortSignal) => Promise<void>) {
+  async function operation(
+    action: (signal: AbortSignal) => Promise<void>,
+    preserveFeedback = false,
+  ) {
     requestRef.current?.abort()
     const controller = new AbortController()
     requestRef.current = controller
     const sequence = ++requestSequence.current
     setPending(true)
-    setError(null)
-    setNotice('')
+    if (!preserveFeedback) {
+      setError(null)
+      setNotice('')
+    }
     try {
       await action(controller.signal)
     } catch (failure) {
@@ -84,6 +97,7 @@ export function SavedPortfolio() {
               'Não foi possível concluir a operação. Tente novamente.',
             )
       setError(apiError)
+      setNotice('')
       if (apiError.status === 401) {
         clearPrivateState()
         setLogoutFailed(false)
@@ -105,10 +119,18 @@ export function SavedPortfolio() {
       if (current.authenticated && current.walletAvailable) {
         const values = await readPortfolios(signal)
         if (signal.aborted) return
-        applyPortfolios(values, true)
+        const ownsSelection = values.some((item) => item.id === selected?.id)
+        if (!ownsSelection) {
+          setName('')
+          setError(null)
+          setNotice('')
+        }
+        applyPortfolios(values, ownsSelection)
       } else {
         clearPrivateState()
         setLogoutFailed(false)
+        setError(null)
+        setNotice('')
       }
       setSession(current)
     } catch (failure) {
@@ -192,6 +214,36 @@ export function SavedPortfolio() {
     }
   }, [])
 
+  const canRecheckSession =
+    session?.authenticated === true && session.walletAvailable && !logoutFailed
+
+  useLayoutEffect(() => {
+    const returning = active && !previousActive.current
+    previousActive.current = active
+    if (returning && canRecheckSession) setSessionCheckQueued(true)
+  }, [active, canRecheckSession])
+
+  useEffect(() => {
+    if (!active || !canRecheckSession) return
+    function checkOnVisibility() {
+      if (document.visibilityState === 'visible') setSessionCheckQueued(true)
+    }
+    document.addEventListener('visibilitychange', checkOnVisibility)
+    return () =>
+      document.removeEventListener('visibilitychange', checkOnVisibility)
+  }, [active, canRecheckSession])
+
+  const recheckSession = useEffectEvent(() => {
+    setSessionCheckQueued(false)
+    if (canRecheckSession) void operation(refreshSession, true)
+  })
+
+  useEffect(() => {
+    if (!active || !sessionCheckQueued || pending) return
+    const scheduled = window.setTimeout(() => recheckSession(), 0)
+    return () => window.clearTimeout(scheduled)
+  }, [active, sessionCheckQueued, pending])
+
   useLayoutEffect(() => {
     const key = pendingFocusTargetKey.current
     if (key !== null) {
@@ -232,16 +284,13 @@ export function SavedPortfolio() {
 
   const validationError = draft.length > 0 ? validateTargets(draft) : null
   const authenticated =
-    session?.authenticated &&
-    session.walletAvailable &&
-    !verifyingSession &&
-    !logoutFailed
+    canRecheckSession && !sessionCheckQueued && !verifyingSession
 
   return (
     <section
       className="saved-portfolio"
       aria-labelledby="wallet-title"
-      aria-busy={pending}
+      aria-busy={pending || sessionCheckQueued}
     >
       <div className="wallet-heading">
         <div>
@@ -261,9 +310,11 @@ export function SavedPortfolio() {
         informações fictícias durante os testes.
       </p>
 
-      {pending && (
+      {(pending || sessionCheckQueued) && (
         <p role="status" className="wallet-notice">
-          Aguarde, carregando sua carteira…
+          {sessionCheckQueued || verifyingSession
+            ? 'Verificando sua sessão…'
+            : 'Aguarde, carregando sua carteira…'}
         </p>
       )}
       {error && (

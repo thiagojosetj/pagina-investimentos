@@ -1,4 +1,11 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SavedPortfolio } from './SavedPortfolio'
@@ -111,10 +118,110 @@ async function changeTargets(user: ReturnType<typeof userEvent.setup>) {
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 
 describe('SavedPortfolio', () => {
+  it('hides the wallet while checking a visible tab and clears it after a logout elsewhere', async () => {
+    const { fetchMock, state } = server([examplePortfolio()], true)
+    const visibility = vi.spyOn(document, 'visibilityState', 'get')
+    const original = fetchMock.getMockImplementation()!
+    let finishSession: (() => void) | undefined
+    render(<SavedPortfolio />)
+    await screen.findByRole('heading', { name: 'Metas de Carteira fictícia' })
+
+    fetchMock.mockImplementation((path, options = {}) => {
+      if (path !== '/api/v1/session') return original(path, options)
+      return new Promise<Response>((resolve) => {
+        finishSession = () => void original(path, options).then(resolve)
+      })
+    })
+    state.authenticated = false
+    visibility.mockReturnValue('hidden')
+    fireEvent(document, new Event('visibilitychange'))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    visibility.mockReturnValue('visible')
+    fireEvent(document, new Event('visibilitychange'))
+    await screen.findByText('Verificando sua sessão…')
+    expect(screen.queryByText('Carteira fictícia')).not.toBeInTheDocument()
+    expect(finishSession).toBeDefined()
+    await act(async () => finishSession?.())
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Entrar com usuário fictício',
+      }),
+    ).toBeVisible()
+    expect(screen.queryByLabelText('Meta da classe 1')).not.toBeInTheDocument()
+    fireEvent(document, new Event('visibilitychange'))
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('preserves an edited draft only while its portfolio is still owned', async () => {
+    const user = userEvent.setup()
+    const { state } = server([examplePortfolio()], true)
+    const rendered = render(<SavedPortfolio />)
+    const first = await screen.findByLabelText('Meta da classe 1')
+    await user.clear(first)
+    await user.type(first, '39')
+
+    rendered.rerender(<SavedPortfolio active={false} />)
+    rendered.rerender(<SavedPortfolio active />)
+    expect(await screen.findByLabelText('Meta da classe 1')).toHaveValue('39')
+    expect(screen.getByText('Alterações ainda não salvas.')).toBeVisible()
+
+    state.portfolios = [
+      { ...examplePortfolio(), id: 'different-wallet', name: 'Outra carteira' },
+    ]
+    rendered.rerender(<SavedPortfolio active={false} />)
+    rendered.rerender(<SavedPortfolio active />)
+    expect(
+      await screen.findByRole('heading', { name: 'Metas de Outra carteira' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('Meta da classe 1')).toHaveValue('40,0000')
+    expect(screen.queryByText('Carteira fictícia')).not.toBeInTheDocument()
+  })
+
+  it('waits for an in-flight save instead of aborting it to recheck session', async () => {
+    const user = userEvent.setup()
+    const { fetchMock } = server([examplePortfolio()], true)
+    const original = fetchMock.getMockImplementation()!
+    let finishSave: (() => void) | undefined
+    let saveSignal: AbortSignal | null | undefined
+    fetchMock.mockImplementation((path, options = {}) => {
+      if (!path.endsWith('/targets')) return original(path, options)
+      saveSignal = options.signal
+      return new Promise<Response>((resolve) => {
+        finishSave = () => void original(path, options).then(resolve)
+      })
+    })
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    render(<SavedPortfolio />)
+    await changeTargets(user)
+    await user.click(screen.getByRole('button', { name: 'Salvar metas' }))
+    await waitFor(() => expect(finishSave).toBeDefined())
+
+    fireEvent(document, new Event('visibilitychange'))
+    expect(screen.queryByText('Carteira fictícia')).not.toBeInTheDocument()
+    expect(saveSignal?.aborted).toBe(false)
+    expect(
+      fetchMock.mock.calls.filter(([path]) => path === '/api/v1/session'),
+    ).toHaveLength(1)
+    await act(async () => finishSave?.())
+
+    expect(await screen.findByLabelText('Meta da classe 1')).toHaveValue(
+      '39,0000',
+    )
+    expect(
+      screen.getByText(/Metas salvas\. Elas estarão disponíveis/),
+    ).toBeVisible()
+    expect(
+      fetchMock.mock.calls.filter(([path]) => path === '/api/v1/session'),
+    ).toHaveLength(2)
+  })
+
   it('focuses the new class name and associates validation with the save control', async () => {
     const user = userEvent.setup()
     server([examplePortfolio()], true)

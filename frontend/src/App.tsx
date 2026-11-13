@@ -123,6 +123,11 @@ function App() {
     previousView.current = activeView
     mainRef.current?.focus({ preventScroll: true })
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    // Keep the new page at the top after the browser settles its scroll anchor.
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [activeView])
 
   useLayoutEffect(() => {
@@ -289,7 +294,7 @@ function App() {
               Carteira.
             </p>
           )}
-          {walletVisited && <SavedPortfolio />}
+          {walletVisited && <SavedPortfolio active={activeView === 'wallet'} />}
         </div>
       </main>
 
