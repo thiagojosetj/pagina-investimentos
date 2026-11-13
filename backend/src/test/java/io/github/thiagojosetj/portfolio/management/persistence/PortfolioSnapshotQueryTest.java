@@ -2,6 +2,7 @@ package io.github.thiagojosetj.portfolio.management.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.UUID;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -18,7 +19,7 @@ class PortfolioSnapshotQueryTest {
   void validatesTheScalarLeftJoinAgainstTheActualHibernateMappings() throws Exception {
     String query =
         PortfolioJpaRepository.class
-            .getMethod("findOwnedSnapshotRows", UUID.class, UUID.class)
+            .getMethod("findOwnedSnapshotRows", UUID.class, List.class)
             .getAnnotation(Query.class)
             .value();
     var registry =
@@ -38,7 +39,7 @@ class PortfolioSnapshotQueryTest {
         var session = factory.openSession()) {
       var selection = session.createSelectionQuery(query, OwnedPortfolioSnapshotRow.class);
       selection.setParameter("ownerUserId", UUID.randomUUID());
-      selection.setParameter("portfolioId", UUID.randomUUID());
+      selection.setParameterList("portfolioIds", List.of(UUID.randomUUID(), UUID.randomUUID()));
       assertThat(selection).isNotNull();
     } finally {
       StandardServiceRegistryBuilder.destroy(registry);

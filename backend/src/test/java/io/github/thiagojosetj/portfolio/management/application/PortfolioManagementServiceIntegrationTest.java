@@ -11,7 +11,9 @@ import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetDefini
 import io.github.thiagojosetj.portfolio.management.domain.AllocationTargetUpdate;
 import io.github.thiagojosetj.portfolio.management.domain.PortfolioValidationException;
 import io.github.thiagojosetj.portfolio.management.persistence.AllocationClassJpaRepository;
+import io.github.thiagojosetj.portfolio.management.persistence.OwnedPortfolioSnapshotRow;
 import io.github.thiagojosetj.portfolio.management.persistence.PortfolioJpaEntity;
+import io.github.thiagojosetj.portfolio.management.persistence.PortfolioJpaRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
@@ -45,6 +47,8 @@ class PortfolioManagementServiceIntegrationTest {
   @Autowired JdbcTemplate jdbcTemplate;
 
   @Autowired PlatformTransactionManager transactionManager;
+
+  @Autowired PortfolioJpaRepository portfolioRepository;
 
   @PersistenceContext EntityManager entityManager;
 
@@ -127,6 +131,65 @@ class PortfolioManagementServiceIntegrationTest {
             PortfolioValidationException.class,
             exception -> assertThat(exception.code()).isEqualTo("limit"));
     assertThat(service.listPortfolios(other)).hasSize(1);
+  }
+
+  @Test
+  void listsTheOwnedSnapshotsInOrderWithTwoStatementsAndNoManagedEntities() {
+    UUID owner = insertSyntheticUser("Usuário fictício Um");
+    UUID other = insertSyntheticUser("Usuário fictício Dois");
+    PortfolioView foreign = createBalancedPortfolio(other);
+    UUID newerFirst = UUID.fromString("20000000-0000-4000-8000-000000000001");
+    UUID newerSecond = UUID.fromString("30000000-0000-4000-8000-000000000001");
+    UUID older = UUID.fromString("10000000-0000-4000-8000-000000000001");
+    jdbcTemplate.update(
+        """
+        INSERT INTO portfolio(id, owner_user_id, name, created_at, updated_at)
+        VALUES (?, ?, 'Segunda', '2026-09-27T12:00:00Z', '2026-09-27T12:00:00Z'),
+               (?, ?, 'Primeira', '2026-09-27T12:00:00Z', '2026-09-27T12:00:00Z'),
+               (?, ?, 'Terceira', '2026-09-26T12:00:00Z', '2026-09-26T12:00:00Z')
+        """,
+        newerSecond,
+        owner,
+        newerFirst,
+        owner,
+        older,
+        owner);
+    jdbcTemplate.update(
+        """
+        INSERT INTO allocation_class(id, portfolio_id, name, display_order, target_percentage)
+        VALUES (?, ?, 'FIIs', 1, 40.0000), (?, ?, 'Ações', 0, 60.0000)
+        """,
+        UUID.randomUUID(),
+        newerFirst,
+        UUID.randomUUID(),
+        newerFirst);
+
+    var statistics =
+        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+    boolean previouslyEnabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      statistics.clear();
+
+      List<PortfolioView> listed = service.listPortfolios(owner);
+
+      assertThat(listed)
+          .extracting(PortfolioView::id)
+          .containsExactly(newerFirst, newerSecond, older);
+      assertThat(listed.getFirst().allocationTargets())
+          .extracting(PortfolioView.AllocationTargetView::name)
+          .containsExactly("Ações", "FIIs");
+      assertThat(listed.get(1).allocationTargets()).isEmpty();
+      assertThat(listed.get(2).allocationTargets()).isEmpty();
+      assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
+      assertThat(statistics.getEntityLoadCount()).isZero();
+    } finally {
+      statistics.setStatisticsEnabled(previouslyEnabled);
+    }
+
+    assertThat(portfolioRepository.findOwnedSnapshotRows(owner, List.of(older, foreign.id())))
+        .extracting(OwnedPortfolioSnapshotRow::portfolioId)
+        .containsExactly(older);
   }
 
   @Test

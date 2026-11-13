@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -90,8 +91,16 @@ public class PortfolioManagementService {
     if (ownerUserId == null) {
       throw invalid("ownerUserId", "required", "O proprietário da carteira é obrigatório.");
     }
-    return portfolioRepository.findOwnedIds(ownerUserId).stream()
-        .map(id -> loadOwnedPortfolio(ownerUserId, id))
+    List<UUID> portfolioIds = portfolioRepository.findOwnedIds(ownerUserId);
+    if (portfolioIds.isEmpty()) {
+      return List.of();
+    }
+    Map<UUID, List<OwnedPortfolioSnapshotRow>> snapshotsById =
+        portfolioRepository.findOwnedSnapshotRows(ownerUserId, portfolioIds).stream()
+            .collect(Collectors.groupingBy(OwnedPortfolioSnapshotRow::portfolioId));
+    // The ID query defines the portfolio order; the projection orders classes within each ID.
+    return portfolioIds.stream()
+        .map(id -> toPortfolioView(snapshotsById.getOrDefault(id, List.of())))
         .toList();
   }
 
@@ -247,8 +256,11 @@ public class PortfolioManagementService {
   private PortfolioView loadOwnedPortfolio(UUID ownerUserId, UUID portfolioId) {
     // One scalar projection keeps version and targets in the same database snapshot and avoids
     // stale managed entities when a caller already has an open persistence context.
-    List<OwnedPortfolioSnapshotRow> rows =
-        portfolioRepository.findOwnedSnapshotRows(ownerUserId, portfolioId);
+    return toPortfolioView(
+        portfolioRepository.findOwnedSnapshotRows(ownerUserId, List.of(portfolioId)));
+  }
+
+  private static PortfolioView toPortfolioView(List<OwnedPortfolioSnapshotRow> rows) {
     if (rows.isEmpty()) {
       throw new PortfolioNotFoundException();
     }

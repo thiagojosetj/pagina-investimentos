@@ -22,12 +22,12 @@ public interface PortfolioJpaRepository extends Repository<PortfolioJpaEntity, U
       )
       from PortfolioJpaEntity p
       left join AllocationClassJpaEntity a on a.portfolioId = p.id
-      where p.id = :portfolioId
+      where p.id in :portfolioIds
         and p.ownerUserId = :ownerUserId
-      order by a.displayOrder
+      order by p.id, a.displayOrder
       """)
   List<OwnedPortfolioSnapshotRow> findOwnedSnapshotRows(
-      @Param("ownerUserId") UUID ownerUserId, @Param("portfolioId") UUID portfolioId);
+      @Param("ownerUserId") UUID ownerUserId, @Param("portfolioIds") List<UUID> portfolioIds);
 
   boolean existsByIdAndOwnerUserId(UUID portfolioId, UUID ownerUserId);
 
